@@ -68,7 +68,7 @@ export function createDashboardServer(options = {}) {
   const appUrl = new URL(env.APP_URL || "http://127.0.0.1:5173").origin;
   const distDir = resolve(options.distDir || resolve(process.cwd(), "dist"));
   const dataDir = resolve(
-    env.DASHBOARD_DATA_DIR || "/workspace/.orbit-private",
+    env.DASHBOARD_DATA_DIR || ".orbit",
   );
   const tokenFile = resolve(dataDir, "connections.json");
   const sessions = new Map();

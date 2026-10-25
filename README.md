@@ -86,7 +86,7 @@ Microphone input and spoken responses depend on browser support and permission. 
 
 ## Security and deployment
 
-This is a **single-user personal dashboard**. Account credentials are stored outside the checkout in `DASHBOARD_DATA_DIR` (default `/workspace/.orbit-private`), using a `0700` directory and `0600` credential file. Set a private, persistent location appropriate to your deployment. Credentials are associated with a random HttpOnly, SameSite browser session cookie; treat both the server data and browser session as sensitive. Do not expose this app to the public internet without adding application authentication and an appropriate session and secret-management design. HTTPS and OAuth account authorization alone do not protect access to the dashboard itself.
+This is a **single-user personal dashboard**. Account credentials are stored in `DASHBOARD_DATA_DIR` (default `.orbit` inside the project, excluded from Git), using a `0700` directory and `0600` credential file. Set a private, persistent location appropriate to your deployment. Credentials are associated with a random HttpOnly, SameSite browser session cookie; treat both the server data and browser session as sensitive. Do not expose this app to the public internet without adding application authentication and an appropriate session and secret-management design. HTTPS and OAuth account authorization alone do not protect access to the dashboard itself.
 
 Use read-only Google permissions and grant only the Spotify playback access you want. Disconnecting a provider removes Orbit's locally stored credentials; revoke the app at the provider as well if you want to withdraw its authorization completely.
 
