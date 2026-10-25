@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run from a freshly extracted V2 download. Copies only application files.
+// Run from a freshly extracted V3 download. Copies only application files.
 import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, realpath } from "node:fs/promises";
 import { resolve, dirname, join, sep } from "node:path";
@@ -95,7 +95,7 @@ try {
     }
   }
   console.log(
-    "V2 application files copied. Existing credentials and connection storage were preserved.",
+    "V3 application files copied. Existing credentials and connection storage were preserved.",
   );
   if (!args.includes("--copy-only")) {
     execFileSync(

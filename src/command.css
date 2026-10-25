@@ -1,0 +1,384 @@
+.command-center {
+  margin: 25px 0;
+}
+.command-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 17px;
+}
+.command-section-heading h2 {
+  font-family: "Manrope Variable", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  margin: 8px 0;
+}
+.command-section-heading p {
+  color: #7c92b4;
+  font-size: 11px;
+  margin: 0;
+}
+.command-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.command-card {
+  padding: 19px 17px;
+  min-width: 0;
+}
+.command-card h3,
+.approval-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 12px;
+  margin: 0 0 14px;
+  color: #c5d3eb;
+}
+.command-card h3 svg,
+.approval-card h3 svg {
+  color: #9bb3d8;
+}
+.command-caption,
+.command-empty {
+  font-size: 10px;
+  color: #748cb0;
+  line-height: 1.8;
+}
+.priority-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 0;
+  border-top: 1px solid #ffffff07;
+}
+.priority-row > span {
+  font-size: 10px;
+  color: #59769f;
+  padding-top: 3px;
+}
+.priority-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.priority-row strong,
+.responsibility-row strong {
+  font-size: 11px;
+  line-height: 1.7;
+  font-weight: 400;
+  color: #afc2df;
+}
+.priority-row small,
+.responsibility-row small {
+  display: block;
+  color: #647fa6;
+  font-size: 9px;
+  margin-top: 4px;
+}
+.priority-row > button {
+  color: #8fa6cb;
+  padding: 3px;
+}
+.responsibility-row {
+  display: flex;
+  gap: 9px;
+  padding: 10px 0;
+}
+.responsibility-row > button {
+  border: 1px solid #819bc22e;
+  border-radius: 4px;
+  color: #7089ae;
+  width: 19px;
+  height: 20px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.goal-row {
+  margin: 15px 0;
+}
+.goal-row label {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #b4c5e1;
+}
+.goal-row label span {
+  display: block;
+  color: #7d96ba;
+  font-size: 10px;
+  margin: 5px 0;
+}
+.goal-row input {
+  width: 100%;
+  padding: 7px;
+  background: #070f1c55;
+  color: #c3d3ed;
+  border: 1px solid #a0b8eb22;
+  border-radius: 5px;
+}
+.goal-row progress {
+  width: 100%;
+  height: 5px;
+  accent-color: #b8c8fa;
+  margin-top: 8px;
+}
+.habit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  font-size: 11px;
+  text-align: left;
+  color: #aec2df;
+  padding: 10px 0;
+}
+.habit-row > span {
+  border: 1px solid #a4bd8625;
+  border-radius: 5px;
+  display: flex;
+  padding: 4px;
+  color: #95b282;
+}
+.habit-row.checked > span {
+  background: #b3ce9d20;
+}
+.habit-row small {
+  font-size: 8px;
+  color: #65839b;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.approval-card {
+  margin-top: 17px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 15px;
+}
+.approval-card > div > p {
+  font-size: 10px;
+  color: #718bb2;
+  line-height: 1.8;
+  max-width: 260px;
+}
+.approval-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+}
+.approval-row > div {
+  flex: 1;
+}
+.approval-row span {
+  display: block;
+  color: #7c95bb;
+  font-size: 7px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.approval-row strong {
+  font-size: 11px;
+  font-weight: 400;
+  color: #b7c9e5;
+  line-height: 1.7;
+}
+.approval-row button {
+  font-size: 10px;
+  color: #bbccf5;
+  background: #a5bcf711;
+  border: 1px solid #a5bcf71b;
+  border-radius: 5px;
+  padding: 7px 9px;
+  display: flex;
+}
+.approval-card details {
+  grid-column: 1/-1;
+  border-top: 1px solid #ffffff09;
+  padding-top: 13px;
+}
+.approval-card summary {
+  font-size: 10px;
+  color: #708aaf;
+  cursor: pointer;
+}
+.approval-card summary svg {
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.activity-row {
+  display: flex;
+  gap: 13px;
+  padding: 9px 0;
+  font-size: 10px;
+  color: #a8bddc;
+}
+.activity-row > span {
+  color: #718caf;
+  min-width: 90px;
+}
+.activity-row strong {
+  font-weight: 400;
+}
+.capture-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 25px;
+}
+.capture-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 12px;
+  color: #b7c9e5;
+}
+.capture-form input,
+.capture-form select {
+  background: #0b1423;
+  color: #c5d5ed;
+  border: 1px solid #a4baf42a;
+  border-radius: 7px;
+  padding: 11px;
+  font-size: 13px;
+  width: 100%;
+}
+.capture-form p {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #7d95b9;
+  margin: 0;
+}
+.capture-form .primary-button {
+  align-self: flex-start;
+}
+.captured-note-strip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10px;
+  color: #718db5;
+  margin-top: 15px;
+}
+.quick-capture-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #adbfeb;
+  font-size: 11px;
+  padding: 8px 10px;
+  border: 1px solid #abc2ff22;
+  border-radius: 7px;
+  background: #abc2ff08;
+}
+.tonight-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 19px;
+  margin: 21px 0;
+}
+.tonight-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 25px 0 12px;
+  font-size: 14px;
+  color: #bccce6;
+}
+.tonight-heading > span {
+  font-size: 9px;
+  color: #728bb0;
+}
+.orbit-v3 .page-heading .eyebrow {
+  color: #91a8cf;
+}
+@media (max-width: 1200px) {
+  .command-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .quick-capture-top > span {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .command-grid,
+  .tonight-grid {
+    grid-template-columns: 1fr;
+  }
+  .command-section-heading {
+    align-items: flex-start;
+  }
+  .command-section-heading h2 {
+    font-size: 18px;
+  }
+  .command-section-heading p {
+    font-size: 10px;
+  }
+  .command-section-heading .primary-button {
+    font-size: 10px;
+    gap: 5px;
+    padding: 8px;
+  }
+  .approval-card {
+    display: block;
+  }
+  .approval-row {
+    flex-wrap: wrap;
+  }
+  .command-card {
+    padding: 19px;
+  }
+  .quick-capture-top {
+    padding: 6px;
+  }
+  .topbar-right {
+    gap: 9px !important;
+  }
+  .captured-note-strip {
+    line-height: 1.8;
+  }
+  .approval-card > div > p {
+    max-width: unset;
+  }
+  .command-card h3 {
+    font-size: 13px;
+  }
+  .command-empty {
+    font-size: 11px;
+  }
+  .priority-row strong,
+  .responsibility-row strong {
+    font-size: 12px;
+  }
+}
+
+.manage-captures {
+  margin-top: 15px;
+  color: #7893b8;
+  font-size: 11px;
+}
+.manage-captures summary {
+  cursor: pointer;
+}
+.manage-captures > p {
+  font-size: 10px;
+}
+.manage-captures > div {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 9px 0;
+  max-width: 600px;
+}
+.manage-captures small {
+  display: block;
+  font-size: 9px;
+  color: #617da4;
+}
+.manage-captures button {
+  display: flex;
+  color: #8ca6cc;
+}

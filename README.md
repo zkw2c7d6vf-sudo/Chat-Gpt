@@ -80,7 +80,7 @@ When enabled, AI requests send your question, a bounded recent conversation hist
 
 V2 begins with a build checklist based on this conversation, including the Spotify connection the user reported as working and the calendar/weather/voice follow-ups. It does not invent a personal life backlog.
 
-Tasks, notes, and V2 conversation messages live in this browser's local storage. Clear conversation history from the assistant when desired; clearing browser site data also removes it. Existing user tasks are preserved during upgrades. You can add, complete, and remove tasks, including through supported local assistant commands. With AI configured, **Keep track of next steps as we talk** saves up to three concrete suggested actions per reply into this browser’s list; this setting is enabled for the requested ongoing tracking and can be turned off in Assistant settings. Review or delete any suggestion. The assistant only knows the data provided to it by this app and the saved build handoff; it does not automatically read future conversations in ChatGPT. Future coding work must explicitly update the handoff/checklist, or you can add the task directly in Orbit.
+Tasks, notes, and V2 conversation messages live in this browser's local storage. Clear conversation history from the assistant when desired; clearing browser site data also removes it. Existing user tasks are preserved during upgrades. You can add, complete, and remove tasks, including through supported local assistant commands. With AI configured, **Review next steps as we talk** queues up to three concrete suggested actions per reply for approval before adding them to this browser’s list; this setting is enabled for the requested ongoing tracking and can be turned off in Assistant settings. Review or delete any suggestion. The assistant only knows the data provided to it by this app and the saved build handoff; it does not automatically read future conversations in ChatGPT. Future coding work must explicitly update the handoff/checklist, or you can add the task directly in Orbit.
 
 Opening an email only updates Orbit's local read marker; Gmail is unchanged. Search covers the loaded events, messages, files, and tasks, not your entire account. Unconnected services show connection prompts and empty states by default. Optional demo mode uses clearly labeled sample content rather than claiming to be connected.
 
@@ -133,3 +133,19 @@ node scripts/update-local.mjs
 ```
 
 Drag your **old** Orbit folder from Finder into Terminal when prompted, then press Enter. The updater copies application files and installs the matching dependencies. It preserves the old `.env`, `.orbit`, Git history, and browser data. Start `npm run dev` from the **old** folder afterward and keep using the same browser address. Run `node scripts/update-local.mjs --help` for command-line options. The updater cannot access or change your Mac until you run it there.
+
+## V3 additions
+
+Development is isolated on `orbit-v3`; `main` retains V2. Nothing is publicly deployed.
+
+**Media Center** adds Movies, TV, Photos, and a built-in Player for compatible personal files. Files are stored locally in this browser's IndexedDB, not uploaded to Orbit's server. Keep originals: browser storage can be cleared or evicted. Codec support depends on the browser; the player explains unsupported files. Use Tonight’s queue, favorites, and continue-watching progress. No subscription-streaming or DRM bypass is included.
+
+**Tonight’s delivery** accepts an official DoorDash tracking link and manually entered status/ETA. It does not read your DoorDash account or automatically track the driver. Open the official map from the card. The link is private and excluded from dashboard backups.
+
+**Quick capture** (top bar, or Ctrl/Cmd+Shift+K) saves tasks, notes, ideas, responsibilities, reminders, financial goals, and habits locally. The Daily Command Center displays three priorities from your entered responsibilities and tasks. School/teaching details and financial targets start empty; Orbit does not invent those details or connect a bank. Reminders appear in the app, not as background notifications. Habit checks use the current local day.
+
+**Approval & activity** holds AI-suggested tasks for explicit approval. Approved tasks enter your local list; dismissed suggestions stay out. Explicit task commands remain direct user instructions. No external service action is executed by this approval queue.
+
+**Backup & restore** lives in Connections. Review a backup before applying it; it contains private notes/conversation and local settings. It excludes credentials, connection tokens, private delivery links, and media file bytes. Keep original media separately.
+
+Research: [official sources and constraints](docs/v3-research.md). Audit and revision record: [seven V3 passes](docs/v3-revisions.md).

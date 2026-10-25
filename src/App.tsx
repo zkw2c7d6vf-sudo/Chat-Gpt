@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
+  Clapperboard,
+  PlusCircle,
   ArrowRight,
   ArrowUpRight,
   AudioLines,
@@ -63,8 +65,12 @@ import WeatherPanel from "./WeatherPanel";
 import CalendarConnect from "./CalendarConnect";
 import AssistantCharacter from "./AssistantCharacter";
 import { useVoice } from "./useVoice";
+import { MediaCenter, MediaSummary } from "./media/MediaCenter";
+import DeliveryPanel from "./DeliveryPanel";
+import BackupPanel from "./BackupPanel";
+import CommandCenter, { QuickCapture, proposeTasks } from "./CommandCenter";
 
-type View = "overview" | "calendar" | "inbox" | "files";
+type View = "overview" | "calendar" | "inbox" | "files" | "media";
 type Modal =
   "connections" | "search" | "notifications" | "assistantSettings" | null;
 type Detail =
@@ -298,6 +304,7 @@ function ModalShell({
 
 export default function App() {
   const [view, setView] = useState<View>("overview");
+  const [mediaId, setMediaId] = useState<string>();
   const [modal, setModal] = useState<Modal>(null);
   const [detail, setDetail] = useState<Detail>(null);
   const [connections, setConnections] =
@@ -691,25 +698,15 @@ export default function App() {
                 typeof x === "string" && x.trim().length > 0,
             )
             .slice(0, 3);
-          setTasks((current) => {
-            const known = new Set(
-              current.map((t) => t.title.trim().toLowerCase()),
-            );
-            const next = [...current];
-            for (const title of suggestions) {
-              const clean = title.trim().slice(0, 200);
-              if (!known.has(clean.toLowerCase())) {
-                next.push({
-                  id: crypto.randomUUID(),
-                  title: clean,
-                  done: false,
-                  source: "assistant",
-                });
-                known.add(clean.toLowerCase());
-              }
-            }
-            return next;
-          });
+          proposeTasks(
+            suggestions.filter(
+              (title: string) =>
+                !tasks.some(
+                  (t) =>
+                    t.title.trim().toLowerCase() === title.trim().toLowerCase(),
+                ),
+            ),
+          );
         }
         answer =
           body.reply ||
@@ -1429,7 +1426,7 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell orbit-v2">
+    <div className="app-shell orbit-v2 orbit-v3">
       <aside className="sidebar">
         <a
           href="#"
@@ -1448,11 +1445,13 @@ export default function App() {
             { id: "calendar", label: "Calendar", icon: CalendarDays },
             { id: "inbox", label: "Inbox", icon: Mail },
             { id: "files", label: "Files", icon: Folder },
+            { id: "media", label: "Media Center", icon: Clapperboard },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               className={`nav-item ${view === id ? "active" : ""}`}
               onClick={() => navigate(id as View)}
+              aria-current={view === id ? "page" : undefined}
               aria-label={label}
               title={label}
             >
@@ -1495,6 +1494,17 @@ export default function App() {
             orbit<span>YOUR PERSONAL SPACE</span>
           </div>
           <div className="topbar-right">
+            <button
+              className="quick-capture-top"
+              aria-label="Quick capture"
+              title="Quick capture (Ctrl/Cmd + Shift + K)"
+              onClick={() =>
+                window.dispatchEvent(new Event("orbit:quickcapture"))
+              }
+            >
+              <PlusCircle size={16} />
+              <span>Capture</span>
+            </button>
             <button
               className="global-search"
               onClick={() => setModal("search")}
@@ -1541,7 +1551,9 @@ export default function App() {
                     ? "Make space for your day."
                     : view === "inbox"
                       ? "Just what matters."
-                      : "Your ideas, all together."}
+                      : view === "media"
+                        ? "Your own little cinema."
+                        : "Your ideas, all together."}
                 <span className="heading-dot">.</span>
               </h1>
               <p>
@@ -1551,7 +1563,9 @@ export default function App() {
                     ? "A little structure. A lot of possibility."
                     : view === "inbox"
                       ? "Less noise. More of the conversations you care about."
-                      : "Pick up a thought. Take it somewhere new."}
+                      : view === "media"
+                        ? "Movies, TV, photos. A little space to switch off."
+                        : "Pick up a thought. Take it somewhere new."}
               </p>
             </div>
             <div className="date-weather">
@@ -1579,7 +1593,7 @@ export default function App() {
               <div className="v2-status-strip">
                 <span>
                   <i className="live-dot" />
-                  ORBIT / V2
+                  ORBIT / V3
                 </span>
                 <span>
                   {calendarLive
@@ -1677,6 +1691,39 @@ export default function App() {
                   {focusPanel()}
                 </div>
               </div>
+              <CommandCenter
+                tasks={tasks}
+                onAddTask={(title) =>
+                  setTasks((current) =>
+                    current.some(
+                      (t) => t.title.toLowerCase() === title.toLowerCase(),
+                    )
+                      ? current
+                      : [
+                          ...current,
+                          {
+                            id: crypto.randomUUID(),
+                            title,
+                            done: false,
+                            source: "assistant",
+                          },
+                        ],
+                  )
+                }
+              />
+              <div className="tonight-heading">
+                A little room for tonight
+                <span>YOUR LIBRARY + YOUR DELIVERY</span>
+              </div>
+              <div className="tonight-grid">
+                <MediaSummary
+                  onOpen={(id) => {
+                    setMediaId(id);
+                    navigate("media");
+                  }}
+                />
+                <DeliveryPanel />
+              </div>
               <div className="v2-files" id="bottom-widgets">
                 {filesPanel()}
               </div>
@@ -1719,6 +1766,11 @@ export default function App() {
                 </section>
               </div>
             </div>
+          ) : view === "media" ? (
+            <MediaCenter
+              initialMediaId={mediaId}
+              onOpened={() => setMediaId(undefined)}
+            />
           ) : (
             <>
               {filesPanel(true)}
@@ -2060,6 +2112,7 @@ export default function App() {
             Assistant & voice settings
             <ArrowUpRight size={14} />
           </button>
+          <BackupPanel />
           <div className="privacy-note">
             <span>
               <CheckCheck size={15} /> Designed for your own private space
@@ -2113,11 +2166,11 @@ export default function App() {
               onChange={(e) => setTrackNextSteps(e.target.checked)}
             />
             <span>
-              Keep track of next steps as we talk
+              Review next steps as we talk
               <small>
-                Save up to three concrete AI-suggested actions per reply to your
-                to-dos. Reversible, local to this browser; review or delete
-                anytime.
+                Queue up to three concrete AI-suggested actions per reply for
+                your approval before adding them to your to-dos. Reversible,
+                local to this browser; review or delete anytime.
               </small>
             </span>
           </label>
@@ -2162,6 +2215,17 @@ export default function App() {
           </a>
         </ModalShell>
       )}
+      <QuickCapture
+        onTask={(title) =>
+          setTasks((current) => [
+            ...current,
+            { id: crypto.randomUUID(), title, done: false, source: "you" },
+          ])
+        }
+        onNote={(text) =>
+          setNotes((current) => (current ? `${current}\n\n${text}` : text))
+        }
+      />
       {modal === "search" && (
         <ModalShell
           title="What are you looking for?"
@@ -2191,6 +2255,11 @@ export default function App() {
                   },
                   { label: "Important emails", icon: Mail, target: "inbox" },
                   { label: "Recent files", icon: Folder, target: "files" },
+                  {
+                    label: "Media Center",
+                    icon: Clapperboard,
+                    target: "media",
+                  },
                 ].map(({ label, icon: Icon, target }) => (
                   <button
                     className="search-result"
