@@ -15,6 +15,9 @@ export type MediaItem = {
   queueOrder: number;
   watched: boolean;
   episode?: string;
+  series?: string;
+  season?: number;
+  album?: string;
 };
 type MediaRecord = MediaItem & { fingerprint: string };
 type BlobRecord = { id: string; blob: Blob };
@@ -320,6 +323,22 @@ export async function updateMedia(
         if (typeof patch.episode !== "string")
           throw new Error("Episode details must be text.");
         next.episode = patch.episode.trim().slice(0, 100);
+      }
+      for (const key of ["series", "album"] as const) {
+        if (patch[key] !== undefined) {
+          if (typeof patch[key] !== "string")
+            throw new Error("Media details must be text.");
+          next[key] = patch[key].trim().slice(0, 100);
+        }
+      }
+      if (patch.season !== undefined) {
+        if (
+          !Number.isInteger(patch.season) ||
+          patch.season < 0 ||
+          patch.season > 999
+        )
+          throw new Error("Season must be a number from 0 to 999.");
+        next.season = patch.season;
       }
       for (const key of ["favorite", "queued", "watched"] as const) {
         if (patch[key] !== undefined) {

@@ -21,3 +21,7 @@ Connected the dedicated Media Center sidebar, local player/library, continue-wat
 ## Revision 4 — Review actual control over daily work
 
 Review found that pinning only the three visible priorities would prevent selecting another task. Added a full priority chooser, kept due responsibilities ahead of unpinned tasks, and made habit-day state refresh each minute. Added a captured-item management path so goals/habits/notes do not become permanent clutter. V3 appends its two concrete build follow-ups once, preserving V2 completion/deletion choices. No academic duties or financial values are prepopulated. AI proposals remain pending until approved; backup includes these local records but excludes credentials and delivery links.
+
+## Revision 5 — Media organization and accessible controls
+
+The first library pass grouped files by kind but did not give Player its own destination or organize episodes/photos beyond filenames. Added an explicit Player section, TV series/season/episode fields and series filtering, and photo album metadata/filtering. Retained original filenames, deletion confirmation, keyboard dialog controls, capability-gated fullscreen/PiP, local subtitle loading and URL cleanup. No external poster database is assumed; user metadata and local photo previews are used. Actual decode/resume tests are running rather than treating a visible video tag as success.

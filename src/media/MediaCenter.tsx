@@ -159,6 +159,11 @@ export function MediaCenter({
   onOpened?: () => void;
 }) {
   const { items, loading, error, refresh } = useLibrary();
+  const [playerTab, setPlayerTab] = useState(false);
+  const [collection, setCollection] = useState("");
+  const [series, setSeries] = useState("");
+  const [season, setSeason] = useState("");
+  const [album, setAlbum] = useState("");
   const [category, setCategory] = useState<MediaKind>("movies");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<
@@ -209,10 +214,14 @@ export function MediaCenter({
     let result = items.filter(
       (item) =>
         item.kind === category &&
-        `${item.title} ${item.name} ${item.episode || ""}`
+        `${item.title} ${item.name} ${item.episode || ""} ${item.series || ""} ${item.album || ""}`
           .toLowerCase()
           .includes(query.toLowerCase()),
     );
+    if (collection)
+      result = result.filter((i) =>
+        category === "tv" ? i.series === collection : i.album === collection,
+      );
     if (filter === "favorites") result = result.filter((i) => i.favorite);
     if (filter === "unwatched") result = result.filter((i) => !i.watched);
     if (filter === "continue")
@@ -224,7 +233,7 @@ export function MediaCenter({
         ? (a, b) => a.title.localeCompare(b.title)
         : (a, b) => b.addedAt - a.addedAt,
     );
-  }, [items, category, query, filter, sort]);
+  }, [items, category, query, filter, sort, collection]);
   const totalSize = items.reduce((sum, item) => sum + item.size, 0);
   const queuedIds = new Set(queue.map((i) => i.id));
   const action = async (run: () => Promise<unknown>, success = "") => {
@@ -281,6 +290,9 @@ export function MediaCenter({
     setEditing(item);
     setEditTitle(item.title);
     setEpisode(item.episode || "");
+    setSeries(item.series || "");
+    setSeason(item.season === undefined ? "" : String(item.season));
+    setAlbum(item.album || "");
   };
   const saveDetails = async (event: FormEvent) => {
     event.preventDefault();
@@ -290,6 +302,9 @@ export function MediaCenter({
       await updateMedia(editing.id, {
         title: editTitle.trim().slice(0, 200),
         episode: episode.trim().slice(0, 80),
+        series: series.trim(),
+        season: season.trim() ? Number(season) : 0,
+        album: album.trim(),
       });
       setEditing(null);
       setNotice("Details saved. Your original filename is unchanged.");
@@ -323,7 +338,12 @@ export function MediaCenter({
         ? "Removed from tonight’s queue."
         : "Added to tonight’s queue.",
     );
-  const showing = tab === "tonight" ? queue : filtered;
+  const showing =
+    tab === "tonight"
+      ? queue
+      : playerTab
+        ? items.filter((i) => i.kind !== "photos")
+        : filtered;
   const activeIndex = active
     ? showing.findIndex((i) => i.id === active.id)
     : -1;
@@ -441,8 +461,10 @@ export function MediaCenter({
             {(["movies", "tv", "photos"] as MediaKind[]).map((kind) => (
               <button
                 key={kind}
-                className={category === kind ? "active" : ""}
+                className={!playerTab && category === kind ? "active" : ""}
                 onClick={() => {
+                  setPlayerTab(false);
+                  setCollection("");
                   setCategory(kind);
                   setQuery("");
                   setFilter("all");
@@ -453,51 +475,94 @@ export function MediaCenter({
                 <span>{items.filter((i) => i.kind === kind).length}</span>
               </button>
             ))}
+            <button
+              className={playerTab ? "active" : ""}
+              onClick={() => {
+                setPlayerTab(true);
+                setCategory("movies");
+              }}
+            >
+              <Play size={18} />
+              Player
+            </button>
           </div>
-          <div className="media-toolbar">
-            <label className="media-search">
-              <Search size={16} />
-              <input
-                type="search"
-                aria-label="Search your media"
-                placeholder={`Find a ${category === "movies" ? "movie" : category === "tv" ? "show or episode" : "photo"}…`}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </label>
-            <div>
-              <label className="media-filter">
-                <SlidersHorizontal size={14} />
-                <select
-                  aria-label="Filter media"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value as typeof filter)}
-                >
-                  <option value="all">
-                    All {kindNames[category].toLowerCase()}
-                  </option>
-                  <option value="favorites">Favorites</option>
-                  {category !== "photos" && (
-                    <>
-                      <option value="unwatched">Not watched</option>
-                      <option value="continue">Continue watching</option>
-                    </>
-                  )}
-                </select>
+          {!playerTab && (
+            <div className="media-toolbar">
+              <label className="media-search">
+                <Search size={16} />
+                <input
+                  type="search"
+                  aria-label="Search your media"
+                  placeholder={`Find a ${category === "movies" ? "movie" : category === "tv" ? "show or episode" : "photo"}…`}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
               </label>
-              <label className="media-sort">
-                <select
-                  aria-label="Sort media"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                >
-                  <option value="recent">Recently added</option>
-                  <option value="title">Title A–Z</option>
-                </select>
-                <ChevronDown size={12} />
-              </label>
+              <div>
+                <label className="media-filter">
+                  <SlidersHorizontal size={14} />
+                  <select
+                    aria-label="Filter media"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value as typeof filter)}
+                  >
+                    <option value="all">
+                      All {kindNames[category].toLowerCase()}
+                    </option>
+                    <option value="favorites">Favorites</option>
+                    {category !== "photos" && (
+                      <>
+                        <option value="unwatched">Not watched</option>
+                        <option value="continue">Continue watching</option>
+                      </>
+                    )}
+                  </select>
+                </label>
+                <label className="media-sort">
+                  <select
+                    aria-label="Sort media"
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <option value="recent">Recently added</option>
+                    <option value="title">Title A–Z</option>
+                  </select>
+                  <ChevronDown size={12} />
+                </label>
+              </div>
             </div>
-          </div>
+          )}
+          {!playerTab && (category === "tv" || category === "photos") && (
+            <label className="media-collection-filter">
+              {category === "tv" ? "Show / series" : "Photo album"}
+              <select
+                aria-label={
+                  category === "tv" ? "Filter TV series" : "Filter photo album"
+                }
+                value={collection}
+                onChange={(e) => setCollection(e.target.value)}
+              >
+                <option value="">
+                  {category === "tv" ? "All shows" : "All albums"}
+                </option>
+                {[
+                  ...new Set(
+                    items
+                      .filter((i) => i.kind === category)
+                      .map((i) => (category === "tv" ? i.series : i.album))
+                      .filter((v): v is string => Boolean(v)),
+                  ),
+                ]
+                  .sort()
+                  .map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+              </select>
+              <span>Organize collections with each file’s Edit button.</span>
+            </label>
+          )}
         </>
       )}
       {loading ? (
@@ -609,6 +674,72 @@ export function MediaCenter({
             </div>
           )}
         </div>
+      ) : playerTab ? (
+        <section className="media-player-home">
+          <div className="player-home-symbol">
+            <Play size={36} fill="currentColor" />
+          </div>
+          <span className="media-eyebrow">THE BUILT-IN PLAYER</span>
+          <h3>A quieter place to press play.</h3>
+          <p>
+            Open a video from your local library. Native playback controls,
+            saved resume points, fullscreen, picture-in-picture when supported,
+            and WebVTT subtitles are built in.
+          </p>
+          <div className="player-home-actions">
+            <button
+              className="media-import-button"
+              disabled={busy}
+              onClick={openPicker}
+            >
+              <Plus size={15} />
+              Add a local video
+            </button>
+            <button
+              className="media-secondary"
+              onClick={() => {
+                setPlayerTab(false);
+                setFilter("continue");
+              }}
+            >
+              Continue watching
+              <ArrowRight size={14} />
+            </button>
+          </div>
+          {items.filter((i) => i.kind !== "photos").length > 0 && (
+            <div className="player-home-files">
+              {items
+                .filter((i) => i.kind !== "photos")
+                .slice(0, 12)
+                .map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveId(item.id)}
+                    aria-label={`Open player for ${item.title}`}
+                  >
+                    <KindIcon kind={item.kind} size={19} />
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>
+                        {item.progress > 2
+                          ? `Resume ${formatDuration(item.progress)}`
+                          : item.duration
+                            ? formatDuration(item.duration)
+                            : "Ready to play"}
+                      </small>
+                    </span>
+                    <Play size={14} />
+                  </button>
+                ))}
+            </div>
+          )}
+          <div className="player-home-note">
+            <ShieldCheck size={14} />
+            MP4/H.264 with AAC is a good compatibility starting point. Browser
+            codec support varies; protected streaming-service files are
+            unsupported.
+          </div>
+        </section>
       ) : filtered.length ? (
         <div
           className="media-grid"
@@ -890,6 +1021,44 @@ export function MediaCenter({
                 required
               />
             </label>
+            {editing.kind === "tv" && (
+              <>
+                <label>
+                  Show or series
+                  <input
+                    aria-label="Show or series"
+                    value={series}
+                    onChange={(e) => setSeries(e.target.value)}
+                    maxLength={100}
+                    placeholder="The show’s title"
+                  />
+                </label>
+                <label>
+                  Season
+                  <input
+                    aria-label="Season number"
+                    type="number"
+                    min="0"
+                    max="999"
+                    value={season}
+                    onChange={(e) => setSeason(e.target.value)}
+                    placeholder="1"
+                  />
+                </label>
+              </>
+            )}
+            {editing.kind === "photos" && (
+              <label>
+                Photo album
+                <input
+                  aria-label="Photo album"
+                  value={album}
+                  onChange={(e) => setAlbum(e.target.value)}
+                  maxLength={100}
+                  placeholder="A little adventure"
+                />
+              </label>
+            )}
             {editing.kind === "tv" && (
               <label>
                 Episode or season

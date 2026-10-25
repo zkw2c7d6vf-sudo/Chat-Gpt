@@ -51,6 +51,8 @@ export default function MediaPlayer({
   const latestDuration = useRef(item.duration);
   const updated = useRef(onUpdate);
   updated.current = onUpdate;
+  const navigation = useRef({ onClose, onNext, onPrevious });
+  navigation.current = { onClose, onNext, onPrevious };
   const initiallyFocused = useRef(document.activeElement as HTMLElement);
   useEffect(() => {
     let active = true;
@@ -100,14 +102,14 @@ export default function MediaPlayer({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        navigation.current.onClose();
       }
       if (
         item.kind === "photos" &&
         !["INPUT", "TEXTAREA"].includes((event.target as HTMLElement)?.tagName)
       ) {
-        if (event.key === "ArrowRight") onNext?.();
-        if (event.key === "ArrowLeft") onPrevious?.();
+        if (event.key === "ArrowRight") navigation.current.onNext?.();
+        if (event.key === "ArrowLeft") navigation.current.onPrevious?.();
       }
       if (event.key === "Tab") {
         const items = shell.current?.querySelectorAll<HTMLElement>(
@@ -130,7 +132,7 @@ export default function MediaPlayer({
       document.removeEventListener("keydown", handle, true);
       previous?.focus();
     };
-  }, [onClose, item.kind, onNext, onPrevious]);
+  }, [item.id, item.kind]);
   const save = async (ended = false) => {
     const el = video.current;
     if (!el) return;
