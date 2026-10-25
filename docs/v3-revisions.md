@@ -25,3 +25,7 @@ Review found that pinning only the three visible priorities would prevent select
 ## Revision 5 — Media organization and accessible controls
 
 The first library pass grouped files by kind but did not give Player its own destination or organize episodes/photos beyond filenames. Added an explicit Player section, TV series/season/episode fields and series filtering, and photo album metadata/filtering. Retained original filenames, deletion confirmation, keyboard dialog controls, capability-gated fullscreen/PiP, local subtitle loading and URL cleanup. No external poster database is assumed; user metadata and local photo previews are used. Actual decode/resume tests are running rather than treating a visible video tag as success.
+
+## Revision 6 — Playback reliability and visual density
+
+Generated WebM tests demonstrated real decoding/playback and resume, then exposed an object-URL leak: in React Strict Mode, an asynchronous Blob read could resolve after its effect had been cleaned up. Guarded before URL creation so closing the player releases temporary URLs. Screenshot review also found excess blank space in the Tonight row and a repeated large media introduction; aligned those cards to their content and compacted the duplicate heading. Quick Capture’s shortcut now closes other modal contexts and stops dictation before opening capture. Backup tests verify rollback on storage failure and exclusion of credentials, media bytes and tracking links.

@@ -65,6 +65,7 @@ export default function MediaPlayer({
     latestDuration.current = item.duration;
     getMediaBlob(item.id)
       .then((blob) => {
+        if (!active) return;
         objectUrl = URL.createObjectURL(blob);
         if (active) {
           setUrl(objectUrl);

@@ -467,6 +467,16 @@ export default function App() {
   }, [focusing, focusMinutes]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "k"
+      ) {
+        dictation.stop();
+        setChatOpen(false);
+        setModal(null);
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         dictation.stop();

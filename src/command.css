@@ -394,3 +394,17 @@
   border-radius: 5px;
   margin: 4px 0 9px;
 }
+.tonight-grid {
+  align-items: start;
+}
+.orbit-v3 .media-library-intro {
+  padding: 18px 0;
+}
+.orbit-v3 .media-library-intro h2 {
+  font-size: 20px;
+  margin: 5px 0;
+}
+.orbit-v3 .media-library-intro p,
+.orbit-v3 .media-library-intro .media-eyebrow {
+  display: none;
+}
