@@ -699,12 +699,26 @@ try {
         "Calendar feed event",
       );
       assert(Array.isArray(ls.assistantBody.messages));
+      await lp.keyboard.press("Escape");
+      assert.equal(
+        await lp
+          .getByRole("button", {
+            name: "Complete Review microphone setup",
+            exact: true,
+          })
+          .count(),
+        0,
+      );
+      await lp.getByRole("button", { name: "Approve", exact: true }).click();
       await visible(
         lp.getByRole("button", {
           name: "Complete Review microphone setup",
           exact: true,
         }),
       );
+      await lp
+        .getByRole("button", { name: "Type instead", exact: true })
+        .click();
       await lp
         .getByRole("button", { name: "Clear conversation", exact: true })
         .click();

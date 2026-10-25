@@ -165,7 +165,9 @@ export function QuickCapture({
                 domain,
                 due,
                 amount: 0,
-                target: Number(target) || 0,
+                target: Number.isFinite(Number(target))
+                  ? Math.max(0, Number(target))
+                  : 0,
                 completed: false,
                 createdAt: new Date().toISOString(),
               };
@@ -442,7 +444,9 @@ export default function CommandCenter({
                     value={e.amount}
                     onChange={(v) =>
                       update(e.id, {
-                        amount: Math.max(0, Number(v.target.value) || 0),
+                        amount: Number.isFinite(Number(v.target.value))
+                          ? Math.max(0, Number(v.target.value))
+                          : 0,
                       })
                     }
                   />

@@ -812,7 +812,15 @@ export function MediaCenter({
               <div className="media-item-details">
                 <h3 title={item.title}>{item.title}</h3>
                 <p>
-                  {item.episode || bytes(item.size)}
+                  {item.kind === "photos"
+                    ? item.album || bytes(item.size)
+                    : [
+                        item.series,
+                        item.season ? `Season ${item.season}` : "",
+                        item.episode,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || bytes(item.size)}
                   <span>·</span>
                   {item.kind === "photos"
                     ? "Photo"

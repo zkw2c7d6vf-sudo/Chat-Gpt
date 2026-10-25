@@ -124,15 +124,11 @@ The build checks TypeScript and produces the frontend. Server/browser tests can 
 
 The browser suite uses system Chromium when available, or Playwright's installed browser otherwise. Run `npx playwright install chromium` if needed; `CHROMIUM_PATH` selects another Chromium executable.
 
-### Guided update from a ZIP download
+### Run V3 without replacing V2
 
-Stop the old Orbit server with **Control + C**. Download and extract V2 into a separate folder. Open Terminal in the **new** folder and run:
+Download the `orbit-v3` branch ZIP into a **separate folder**. Keep your existing V2 folder unchanged. In the V3 folder run `npm ci` and `npm run dev` after stopping V2's server (both use the same ports). The updater refuses to overwrite an installation reporting V2. Do not merge V3 files into your working V2 directory.
 
-```sh
-node scripts/update-local.mjs
-```
-
-Drag your **old** Orbit folder from Finder into Terminal when prompted, then press Enter. The updater copies application files and installs the matching dependencies. It preserves the old `.env`, `.orbit`, Git history, and browser data. Start `npm run dev` from the **old** folder afterward and keep using the same browser address. Run `node scripts/update-local.mjs --help` for command-line options. The updater cannot access or change your Mac until you run it there.
+If you choose to reuse configured accounts, privately copy your existing `.env` and `.orbit` folder into the separate V3 directory. These are hidden files in Finder (Command+Shift+period shows them). Never upload them or paste their contents into chat. Keep the same configured origin for OAuth; browser tasks/notes also belong to that origin. Export a dashboard backup before trying V3 because the two versions at the same browser origin share local text storage. Media bytes stay in that browser's IndexedDB and are not part of the text backup.
 
 ## V3 additions
 
@@ -149,3 +145,5 @@ Development is isolated on `orbit-v3`; `main` retains V2. Nothing is publicly de
 **Backup & restore** lives in Connections. Review a backup before applying it; it contains private notes/conversation and local settings. It excludes credentials, connection tokens, private delivery links, and media file bytes. Keep original media separately.
 
 Research: [official sources and constraints](docs/v3-research.md). Audit and revision record: [seven V3 passes](docs/v3-revisions.md).
+
+V3 test commands: `npm test` covers backend/backup/updater checks; with `npm run dev` running, `npm run test:e2e` checks preserved V2 workflows and `npm run test:v3` checks new interactions. The V3 browser suite needs FFmpeg to generate tiny test videos plus Chromium/Playwright. Neither FFmpeg nor a paid service is needed to use the app. Media imports currently cap at **500 MiB per file**; keep original files separately.

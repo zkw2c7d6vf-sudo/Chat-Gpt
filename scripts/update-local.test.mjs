@@ -79,3 +79,24 @@ test("ZIP updater refuses to overwrite its own download", () => {
   assert.equal(run.status, 1);
   assert.match(run.stderr, /separate from this new download/);
 });
+
+test("V3 updater protects an existing V2 installation", async () => {
+  const folder = await mkdtemp(join(tmpdir(), "orbit-v2-protected-"));
+  try {
+    await writeFile(
+      join(folder, "package.json"),
+      JSON.stringify({ name: "orbit-personal-dashboard", version: "2.0.0" }),
+    );
+    const run = spawnSync(process.execPath, [script, folder, "--copy-only"], {
+      encoding: "utf8",
+    });
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /V2 is protected/);
+    assert.equal(
+      JSON.parse(await readFile(join(folder, "package.json"), "utf8")).version,
+      "2.0.0",
+    );
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});

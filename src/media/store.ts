@@ -146,6 +146,7 @@ function metadata(record: MediaRecord): MediaItem {
 }
 function complete<T>(transaction: IDBTransaction, value: () => T): Promise<T> {
   return new Promise((resolve, reject) => {
+    let requestError: DOMException | null = null;
     transaction.oncomplete = () => {
       try {
         resolve(value());
@@ -153,11 +154,20 @@ function complete<T>(transaction: IDBTransaction, value: () => T): Promise<T> {
         reject(friendly(error));
       }
     };
-    transaction.onerror = () => reject(friendly(transaction.error));
+    transaction.onerror = (event) => {
+      const next = (event.target as IDBRequest).error || transaction.error;
+      if (
+        !requestError ||
+        next?.name === "ConstraintError" ||
+        next?.name === "QuotaExceededError"
+      )
+        requestError = next;
+    };
     transaction.onabort = () =>
       reject(
         friendly(
-          transaction.error ||
+          requestError ||
+            transaction.error ||
             new Error("The library update was interrupted. Please try again."),
         ),
       );

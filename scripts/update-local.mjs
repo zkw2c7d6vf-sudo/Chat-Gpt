@@ -61,6 +61,10 @@ try {
     throw new Error(
       "This is not an Orbit project folder. Nothing was changed.",
     );
+  if (String(manifest.version || "").startsWith("2."))
+    throw new Error(
+      "V2 is protected. Run V3 from this separate download instead; copy your private configuration only if you choose. No V2 files were changed.",
+    );
   const files = [
     "src",
     "public",
