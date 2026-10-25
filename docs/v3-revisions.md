@@ -17,3 +17,7 @@ Added separate IndexedDB metadata and Blob stores. Review favored this over keep
 ## Revision 3 — Integrated personal operating system
 
 Connected the dedicated Media Center sidebar, local player/library, continue-watching and tonight queue, manual DoorDash card, Quick Capture and the Daily Command Center. Added user-entered college/teaching responsibilities, financial targets, and daily habits; no institution, balances or obligations are fabricated. Changed model task suggestions from automatic insertion to an explicit Approval & Activity queue. Added safe local backup/preview/restore. Review retained V2’s calendar/weather/Spotify code and introduced no paid dependency. TypeScript/build and local service tests are checked before the next refinement pass.
+
+## Revision 4 — Review actual control over daily work
+
+Review found that pinning only the three visible priorities would prevent selecting another task. Added a full priority chooser, kept due responsibilities ahead of unpinned tasks, and made habit-day state refresh each minute. Added a captured-item management path so goals/habits/notes do not become permanent clutter. V3 appends its two concrete build follow-ups once, preserving V2 completion/deletion choices. No academic duties or financial values are prepopulated. AI proposals remain pending until approved; backup includes these local records but excludes credentials and delivery links.

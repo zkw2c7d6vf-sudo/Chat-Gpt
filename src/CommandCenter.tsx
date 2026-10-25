@@ -294,12 +294,13 @@ export default function CommandCenter({
         ["school", "teaching", "reminder"].includes(e.domain) && !e.completed,
     )
     .sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
-  const priorities = [
+  const candidates = [
     ...responsibilities.map((e) => ({ id: e.id, title: e.title, due: e.due })),
     ...tasks
       .filter((t) => !t.done)
       .map((t) => ({ id: t.id, title: t.title, due: "" })),
-  ]
+  ];
+  const priorities = [...candidates]
     .sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)))
     .slice(0, 3);
   const update = (id: string, patch: Partial<Entry>) =>
@@ -330,6 +331,27 @@ export default function CommandCenter({
           <p className="command-caption">
             Pinned items first, then dated responsibilities and open tasks.
           </p>
+          <select
+            className="priority-picker"
+            aria-label="Pin another priority"
+            value=""
+            onChange={(e) => {
+              if (!e.target.value) return;
+              const next = [
+                e.target.value,
+                ...pins.filter((id) => id !== e.target.value),
+              ].slice(0, 3);
+              setPins(next);
+              save("orbit-priorities-v3", next);
+            }}
+          >
+            <option value="">Pin another item…</option>
+            {candidates.map((p) => (
+              <option value={p.id} key={p.id}>
+                {p.title}
+              </option>
+            ))}
+          </select>
           {priorities.map((p, i) => (
             <div className="priority-row" key={p.id}>
               <span>{String(i + 1).padStart(2, "0")}</span>

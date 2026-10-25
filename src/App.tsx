@@ -97,7 +97,7 @@ function loadTasks(): Task[] {
           typeof t.done === "boolean",
       )
     : [];
-  if (stored("orbit-seed-v2", false)) return valid;
+  if (stored("orbit-seed-v2", false)) return upgradeTasks(valid);
   const placeholders = new Set([
     "Make space for a little creativity",
     "Plan the next little adventure",
@@ -110,7 +110,31 @@ function loadTasks(): Task[] {
   const result = [...current, ...initialTasks.filter((t) => !known.has(t.id))];
   localStorage.setItem("orbit-tasks", JSON.stringify(result));
   localStorage.setItem("orbit-seed-v2", "true");
-  return result;
+  return upgradeTasks(result);
+}
+function upgradeTasks(tasks: Task[]): Task[] {
+  if (stored("orbit-seed-v3", false)) return tasks;
+  const extras: Task[] = [
+    {
+      id: "v3-media",
+      title: "Add a personal movie or episode to Media Center",
+      done: false,
+      source: "build",
+    },
+    {
+      id: "v3-backup",
+      title: "Export a local dashboard backup after upgrading",
+      done: false,
+      source: "build",
+    },
+  ];
+  const next = [
+    ...tasks,
+    ...extras.filter((t) => !tasks.some((x) => x.id === t.id)),
+  ];
+  localStorage.setItem("orbit-tasks", JSON.stringify(next));
+  localStorage.setItem("orbit-seed-v3", "true");
+  return next;
 }
 function SpotifyIcon({ size = 20 }: { size?: number }) {
   return (
