@@ -9,3 +9,7 @@ Reviewed React/TypeScript/Vite UI, native Node API, Google/Spotify OAuth session
 Decisions: local IndexedDB media with a browser-native player; movies/TV/photos and a Player section; no cloud media API or DRM claims. DoorDash's partner Drive API is not access to consumer orders: use a private tracking link plus explicitly manual status/ETA. Build Quick Capture, an editable Daily Command Center (responsibilities, money goals, habits), and a local Approval/Activity Center. Start these empty rather than fabricate college, income, or personal duties. Keep optional OpenAI separate from no-cost local features. Research and limitations: [v3-research.md](v3-research.md).
 
 Implementation priority: library/player → dashboard/navigation and delivery → capture/priorities/approvals → backup/migration → accessibility/responsiveness → failure handling → tested handoff. The following revisions are recorded only after the work and review occur.
+
+## Revision 2 — Local media storage foundation
+
+Added separate IndexedDB metadata and Blob stores. Review favored this over keeping files in React state or uploading them: listing/searching need not load every video into memory, and user files stay local. Enforced file-size/type checks, transaction-based adds/deletes, quota errors, and explicit original-file retention guidance. Browser playback and reload behavior are reserved for the integrated tests in later passes; this inspection alone is not a playback claim.
