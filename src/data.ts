@@ -51,9 +51,15 @@ export type Dashboard = {
 export type Connections = {
   google: { configured: boolean; connected: boolean; authUrl: string };
   spotify: { configured: boolean; connected: boolean; authUrl: string };
-  assistant: { configured: boolean };
+  assistant: { configured: boolean; transcription?: boolean };
+  calendar?: { connected: boolean; source: string | null; feedName?: string };
 };
-export type Task = { id: string; title: string; done: boolean };
+export type Task = {
+  id: string;
+  title: string;
+  done: boolean;
+  source?: "build" | "assistant" | "you";
+};
 const today = new Date();
 export function atDay(hour: number, minute = 0, dayOffset = 0) {
   const date = new Date(today);
@@ -193,10 +199,46 @@ export const demoFiles: DriveFile[] = [
   },
 ];
 export const initialTasks: Task[] = [
-  { id: "t1", title: "Make space for a little creativity", done: false },
-  { id: "t2", title: "Plan the next little adventure", done: false },
-  { id: "t3", title: "Drink water. Take a breath.", done: true },
+  {
+    id: "v2-secret",
+    title: "Confirm the Spotify secret shared in chat was reset",
+    done: false,
+    source: "build",
+  },
+  {
+    id: "v2-calendar",
+    title: "Add your private calendar link or import an .ics file",
+    done: false,
+    source: "build",
+  },
+  {
+    id: "v2-voice",
+    title: "Try dictation on your Mac and check microphone access",
+    done: false,
+    source: "build",
+  },
+  {
+    id: "v2-ai",
+    title: "Set up optional OpenAI API access for full conversations",
+    done: false,
+    source: "build",
+  },
+  {
+    id: "v2-weather",
+    title: "Check Buffalo weather and try a different city",
+    done: false,
+    source: "build",
+  },
+  {
+    id: "v2-mail",
+    title: "Choose whether to connect inbox and Drive later",
+    done: false,
+    source: "build",
+  },
+  { id: "v2-spotify", title: "Connect Spotify", done: true, source: "build" },
 ];
+export const buildHandoff =
+  "Orbit V2 build with Joseph: Spotify is connected on his Mac. Prioritize calendar, inbox, music, weather, and tasks above decoration. Default weather Buffalo, NY, editable. Use private ICS feed or .ics import instead of requiring Google Cloud. Google inbox/Drive remain optional and not connected just by adding ICS. Fix browser microphone dictation; promote a friendly central assistant character. Task list begins with concrete next steps from this conversation and can track new suggested actions in website chats. Website cannot access or automatically sync ChatGPT history, this session, the user's device, or a ChatGPT subscription. Only supplied context and saved website conversation are available. Credentials must never be requested in chat.";
 export const defaultConnections: Connections = {
   google: { configured: false, connected: false, authUrl: "/api/auth/google" },
   spotify: {
@@ -216,3 +258,18 @@ export const sameDay = (a: Date, b: Date) =>
 
 export const eventDate = (value: string) =>
   new Date(value.length === 10 ? `${value}T12:00:00` : value);
+
+export function eventOnDay(event: CalendarEvent, date: Date) {
+  const parse = (value: string) =>
+    new Date(value.length === 10 ? `${value}T00:00:00` : value);
+  const start = parse(event.start),
+    end = parse(event.end);
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  const next = new Date(day);
+  next.setDate(next.getDate() + 1);
+  return (
+    start < next &&
+    (end > day || (start.getTime() === end.getTime() && sameDay(start, day)))
+  );
+}

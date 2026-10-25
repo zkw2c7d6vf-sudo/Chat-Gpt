@@ -1,0 +1,654 @@
+/* V2 connected widgets: live data, readable controls, and compact state feedback. */
+.weather-card {
+  padding: 19px 19px 12px;
+  background:
+    radial-gradient(ellipse at 100% 10%, #2b40502c, transparent 70%),
+    linear-gradient(125deg, #141e29, #111923);
+  min-width: 0;
+  position: relative;
+}
+.weather-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.weather-header h2 {
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  color: #c7d5e8;
+}
+.weather-header h2 svg {
+  color: #a6bed6;
+}
+.weather-unit-toggle {
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid #ffffff0b;
+  border-radius: 6px;
+  background: #0b121b44;
+}
+.weather-unit-toggle button {
+  font-size: 11px;
+  color: #6e849f;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.weather-unit-toggle button.active {
+  color: #d7e5f9;
+  background: #abc3e315;
+}
+.weather-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #d4deed;
+  max-width: 100%;
+}
+.weather-location span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.weather-location svg {
+  color: #859dbd;
+}
+.weather-location svg:last-child {
+  margin-left: 3px;
+}
+.weather-current {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 0 12px;
+}
+.weather-current > div {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  min-width: 0;
+}
+.weather-current strong {
+  font-family: "Manrope Variable", sans-serif;
+  font-size: 50px;
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -2.5px;
+  color: #e8edf4;
+  display: flex;
+}
+.weather-current strong > span {
+  font-weight: 400;
+  font-size: 37px;
+  letter-spacing: -1px;
+  position: relative;
+  top: 1px;
+}
+.weather-current p {
+  font-size: 12px;
+  color: #bfcbdb;
+  margin: 0 0 6px;
+}
+.weather-current div > span:not(.weather-main-icon) {
+  font-size: 11px;
+  color: #7f97b6;
+}
+.weather-main-icon {
+  display: flex;
+  color: #d5cba2;
+  filter: drop-shadow(0 0 15px #d5cba217);
+  margin-right: 1px;
+}
+.weather-conditions {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #8299b5;
+  padding-bottom: 17px;
+}
+.weather-conditions > span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.weather-conditions svg {
+  color: #829cbd;
+}
+.weather-forecast {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid #ffffff09;
+  padding-top: 15px;
+  gap: 6px;
+}
+.weather-forecast > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.weather-forecast > div > span:first-child {
+  font-size: 11px;
+  color: #829ab7;
+}
+.weather-forecast svg {
+  color: #c3c5b6;
+}
+.weather-forecast strong {
+  font-size: 12px;
+  font-weight: 450;
+  color: #d1ddeb;
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+.weather-forecast strong small {
+  font-size: 11px;
+  color: #6c84a3;
+  font-weight: 400;
+}
+.weather-rain {
+  font-size: 10px;
+  color: #647f9c;
+  margin-top: -5px;
+}
+.weather-attribution {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  line-height: 1.7;
+}
+.weather-attribution a {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  font-size: 9px;
+  color: #5d7897;
+}
+.weather-attribution > span {
+  font-size: 9px;
+  color: #70957f;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.weather-loading {
+  min-height: 219px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #8da6c6;
+}
+.weather-loading p {
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.7;
+  margin: 0;
+}
+.weather-unavailable {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #6f88ab;
+  gap: 12px;
+  padding: 20px 8px;
+}
+.weather-unavailable h3 {
+  font-size: 14px;
+  color: #aabed9;
+  margin: 0;
+  font-weight: 500;
+}
+.weather-unavailable p {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 0;
+}
+.weather-error {
+  padding: 10px 11px;
+  border: 1px solid #dab28422;
+  background: #dab28406;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.weather-error p {
+  font-size: 11px;
+  color: #bda589;
+  line-height: 1.7;
+  margin: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.weather-error button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #d3bea0;
+  font-size: 11px;
+}
+.weather-location-picker {
+  border: 1px solid #a4b9e424;
+  background: #111c2b;
+  border-radius: 8px;
+  padding: 10px;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 96px;
+  z-index: 5;
+  box-shadow: 0 10px 30px #0007;
+}
+.weather-location-picker form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #a9bde72b;
+  background: #09132088;
+  border-radius: 5px;
+  padding: 9px;
+  color: #859fbd;
+}
+.weather-location-picker input {
+  border: none;
+  background: none;
+  min-width: 0;
+  flex: 1;
+  color: #d5e1f2;
+  font-size: 12px;
+  width: 100%;
+}
+.weather-location-picker input::placeholder {
+  color: #7389a7;
+}
+.weather-location-picker form button {
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  color: #abc0de;
+}
+.weather-location-results {
+  max-height: 245px;
+  overflow: auto;
+  padding-top: 6px;
+}
+.weather-location-results > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  text-align: left;
+  width: 100%;
+  padding: 11px 6px;
+  border-bottom: 1px solid #ffffff07;
+  border-radius: 4px;
+}
+.weather-location-results > button:hover {
+  background: #9eb5e40a;
+}
+.weather-location-results > button > span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.weather-location-results strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: #c6d4e8;
+}
+.weather-location-results small {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #6985a8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.weather-location-results svg {
+  color: #7d9bc0;
+  flex-shrink: 0;
+}
+.weather-default {
+  margin: 11px 5px 3px;
+  font-size: 11px;
+  color: #8aabce;
+  padding: 2px;
+}
+.weather-no-results,
+.widget-error {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #98acca;
+  padding: 0 5px;
+}
+.widget-error {
+  color: #d3a599;
+}
+.calendar-connect {
+  border: 1px solid #a8bfff18;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #a8bfff07, #a8bfff02);
+  padding: 22px 20px;
+  margin-bottom: 20px;
+}
+.calendar-connect-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 21px;
+}
+.calendar-connect-icon {
+  width: 40px;
+  height: 42px;
+  border-radius: 10px;
+  background: #a4bfff0b;
+  border: 1px solid #a4bfff10;
+  color: #acc3f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.calendar-connect-heading h3 {
+  font-family: "Manrope Variable", sans-serif;
+  color: #d2def2;
+  font-size: 15px;
+  font-weight: 550;
+  letter-spacing: -0.2px;
+  margin: 1px 0 7px;
+}
+.calendar-connect-heading p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #899fbe;
+  margin: 0;
+  max-width: 460px;
+}
+.calendar-feed-form > label {
+  font-size: 11px;
+  color: #9eb2d0;
+  display: block;
+  margin-bottom: 9px;
+}
+.calendar-feed-form > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #abc2fa29;
+  border-radius: 7px;
+  background: #08121e77;
+  padding: 7px 8px 7px 12px;
+  min-width: 0;
+  color: #87a1c7;
+}
+.calendar-feed-form > div:focus-within {
+  border-color: #a8bfff70;
+}
+.calendar-feed-form input {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  color: #d0ddf3;
+  font-size: 11px;
+}
+.calendar-feed-form input::placeholder {
+  color: #607b9f;
+  font-size: 11px;
+}
+.calendar-feed-form button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #a9bdff29;
+  background: #a3baff14;
+  padding: 8px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 450;
+  color: #b4caff;
+}
+.calendar-feed-form button:hover {
+  background: #a3baff23;
+}
+.calendar-import-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+.calendar-import-row > span {
+  font-size: 11px;
+  color: #738caa;
+}
+.calendar-import-row > input {
+  display: none;
+}
+.calendar-import-row > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #a8bcdd;
+  border: 1px solid #a3bbdf20;
+  border-radius: 5px;
+}
+.calendar-import-row > button:hover {
+  background: #a3bbdf09;
+}
+.calendar-import-row > small {
+  font-size: 10px;
+  color: #637e9f;
+  line-height: 1.7;
+}
+.calendar-connected-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #b2d09c;
+  padding: 11px 12px;
+  background: #a7c49007;
+  border: 1px solid #a7c4901c;
+  border-radius: 7px;
+  margin-bottom: 19px;
+  line-height: 1.6;
+  flex-wrap: wrap;
+}
+.calendar-connected-status > span {
+  flex: 1;
+  min-width: 170px;
+}
+.calendar-connected-status > button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #9cae9a;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.calendar-feed-error {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #d1a495;
+  background: #d1a49507;
+  border: 1px solid #d1a4951b;
+  padding: 11px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.calendar-feed-success {
+  font-size: 11px;
+  color: #b4cc9d;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  line-height: 1.7;
+}
+.calendar-feed-privacy {
+  display: flex;
+  gap: 8px;
+  color: #6687a9;
+  margin-top: 19px;
+}
+.calendar-feed-privacy > svg {
+  margin-top: 3px;
+  flex-shrink: 0;
+  color: #7997ba;
+}
+.calendar-feed-privacy > p {
+  font-size: 10px;
+  line-height: 1.9;
+  margin: 0;
+}
+.calendar-feed-help {
+  border-top: 1px solid #a3b8de0d;
+  padding-top: 14px;
+  margin-top: 16px;
+}
+.calendar-feed-help summary {
+  font-size: 11px;
+  color: #a1b7d9;
+  cursor: pointer;
+  line-height: 1.7;
+}
+.calendar-feed-help p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #7f98b8;
+  margin: 13px 0 0;
+}
+.calendar-feed-help strong {
+  font-weight: 500;
+  color: #a7bbd8;
+}
+@media (max-width: 1200px) and (min-width: 1001px) {
+  .weather-card {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  .weather-current {
+    gap: 8px;
+  }
+  .weather-current > div {
+    gap: 10px;
+  }
+  .weather-current strong {
+    font-size: 44px;
+  }
+  .weather-main-icon > svg {
+    width: 45px;
+  }
+  .weather-conditions {
+    gap: 10px;
+    font-size: 10px;
+  }
+  .weather-current p {
+    font-size: 11px;
+  }
+  .weather-current div > span:not(.weather-main-icon) {
+    font-size: 10px;
+  }
+  .weather-forecast strong {
+    font-size: 11px;
+    gap: 3px;
+  }
+  .weather-forecast strong small {
+    font-size: 10px;
+  }
+  .weather-header h2 {
+    font-size: 11px;
+  }
+  .weather-attribution a,
+  .weather-attribution > span {
+    font-size: 8px;
+  }
+}
+@media (max-width: 720px) {
+  .weather-card {
+    padding: 19px 18px 13px;
+  }
+  .weather-header h2 {
+    font-size: 13px;
+  }
+  .weather-current strong {
+    font-size: 54px;
+  }
+  .weather-forecast {
+    gap: 5px;
+  }
+  .calendar-connect {
+    padding: 18px 15px;
+  }
+  .calendar-connect-heading h3 {
+    font-size: 14px;
+  }
+  .calendar-connect-heading p {
+    font-size: 11px;
+  }
+  .calendar-connect-heading {
+    gap: 11px;
+  }
+  .calendar-feed-form > div {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .calendar-feed-form input {
+    width: calc(100% - 30px);
+    flex-basis: calc(100% - 30px);
+  }
+  .calendar-feed-form button {
+    width: 100%;
+    justify-content: center;
+    margin-top: 5px;
+    padding: 9px;
+  }
+  .calendar-import-row {
+    gap: 8px;
+  }
+  .calendar-import-row > small {
+    width: 100%;
+  }
+  .calendar-connected-status > span {
+    min-width: 130px;
+  }
+  .calendar-connected-status > button {
+    margin-left: 20px;
+  }
+  .calendar-feed-help p {
+    font-size: 11px;
+  }
+  .calendar-feed-privacy > p {
+    font-size: 10px;
+  }
+  .weather-attribution a {
+    font-size: 9px;
+  }
+}

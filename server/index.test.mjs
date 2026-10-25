@@ -10,6 +10,13 @@ async function fixture(t, configured = false, behavior = {}) {
   const requests = [];
   const fetchMock = async (url, options) => {
     requests.push({ url: String(url), options });
+    if (String(url).startsWith("https://calendar.example/"))
+      return new Response(
+        behavior.calendarContent ||
+          `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALNAME:My private calendar\r\nBEGIN:VEVENT\r\nUID:ics-one\r\nDTSTART:${new Date().toISOString().slice(0, 10).replaceAll("-", "")}T120000Z\r\nDTEND:${new Date().toISOString().slice(0, 10).replaceAll("-", "")}T130000Z\r\nSUMMARY:Feed appointment\r\nEND:VEVENT\r\nEND:VCALENDAR`,
+      );
+    if (String(url) === "https://api.openai.com/v1/audio/transcriptions")
+      return Response.json({ text: "Add a task for the dashboard." });
     if (String(url).includes("/token"))
       return Response.json({
         access_token: "test-access",
@@ -67,7 +74,11 @@ async function fixture(t, configured = false, behavior = {}) {
         output: [
           {
             content: [
-              { type: "output_text", text: "Your next event is Planning." },
+              {
+                type: "output_text",
+                text:
+                  behavior.assistantOutput || "Your next event is Planning.",
+              },
             ],
           },
         ],
@@ -111,6 +122,7 @@ async function fixture(t, configured = false, behavior = {}) {
   const server = createDashboardServer({
     env,
     fetch: fetchMock,
+    lookup: async () => [{ address: "93.184.216.34", family: 4 }],
     distDir: join(dataDir, "dist"),
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -157,7 +169,8 @@ test("unconfigured accounts stay disconnected and expose no credentials", async 
       connected: false,
       authUrl: "/api/auth/spotify",
     },
-    assistant: { configured: false },
+    calendar: { connected: false, source: null },
+    assistant: { configured: false, transcription: false },
   });
   const auth = await call("/api/auth/google");
   assert.equal(auth.status, 503);
@@ -421,4 +434,192 @@ test("production serves only built frontend assets and client-side routes", asyn
   assert.equal((await call("/calendar")).status, 200);
   assert.equal((await call("/missing.js")).status, 404);
   assert.equal((await call("/.env")).status, 404);
+});
+
+test("calendar feed saves privately without Google credentials and preserves Spotify", async (t) => {
+  const { call, connect, requests, dataDir } = await fixture(t, true);
+  await connect("spotify");
+  const saved = await call("/api/calendar/feed", {
+    method: "PUT",
+    body: JSON.stringify({
+      url: "webcal://calendar.example/private.ics?token=private-secret",
+    }),
+  });
+  assert.equal(saved.status, 200);
+  assert.deepEqual(await saved.json(), {
+    connected: true,
+    source: "ics",
+    feedName: "My private calendar",
+  });
+  const status = await (await call("/api/connections")).json();
+  assert.equal(status.spotify.connected, true);
+  assert.equal(status.google.connected, false);
+  assert.equal(status.calendar.connected, true);
+  assert.equal(status.calendar.source, "ics");
+  assert(!JSON.stringify(status).includes("private-secret"));
+  const dashboard = await (await call("/api/dashboard")).json();
+  assert.equal(dashboard.calendar[0].title, "Feed appointment");
+  assert.equal(dashboard.spotify.title, "Focus");
+  assert.equal(dashboard.emails.length, 0);
+  assert(!JSON.stringify(dashboard).includes("private-secret"));
+  assert.equal(
+    requests.filter((x) => x.url.startsWith("https://calendar.example/"))
+      .length,
+    1,
+  );
+  const stored = await readFile(join(dataDir, "connections.json"), "utf8");
+  assert(stored.includes("private-secret"));
+  assert.equal(
+    (await stat(join(dataDir, "connections.json"))).mode & 0o777,
+    0o600,
+  );
+  await call("/api/calendar/disconnect", { method: "POST" });
+  assert.equal(
+    (await (await call("/api/connections")).json()).calendar.connected,
+    false,
+  );
+  assert.equal(
+    (await (await call("/api/connections")).json()).spotify.connected,
+    true,
+  );
+});
+test("ICS import is a snapshot and malformed calendar leaves existing connection intact", async (t) => {
+  const { call } = await fixture(t);
+  const day = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  const content = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:import-event\r\nDTSTART;VALUE=DATE:${day}\r\nSUMMARY:Imported day\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+  assert.equal(
+    (
+      await call("/api/calendar/import", {
+        method: "PUT",
+        body: JSON.stringify({ content }),
+      })
+    ).status,
+    200,
+  );
+  const invalid = await call("/api/calendar/import", {
+    method: "PUT",
+    body: JSON.stringify({ content: "not a calendar" }),
+  });
+  assert.equal(invalid.status, 400);
+  const data = await (await call("/api/dashboard")).json();
+  assert.equal(data.calendar[0].title, "Imported day");
+  assert.equal(data.calendar[0].allDay, true);
+});
+test("transcription rejects missing keys and unsupported audio, forwards multipart securely", async (t) => {
+  const unconfigured = await fixture(t);
+  assert.equal(
+    (
+      await unconfigured.call("/api/transcribe", {
+        method: "POST",
+        body: "audio",
+        headers: { "Content-Type": "audio/webm" },
+      })
+    ).status,
+    503,
+  );
+  const { call, requests } = await fixture(t, false, {
+    assistantConfigured: true,
+  });
+  assert.equal(
+    (
+      await call("/api/transcribe", {
+        method: "POST",
+        body: "audio",
+        headers: { "Content-Type": "text/plain" },
+      })
+    ).status,
+    415,
+  );
+  const result = await call("/api/transcribe", {
+    method: "POST",
+    body: "audio",
+    headers: { "Content-Type": "audio/webm;codecs=opus" },
+  });
+  assert.equal(result.status, 200);
+  assert.deepEqual(await result.json(), {
+    text: "Add a task for the dashboard.",
+  });
+  const sent = requests.find((x) => x.url.endsWith("/audio/transcriptions"));
+  assert.equal(sent.options.headers.Authorization, "Bearer test-openai-key");
+  assert.equal(sent.options.body.get("model"), "gpt-4o-mini-transcribe");
+  assert.equal(sent.options.body.get("file").type, "audio/webm");
+});
+test("assistant structured replies normalize concrete next-step suggestions", async (t) => {
+  const { call, requests } = await fixture(t, false, {
+    assistantConfigured: true,
+    assistantOutput: JSON.stringify({
+      message: "Here are your next steps.",
+      suggestedTasks: [
+        "  Test dictation  ",
+        "Test dictation",
+        "",
+        "x".repeat(201),
+        "Import calendar feed",
+        "Review Buffalo weather",
+        "Excess suggestion",
+      ],
+    }),
+  });
+  const response = await call("/api/assistant", {
+    method: "POST",
+    body: JSON.stringify({
+      message: "Plan my dashboard build",
+      context: { buildHandoff: "User asked to build Orbit V2." },
+    }),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    message: "Here are your next steps.",
+    suggestedTasks: [
+      "Test dictation",
+      "Import calendar feed",
+      "Review Buffalo weather",
+    ],
+  });
+  const payload = JSON.parse(requests[0].options.body);
+  assert.equal(payload.text.format.type, "json_schema");
+  assert.match(payload.instructions, /cannot access it/);
+  assert.match(payload.instructions, /never invent personal obligations/);
+});
+
+test("assistant does not return task additions when the user disables next-step tracking", async (t) => {
+  const { call } = await fixture(t, false, {
+    assistantConfigured: true,
+    assistantOutput: JSON.stringify({
+      message: "I can discuss this without creating tasks.",
+      suggestedTasks: ["Create a task"],
+    }),
+  });
+  const response = await call("/api/assistant", {
+    method: "POST",
+    body: JSON.stringify({
+      message: "Talk through my day",
+      context: { trackNextSteps: false },
+    }),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    message: "I can discuss this without creating tasks.",
+  });
+});
+
+test("oversized audio returns an explicit size error without calling transcription", async (t) => {
+  const { call, requests } = await fixture(t, false, {
+    assistantConfigured: true,
+  });
+  const response = await call("/api/transcribe", {
+    method: "POST",
+    headers: { "Content-Type": "audio/webm" },
+    body: Buffer.alloc(10 * 1024 * 1024 + 1),
+  });
+  assert.equal(response.status, 413);
+  assert.match((await response.json()).error, /too large/);
+  assert.equal(requests.length, 0);
+  const empty = await call("/api/transcribe", {
+    method: "POST",
+    headers: { "Content-Type": "audio/webm" },
+    body: "",
+  });
+  assert.equal(empty.status, 400);
+  assert.match((await empty.json()).error, /empty/);
 });

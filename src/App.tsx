@@ -48,17 +48,25 @@ import type {
 } from "./data";
 import {
   eventDate,
+  eventOnDay,
   defaultConnections,
   demoEmails,
   demoEvents,
   demoFiles,
   initialTasks,
+  buildHandoff,
   sameDay,
   shortTime,
 } from "./data";
 
+import WeatherPanel from "./WeatherPanel";
+import CalendarConnect from "./CalendarConnect";
+import AssistantCharacter from "./AssistantCharacter";
+import { useVoice } from "./useVoice";
+
 type View = "overview" | "calendar" | "inbox" | "files";
-type Modal = "connections" | "search" | "notifications" | null;
+type Modal =
+  "connections" | "search" | "notifications" | "assistantSettings" | null;
 type Detail =
   | { type: "email"; item: MailMessage }
   | { type: "file"; item: DriveFile }
@@ -71,6 +79,32 @@ function stored<T>(key: string, initial: T): T {
   } catch {
     return initial;
   }
+}
+function loadTasks(): Task[] {
+  const old = stored<Task[]>("orbit-tasks", []);
+  const valid = Array.isArray(old)
+    ? old.filter(
+        (t) =>
+          t &&
+          typeof t.id === "string" &&
+          typeof t.title === "string" &&
+          typeof t.done === "boolean",
+      )
+    : [];
+  if (stored("orbit-seed-v2", false)) return valid;
+  const placeholders = new Set([
+    "Make space for a little creativity",
+    "Plan the next little adventure",
+    "Drink water. Take a breath.",
+  ]);
+  const current = valid.filter(
+    (t) => !(["t1", "t2", "t3"].includes(t.id) && placeholders.has(t.title)),
+  );
+  const known = new Set(current.map((t) => t.id));
+  const result = [...current, ...initialTasks.filter((t) => !known.has(t.id))];
+  localStorage.setItem("orbit-tasks", JSON.stringify(result));
+  localStorage.setItem("orbit-seed-v2", "true");
+  return result;
 }
 function SpotifyIcon({ size = 20 }: { size?: number }) {
   return (
@@ -275,9 +309,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [mailTab, setMailTab] = useState<"important" | "all">("important");
   const [read, setRead] = useState<string[]>(() => stored("orbit-read", []));
-  const [tasks, setTasks] = useState<Task[]>(() =>
-    stored("orbit-tasks", initialTasks),
-  );
+  const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
   const [notes, setNotes] = useState(() => stored("orbit-notes", ""));
   const [taskTab, setTaskTab] = useState("tasks");
   const [taskInput, setTaskInput] = useState("");
@@ -285,22 +317,42 @@ export default function App() {
   const [remaining, setRemaining] = useState(25 * 60);
   const [focusing, setFocusing] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [voice, setVoice] = useState(false);
-  const [listening, setListening] = useState(false);
+  const [voice, setVoice] = useState(() =>
+    stored("orbit-spoken-replies", true),
+  );
+  const [demoMode, setDemoMode] = useState(() => stored("orbit-demo", false));
+  const [trackNextSteps, setTrackNextSteps] = useState(() =>
+    stored("orbit-track-steps", true),
+  );
+  const [weatherSummary, setWeatherSummary] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
   const [messages, setMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
-  >([
-    {
-      role: "assistant",
-      content:
-        "Hey, welcome to your space. I can help you plan your day, find something, or make a little time to focus. What’s on your mind?",
-    },
-  ]);
+  >(() =>
+    stored("orbit-messages", [
+      {
+        role: "assistant",
+        content:
+          "Hey Joseph. Ready when you are. Tell me what’s on your mind, plan your day, or keep our Orbit build moving. Use the mic to dictate, then review and send.",
+      },
+    ]),
+  );
   const chatEnd = useRef<HTMLDivElement>(null);
-  const recognition = useRef<{ stop: () => void } | null>(null);
+  const conversationRef = useRef<HTMLElement>(null);
+  const onTranscript = useCallback(
+    (text: string) =>
+      setChatInput((current) =>
+        [current.trim(), text.trim()].filter(Boolean).join(" "),
+      ),
+    [],
+  );
+  const dictation = useVoice({
+    onTranscript,
+    aiConfigured: connections.assistant.configured,
+  });
+  const { listening, transcribing } = dictation;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -319,7 +371,7 @@ export default function App() {
       else notify("Couldn’t refresh your services. Please try again.");
     } catch {
       notify(
-        "You’re exploring the demo. Start the API to connect your accounts.",
+        "The API is unavailable. Check that npm run dev is running, then refresh.",
       );
     } finally {
       setLoading(false);
@@ -341,7 +393,12 @@ export default function App() {
     }
   }, [refresh, notify]);
   useEffect(() => {
-    if (!connections.google.connected && !connections.spotify.connected) return;
+    if (
+      !connections.google.connected &&
+      !connections.spotify.connected &&
+      !connections.calendar?.connected
+    )
+      return;
     const id = setInterval(
       () => {
         if (document.visibilityState === "visible") void refresh();
@@ -349,7 +406,12 @@ export default function App() {
       connections.spotify.connected ? 30000 : 60000,
     );
     return () => clearInterval(id);
-  }, [connections.google.connected, connections.spotify.connected, refresh]);
+  }, [
+    connections.google.connected,
+    connections.spotify.connected,
+    connections.calendar?.connected,
+    refresh,
+  ]);
   useEffect(() => {
     localStorage.setItem("orbit-tasks", JSON.stringify(tasks));
   }, [tasks]);
@@ -376,40 +438,83 @@ export default function App() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
+        dictation.stop();
+        setChatOpen(false);
         setModal((m) => (m === "search" ? null : "search"));
       }
       if (e.key === "Escape") {
+        dictation.stop();
         setChatOpen(false);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [dictation.stop]);
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatBusy]);
   useEffect(
     () => () => {
-      recognition.current?.stop();
       window.speechSynthesis?.cancel();
       if (toastTimer.current) clearTimeout(toastTimer.current);
     },
     [],
   );
+  useEffect(() => {
+    if (!chatOpen) return;
+    const previous = document.activeElement as HTMLElement;
+    conversationRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const items = conversationRef.current?.querySelectorAll<HTMLElement>(
+        "button:not(:disabled),input:not(:disabled),a[href]",
+      );
+      if (!items?.length) return;
+      const first = items[0],
+        last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", trap);
+    return () => {
+      document.removeEventListener("keydown", trap);
+      previous?.focus();
+    };
+  }, [chatOpen]);
+  useEffect(() => {
+    localStorage.setItem("orbit-messages", JSON.stringify(messages.slice(-40)));
+  }, [messages]);
+  useEffect(() => {
+    localStorage.setItem("orbit-spoken-replies", JSON.stringify(voice));
+  }, [voice]);
+  useEffect(() => {
+    localStorage.setItem("orbit-demo", JSON.stringify(demoMode));
+  }, [demoMode]);
+  useEffect(() => {
+    localStorage.setItem("orbit-track-steps", JSON.stringify(trackNextSteps));
+  }, [trackNextSteps]);
   const googleLive = connections.google.connected;
-  const events = googleLive ? live?.calendar || [] : demoEvents;
-  const emails = (googleLive ? live?.emails || [] : demoEmails).map((m) => ({
+  const calendarLive = connections.calendar?.connected || googleLive;
+  const events = calendarLive
+    ? live?.calendar || []
+    : demoMode
+      ? demoEvents
+      : [];
+  const emails = (
+    googleLive ? live?.emails || [] : demoMode ? demoEmails : []
+  ).map((m) => ({
     ...m,
     unread: m.unread && !read.includes(m.id),
   }));
-  const files = googleLive ? live?.files || [] : demoFiles;
+  const files = googleLive ? live?.files || [] : demoMode ? demoFiles : [];
   const track = live?.spotify || null;
-  const todayEvents = events.filter((e) =>
-    sameDay(eventDate(e.start), new Date()),
-  );
-  const agenda = events.filter((e) =>
-    sameDay(eventDate(e.start), selectedDate),
-  );
+  const todayEvents = events.filter((e) => eventOnDay(e, new Date()));
+  const agenda = events.filter((e) => eventOnDay(e, selectedDate));
   const important = emails.filter((e) => e.important);
   const done = tasks.filter((t) => t.done).length;
   const progress = remaining / (focusMinutes * 60);
@@ -527,6 +632,25 @@ export default function App() {
           ]);
           answer = `Added “${title}” to your little to-dos.`;
         }
+      } else if (/^(complete|finish|done) task[: ]/i.test(text)) {
+        const title = text
+          .replace(/^(complete|finish|done) task[: ]+/i, "")
+          .trim();
+        const match =
+          tasks.find((t) => t.title.toLowerCase() === title.toLowerCase()) ||
+          tasks.find(
+            (t) =>
+              title.length > 5 &&
+              t.title.toLowerCase().includes(title.toLowerCase()),
+          );
+        if (match) {
+          setTasks((current) =>
+            current.map((t) => (t.id === match.id ? { ...t, done: true } : t)),
+          );
+          answer = `Marked “${match.title}” complete.`;
+        } else
+          answer =
+            "I couldn’t find that task. Use “Complete task: …” followed by its title.";
       } else if (/^(start|begin|resume) (a |the )?(focus|timer)/i.test(text)) {
         startFocus();
         answer = `Your ${focusMinutes}-minute focus timer is running. Take a breath, choose one thing, and give it your attention. You’ve got this.`;
@@ -542,23 +666,67 @@ export default function App() {
             message: text,
             messages: history.slice(-12),
             context: {
-              dataMode: googleLive ? "connected" : "sample",
+              dataMode: demoMode ? "sample-unconnected-services" : "personal",
+              buildHandoff,
+              calendarConnected: calendarLive,
+              googleConnected: googleLive,
+              weather: weatherSummary,
+              trackNextSteps,
               events: todayEvents,
               tasks,
               emails: important.map(({ from, subject }) => ({ from, subject })),
             },
           }),
         });
+        const body = await response.json();
         if (!response.ok)
           throw new Error(
-            "The AI service is unavailable. Try a dashboard command.",
+            body.error ||
+              "The AI service is unavailable. Try a dashboard command.",
           );
-        const body = await response.json();
+        if (trackNextSteps && Array.isArray(body.suggestedTasks)) {
+          const suggestions = body.suggestedTasks
+            .filter(
+              (x: unknown): x is string =>
+                typeof x === "string" && x.trim().length > 0,
+            )
+            .slice(0, 3);
+          setTasks((current) => {
+            const known = new Set(
+              current.map((t) => t.title.trim().toLowerCase()),
+            );
+            const next = [...current];
+            for (const title of suggestions) {
+              const clean = title.trim().slice(0, 200);
+              if (!known.has(clean.toLowerCase())) {
+                next.push({
+                  id: crypto.randomUUID(),
+                  title: clean,
+                  done: false,
+                  source: "assistant",
+                });
+                known.add(clean.toLowerCase());
+              }
+            }
+            return next;
+          });
+        }
         answer =
           body.reply ||
           body.message ||
           body.content ||
           "I couldn’t generate a response. Please try again.";
+      } else if (/weather|forecast|temperature/i.test(text)) {
+        answer =
+          weatherSummary ||
+          "The weather panel is loading or unavailable. Check the forecast card, or choose Retry there.";
+      } else if (/build|version 2|roadmap/i.test(text)) {
+        answer = `Our next steps: ${tasks
+          .filter((t) => !t.done)
+          .map((t) => t.title)
+          .join(
+            ". ",
+          )}. Spotify is already connected on your Mac. I have a handoff from this build, but not background access to ChatGPT. Connect an OpenAI API key for open-ended conversations.`;
       } else if (/focus|concentrate|timer/.test(text.toLowerCase())) {
         startFocus();
         answer = `Your ${focusMinutes}-minute focus timer is running. Take a breath, choose one thing, and give it your attention. You’ve got this.`;
@@ -579,7 +747,7 @@ export default function App() {
           : "Your inbox has no important emails right now. A little breathing room.";
       } else if (/file|drive|document/.test(text.toLowerCase())) {
         navigate("files");
-        answer = `Here are your ${googleLive ? "" : "sample "}recent files. ${files
+        answer = `Here are your ${googleLive ? "" : demoMode ? "sample " : "currently loaded "}recent files. ${files
           .slice(0, 3)
           .map((f) => f.name)
           .join(", ")}. Select one to see its details.`;
@@ -589,7 +757,7 @@ export default function App() {
           .map((t) => t.title)
           .join(". ")}. Want to add something? Type “Add task: …”.`;
       } else {
-        answer = `${googleLive ? "" : "You’re viewing a sample day. "}${todayEvents.length ? `You have ${todayEvents.length} events today: ${todayEvents.map((e) => `${e.title} at ${shortTime(e.start)}`).join(", ")}.` : "Your calendar is clear today."} ${connections.assistant.configured ? "" : "I’m your local dashboard guide for now. I can show your calendar, inbox or files, add tasks, and start a focus timer. Connect your accounts in Settings to make this space yours."}`;
+        answer = `${!calendarLive ? (demoMode ? "You’re viewing a sample day. " : "Your calendar isn’t connected yet. Add an ICS link in Connections. ") : ""}${todayEvents.length ? `You have ${todayEvents.length} events today: ${todayEvents.map((e) => `${e.title} at ${shortTime(e.start)}`).join(", ")}.` : calendarLive ? "No events are loaded for today." : ""} ${connections.assistant.configured ? "" : "I’m your local dashboard guide until an OpenAI API key is configured. I can track tasks, summarize this build, and start focus sessions. Use Assistant settings to enable full conversations."}`;
       }
     } catch (e) {
       answer =
@@ -603,45 +771,19 @@ export default function App() {
     say(answer);
   };
   const startListening = () => {
-    if (listening) {
-      recognition.current?.stop();
-      setListening(false);
-      return;
-    }
-    const win = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecognitionLike;
-      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-    };
-    const Speech = win.SpeechRecognition || win.webkitSpeechRecognition;
-    if (!Speech) {
-      notify(
-        "Voice input isn’t supported in this browser. You can still type to Orbit.",
-      );
-      setChatOpen(true);
-      return;
-    }
-    const rec = new Speech();
-    rec.lang = "en-US";
-    rec.interimResults = false;
-    rec.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      void askAssistant(transcript);
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => {
-      setListening(false);
-      notify("Microphone access was unavailable. Try typing your message.");
-    };
-    recognition.current = rec;
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
     setChatOpen(true);
-    try {
-      rec.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-      notify("Couldn’t start the microphone. Please try again.");
-    }
+    if (listening) dictation.stop();
+    else void dictation.start();
   };
+  const characterState = listening
+    ? "listening"
+    : chatBusy || transcribing
+      ? "thinking"
+      : speaking
+        ? "speaking"
+        : "idle";
   const closeModal = useCallback(() => {
     setModal(null);
     setQuery("");
@@ -657,7 +799,13 @@ export default function App() {
         title="Your day, at a glance"
         action={() => navigate("calendar")}
       >
-        {!googleLive && <SampleTag />}
+        {!calendarLive && demoMode ? (
+          <SampleTag />
+        ) : calendarLive ? (
+          <span className="source-badge">
+            {connections.calendar?.source === "ics" ? "ICS" : "LIVE"}
+          </span>
+        ) : null}
       </CardHeader>
       <div className="calendar-month">
         <span>
@@ -708,9 +856,7 @@ export default function App() {
               <strong>{date.getDate()}</strong>
               <i
                 className={
-                  events.some((e) => sameDay(eventDate(e.start), date))
-                    ? "has-events"
-                    : ""
+                  events.some((e) => eventOnDay(e, date)) ? "has-events" : ""
                 }
               />
             </button>
@@ -769,8 +915,25 @@ export default function App() {
         ) : (
           <div className="empty-state">
             <Sun size={27} />
-            <strong>A little breathing room.</strong>
-            <p>No events on this day.</p>
+            <strong>
+              {calendarLive || demoMode
+                ? "A little breathing room."
+                : "Your calendar, without the setup maze."}
+            </strong>
+            <p>
+              {calendarLive || demoMode
+                ? "No events on this day."
+                : "Paste a private ICS link or import a calendar file. No Google Cloud required."}
+            </p>
+            {!calendarLive && !demoMode && (
+              <button
+                className="text-button"
+                onClick={() => setModal("connections")}
+              >
+                Add your calendar
+                <ArrowUpRight size={14} />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -792,7 +955,7 @@ export default function App() {
         title="A quieter inbox"
         action={() => navigate("inbox")}
       >
-        {!googleLive && <SampleTag />}
+        {!googleLive && demoMode && <SampleTag />}
       </CardHeader>
       <div className="mail-tabs">
         <button
@@ -840,9 +1003,13 @@ export default function App() {
         {(mailTab === "important" ? important : emails).length === 0 && (
           <div className="empty-state">
             <CheckCheck size={28} />
-            <strong>All caught up.</strong>
+            <strong>
+              {googleLive || demoMode ? "All caught up." : "An honest inbox."}
+            </strong>
             <p>
-              No {mailTab === "important" ? "important " : ""}emails to show.
+              {googleLive || demoMode
+                ? `No ${mailTab === "important" ? "important " : ""}emails to show.`
+                : "Email isn’t connected. Open Gmail directly, or add optional Google access later."}
             </p>
           </div>
         )}
@@ -854,7 +1021,9 @@ export default function App() {
         <p>
           {important.length
             ? "Just what matters. The rest can wait."
-            : "A clear inbox. A little more headspace."}
+            : googleLive || demoMode
+              ? "A clear inbox. A little more headspace."
+              : "An ICS calendar does not grant email access."}
         </p>
       </div>
       <button
@@ -881,7 +1050,7 @@ export default function App() {
         title="Pick up where you left off"
         action={() => navigate("files")}
       >
-        {!googleLive && <SampleTag />}
+        {!googleLive && demoMode && <SampleTag />}
       </CardHeader>
       <div className="files-subhead">
         <span>RECENT IN DRIVE</span>
@@ -943,7 +1112,10 @@ export default function App() {
         <div className="empty-state">
           <Folder size={28} />
           <strong>A fresh space.</strong>
-          <p>Your recent Google Drive files will appear here.</p>
+          <p>
+            Drive isn’t connected. You can still open Drive directly; calendar
+            feeds don’t grant file access.
+          </p>
         </div>
       )}
       <button
@@ -1161,7 +1333,7 @@ export default function App() {
             onClick={() => setTaskTab("tasks")}
           >
             <CheckCheck size={17} />
-            Little to-dos<span>{tasks.length - done}</span>
+            Your next steps<span>{tasks.length - done}</span>
           </button>
           <button
             className={taskTab === "notes" ? "active" : ""}
@@ -1174,43 +1346,61 @@ export default function App() {
       </div>
       {taskTab === "tasks" ? (
         <>
+          <div className="task-provenance">
+            <span>
+              <Sparkles size={12} />
+              From our build & your conversations
+            </span>
+            <span>
+              {done}/{tasks.length} done
+            </span>
+          </div>
           <div className="task-list">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className={`task-row ${task.done ? "done" : ""}`}
-              >
-                <button
-                  className="task-toggle"
-                  onClick={() =>
-                    setTasks((t) =>
-                      t.map((x) =>
-                        x.id === task.id ? { ...x, done: !x.done } : x,
-                      ),
-                    )
-                  }
-                  aria-label={`${task.done ? "Uncomplete" : "Complete"} ${task.title}`}
+            {[...tasks]
+              .sort((a, b) => Number(a.done) - Number(b.done))
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className={`task-row ${task.done ? "done" : ""}`}
                 >
-                  {task.done && <Check size={12} />}
-                </button>
-                <span>{task.title}</span>
-                <IconButton
-                  label={`Delete ${task.title}`}
-                  className="task-delete"
-                  onClick={() =>
-                    setTasks((t) => t.filter((x) => x.id !== task.id))
-                  }
-                >
-                  <X size={13} />
-                </IconButton>
-              </div>
-            ))}
+                  <button
+                    className="task-toggle"
+                    onClick={() =>
+                      setTasks((t) =>
+                        t.map((x) =>
+                          x.id === task.id ? { ...x, done: !x.done } : x,
+                        ),
+                      )
+                    }
+                    aria-label={`${task.done ? "Uncomplete" : "Complete"} ${task.title}`}
+                  >
+                    {task.done && <Check size={12} />}
+                  </button>
+                  <span>
+                    {task.title}
+                    {task.source && (
+                      <small className="task-source">
+                        {task.source === "build" ? "OUR BUILD" : "ORBIT"}
+                      </small>
+                    )}
+                  </span>
+                  <IconButton
+                    label={`Delete ${task.title}`}
+                    className="task-delete"
+                    onClick={() =>
+                      setTasks((t) => t.filter((x) => x.id !== task.id))
+                    }
+                  >
+                    <X size={13} />
+                  </IconButton>
+                </div>
+              ))}
           </div>
           <form className="add-task" onSubmit={addTask}>
             <Plus size={15} />
             <input
               aria-label="Add a little to-do"
-              placeholder="Add a little to-do…"
+              placeholder="Add a next step…"
               value={taskInput}
               onChange={(e) => setTaskInput(e.target.value)}
               maxLength={200}
@@ -1239,7 +1429,7 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell">
+    <div className="app-shell orbit-v2">
       <aside className="sidebar">
         <a
           href="#"
@@ -1318,7 +1508,7 @@ export default function App() {
               onClick={() => setModal("connections")}
             >
               <i className={googleLive ? "live" : ""} />
-              {googleLive ? "Connected" : "Demo space"}
+              {demoMode ? "Sample mode" : "Your space"}
             </button>
             <span className="topbar-divider" />
             <IconButton
@@ -1356,7 +1546,7 @@ export default function App() {
               </h1>
               <p>
                 {view === "overview"
-                  ? "Everything in your orbit, in one peaceful place."
+                  ? "Your essentials. Your next steps. A copilot by your side."
                   : view === "calendar"
                     ? "A little structure. A lot of possibility."
                     : view === "inbox"
@@ -1386,142 +1576,109 @@ export default function App() {
           ) : null}
           {view === "overview" ? (
             <>
-              <section className="hero">
-                <div className="hero-copy">
-                  <span className="hero-kicker">
-                    <i /> THE BIG PICTURE
-                  </span>
-                  <h2>
-                    A good day starts
-                    <br />
-                    with a little clarity.
-                  </h2>
-                  <p>
-                    {googleLive
-                      ? `${todayEvents.length} events on your horizon. `
-                      : "Your plans, your people, your next big idea. "}
-                    <br className="hero-break" />
-                    Let’s make room for what matters.
-                  </p>
-                  <button
-                    className="primary-button"
-                    onClick={() => navigate("calendar")}
-                  >
-                    Let’s see your day <ArrowUpRight size={16} />
-                  </button>
-                </div>
-                <div className="hero-art" aria-hidden="true">
-                  <div className="orbital-halo" />
-                  <div className="orbit-path path-1" />
-                  <div className="orbit-path path-2" />
-                  <div className="orbit-path path-3" />
-                  <div className="planet">
-                    <div className="planet-texture" />
-                  </div>
-                  <div className="moon moon-1" />
-                  <div className="moon moon-2" />
-                  <div className="floating-label label-calendar">
-                    <CalendarDays size={15} />
-                    <span>A little more present.</span>
-                  </div>
-                  <div className="floating-label label-spark">
-                    <Sparkles size={14} />
-                    <span>A little more possibility.</span>
-                  </div>
-                  <span className="space-star star-1">+</span>
-                  <span className="space-star star-2">+</span>
-                  <span className="space-star star-3">·</span>
-                  <div className="orbit-coordinates">
-                    YOUR WORLD. PERFECTLY IN ORBIT.
-                  </div>
-                </div>
-                <div className="hero-bottom">
-                  <span>
-                    <span className="hero-avatar">
-                      <Sun size={12} />
-                    </span>
-                    Less juggling. More living.
-                  </span>
-                  <span>01 / 01</span>
-                </div>
-              </section>
-              <div className="overview-metrics">
-                <button onClick={() => navigate("calendar")}>
-                  <span className="metric-icon metric-blue">
-                    <CalendarDays size={17} />
-                  </span>
-                  <div>
-                    <strong>
-                      {todayEvents.length}
-                      <span>on the calendar</span>
-                    </strong>
-                    <p>A day full of possibility</p>
-                  </div>
-                  <ArrowUpRight size={15} />
-                </button>
-                <button onClick={() => navigate("inbox")}>
-                  <span className="metric-icon metric-purple">
-                    <Mail size={17} />
-                  </span>
-                  <div>
-                    <strong>
-                      {important.filter((m) => m.unread).length}
-                      <span>worth a look</span>
-                    </strong>
-                    <p>Your important unread emails</p>
-                  </div>
-                  <ArrowUpRight size={15} />
-                </button>
-                <button
-                  onClick={() => {
-                    document
-                      .getElementById("bottom-widgets")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                    setTaskTab("tasks");
-                  }}
-                >
-                  <span className="metric-icon metric-green">
-                    <CheckCheck size={17} />
-                  </span>
-                  <div>
-                    <strong>
-                      {done}
-                      <span>little wins today</span>
-                    </strong>
-                    <p>Progress, at your own pace</p>
-                  </div>
-                  <ArrowUpRight size={15} />
-                </button>
+              <div className="v2-status-strip">
+                <span>
+                  <i className="live-dot" />
+                  ORBIT / V2
+                </span>
+                <span>
+                  {calendarLive
+                    ? `${todayEvents.length} events today`
+                    : "Calendar ready to connect"}
+                </span>
+                <span>{tasks.length - done} next steps</span>
                 <button onClick={() => setModal("connections")}>
-                  <span className="metric-icon metric-orange">
-                    <Link2 size={17} />
-                  </span>
-                  <div>
-                    <strong>
-                      {Number(googleLive) +
-                        Number(connections.spotify.connected)}
-                      <span>connected accounts</span>
-                    </strong>
-                    <p>
-                      {googleLive
-                        ? "Your world, coming together"
-                        : "Make this space your own"}
-                    </p>
-                  </div>
-                  <ArrowUpRight size={15} />
+                  Connections <ArrowUpRight size={12} />
                 </button>
               </div>
-              <div className="dashboard-grid">
-                <div className="col-calendar">{calendarPanel()}</div>
-                <div className="col-inbox">{inboxPanel()}</div>
-                <div className="col-mood">
+              <div className="v2-primary">
+                <div className="essentials-column">
+                  {calendarPanel()}
+                  {inboxPanel()}
+                </div>
+                <div className="copilot-column">
+                  <section
+                    className={`card copilot-card character-${characterState}`}
+                  >
+                    <div className="copilot-heading">
+                      <span>
+                        <Sparkles size={14} />
+                        YOUR COPILOT
+                      </span>
+                      <button
+                        onClick={() => setModal("assistantSettings")}
+                        aria-label="Assistant settings"
+                      >
+                        <Settings2 size={16} />
+                      </button>
+                    </div>
+                    <div className="character-stage">
+                      <AssistantCharacter state={characterState} />
+                      <span className="character-state">
+                        <i />
+                        {listening
+                          ? "I’m listening"
+                          : transcribing
+                            ? "Turning your voice into words"
+                            : chatBusy
+                              ? "Connecting the dots"
+                              : speaking
+                                ? "A thought for you"
+                                : connections.assistant.configured
+                                  ? "Here, whenever you need me"
+                                  : "Local guide · AI ready"}
+                      </span>
+                    </div>
+                    <h2>
+                      A little more human.
+                      <br />A lot more helpful.
+                    </h2>
+                    <p>
+                      Talk through your day, keep our build moving,
+                      <br />
+                      or just get a thought out of your head.
+                    </p>
+                    <button className="talk-primary" onClick={startListening}>
+                      <Mic size={19} />
+                      {listening ? "Stop dictation" : "Talk to Orbit"}
+                      <span className="talk-wave">
+                        <i />
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    </button>
+                    <div className="copilot-actions">
+                      <button onClick={() => setChatOpen(true)}>
+                        Type instead <ArrowUpRight size={12} />
+                      </button>
+                      <span>Review your words before sending</span>
+                    </div>
+                    <div className="copilot-brief">
+                      <span>
+                        <Target size={14} />
+                        <strong>{tasks.length - done}</strong> things to move
+                        forward
+                      </span>
+                      <button
+                        onClick={() =>
+                          void askAssistant("Where are we with our build?")
+                        }
+                      >
+                        Our build <ArrowRight size={13} />
+                      </button>
+                    </div>
+                  </section>
+                  {tasksPanel()}
+                </div>
+                <div className="atmosphere-column">
+                  <WeatherPanel onWeather={setWeatherSummary} />
                   {musicPanel()}
                   {focusPanel()}
                 </div>
               </div>
-              <div className="bottom-grid" id="bottom-widgets">
+              <div className="v2-files" id="bottom-widgets">
                 {filesPanel()}
-                {tasksPanel()}
               </div>
             </>
           ) : view === "calendar" ? (
@@ -1533,15 +1690,15 @@ export default function App() {
                   <Sparkles size={20} />
                   <h3>A calendar with breathing room.</h3>
                   <p>
-                    {googleLive
-                      ? "Your next seven days, synced from Google Calendar."
-                      : "You’re exploring a sample week. Connect Google Calendar to bring your own plans into orbit."}
+                    {calendarLive
+                      ? `Your calendar, read-only and in one place. Source: ${connections.calendar?.source === "ics" ? "ICS feed / import" : "Google"}.`
+                      : "Use a private ICS feed or import an .ics file. Your calendar doesn’t need a Google Cloud project."}
                   </p>
                   <button
                     className="text-button"
                     onClick={() => setModal("connections")}
                   >
-                    {googleLive ? "Manage connection" : "Connect your calendar"}
+                    {calendarLive ? "Manage connection" : "Add calendar feed"}
                     <ArrowUpRight size={14} />
                   </button>
                 </section>
@@ -1592,7 +1749,10 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  Sample content <span>·</span> Yours to make your own
+                  {demoMode ? "Sample content" : "Private space"} <span>·</span>{" "}
+                  {calendarLive
+                    ? "Calendar connected"
+                    : "Your data stays yours"}
                 </>
               )}
               <button
@@ -1605,134 +1765,184 @@ export default function App() {
           </footer>
         </main>
       </div>
-      <div className={`assistant-dock ${chatOpen ? "is-open" : ""}`}>
-        <div className="assistant-teaser">
-          <span>Need a little hand?</span>
-          <strong>
-            Ask Orbit <ArrowUpRight size={12} />
-          </strong>
-        </div>
-        <button
-          className={`assistant-orb ${speaking ? "speaking" : ""} ${listening ? "listening" : ""}`}
-          aria-label={chatOpen ? "Close assistant" : "Talk to Orbit"}
-          onClick={() => setChatOpen(!chatOpen)}
-        >
-          {chatOpen ? (
-            <X size={21} />
-          ) : (
-            <span className="orb-wave">
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-            </span>
-          )}
-          <span className="orb-online" />
-        </button>
-      </div>
       {chatOpen && (
-        <section
-          className="chat-panel"
-          role="dialog"
-          aria-label="Orbit assistant"
+        <div
+          className="conversation-backdrop"
+          onClick={() => {
+            dictation.stop();
+            setChatOpen(false);
+          }}
         >
-          <div className="chat-heading">
-            <span className="chat-avatar">
-              <AudioLines size={20} />
-            </span>
-            <div>
-              <h2>A little help from Orbit</h2>
-              <span>
-                <i />
-                {connections.assistant.configured
-                  ? "AI assistant"
-                  : "Your local dashboard guide"}
+          <section
+            ref={conversationRef}
+            className="chat-panel v2-conversation"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Orbit assistant"
+          >
+            <div className="chat-heading">
+              <span className="chat-avatar">
+                <AssistantCharacter state={characterState} compact />
               </span>
+              <div>
+                <h2>A conversation with Orbit</h2>
+                <span>
+                  <i />
+                  {connections.assistant.configured
+                    ? "AI assistant"
+                    : "Local guide · Enable AI for full conversations"}
+                </span>
+              </div>
+              <IconButton
+                label={voice ? "Mute spoken replies" : "Enable spoken replies"}
+                onClick={() => {
+                  setVoice(!voice);
+                  if (voice) {
+                    window.speechSynthesis?.cancel();
+                    setSpeaking(false);
+                  }
+                }}
+              >
+                {voice ? <Volume2 size={17} /> : <VolumeX size={17} />}
+              </IconButton>
+              <IconButton
+                label="Close assistant"
+                onClick={() => {
+                  dictation.stop();
+                  setChatOpen(false);
+                }}
+              >
+                <X size={17} />
+              </IconButton>
             </div>
-            <IconButton
-              label={voice ? "Mute spoken replies" : "Enable spoken replies"}
-              onClick={() => {
-                setVoice(!voice);
-                if (voice) {
+            <div className="conversation-context">
+              <span>
+                <CheckCheck size={13} /> Our build handoff is loaded
+              </span>
+              <button
+                onClick={() => {
+                  setMessages([
+                    {
+                      role: "assistant",
+                      content:
+                        "A fresh conversation. Our build handoff and your next steps are still here.",
+                    },
+                  ]);
                   window.speechSynthesis?.cancel();
                   setSpeaking(false);
-                }
-              }}
-            >
-              {voice ? <Volume2 size={17} /> : <VolumeX size={17} />}
-            </IconButton>
-            <IconButton
-              label="Close assistant"
-              onClick={() => setChatOpen(false)}
-            >
-              <X size={17} />
-            </IconButton>
-          </div>
-          <div className="chat-messages">
-            {messages.map((message, i) => (
-              <div className={`chat-message ${message.role}`} key={i}>
-                {message.role === "assistant" && <Sparkles size={14} />}
-                <p>{message.content}</p>
-              </div>
-            ))}
-            {chatBusy && (
-              <div className="chat-thinking">
-                <i />
-                <i />
-                <i />
+                }}
+              >
+                Clear conversation
+              </button>
+            </div>
+            <div className="chat-messages">
+              {messages.map((message, i) => (
+                <div className={`chat-message ${message.role}`} key={i}>
+                  {message.role === "assistant" && <Sparkles size={14} />}
+                  <p>{message.content}</p>
+                </div>
+              ))}
+              {chatBusy && (
+                <div className="chat-thinking">
+                  <i />
+                  <i />
+                  <i />
+                </div>
+              )}
+              <div ref={chatEnd} />
+            </div>
+            {messages.length < 3 && (
+              <div className="chat-prompts">
+                {["What’s my day looking like?", "Start a focus session"].map(
+                  (q) => (
+                    <button key={q} onClick={() => void askAssistant(q)}>
+                      {q}
+                      <ArrowUpRight size={12} />
+                    </button>
+                  ),
+                )}
               </div>
             )}
-            <div ref={chatEnd} />
-          </div>
-          {messages.length < 3 && (
-            <div className="chat-prompts">
-              {["What’s my day looking like?", "Start a focus session"].map(
-                (q) => (
-                  <button key={q} onClick={() => void askAssistant(q)}>
-                    {q}
-                    <ArrowUpRight size={12} />
-                  </button>
-                ),
+            {dictation.error && (
+              <div className="dictation-error" role="alert">
+                <span>{dictation.error}</span>
+                <button
+                  onClick={dictation.clearError}
+                  aria-label="Dismiss microphone error"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            {(listening || transcribing || dictation.interim) && (
+              <div className="dictation-status" role="status">
+                {transcribing ? (
+                  <LoaderCircle size={14} className="spin" />
+                ) : (
+                  <AudioLines size={14} />
+                )}
+                <span>
+                  {transcribing
+                    ? "Transcribing your recording…"
+                    : dictation.interim ||
+                      "Listening. Speak naturally, then stop when you’re done."}
+                </span>
+                <button onClick={dictation.stop} disabled={transcribing}>
+                  Stop
+                </button>
+              </div>
+            )}
+            <form
+              className="chat-composer"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void askAssistant(chatInput);
+              }}
+            >
+              <input
+                aria-label="Message Orbit"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={listening ? "Listening…" : "What’s on your mind?"}
+                maxLength={2000}
+              />
+              <IconButton
+                label={listening ? "Stop microphone" : "Use microphone"}
+                className={listening ? "mic-active" : ""}
+                onClick={startListening}
+              >
+                <Mic size={17} />
+              </IconButton>
+              <button
+                type="submit"
+                className="send-button"
+                disabled={
+                  !chatInput.trim() || chatBusy || listening || transcribing
+                }
+                aria-label="Send message"
+              >
+                <ArrowUpRight size={17} />
+              </button>
+            </form>
+            <div className="voice-options">
+              <span>Dictation fills your draft. Send when you’re ready.</span>
+              {dictation.canRecord && connections.assistant.configured && (
+                <button
+                  disabled={listening || transcribing}
+                  onClick={() => void dictation.startRecording()}
+                >
+                  Use audio transcription
+                </button>
               )}
             </div>
-          )}
-          <form
-            className="chat-composer"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void askAssistant(chatInput);
-            }}
-          >
-            <input
-              aria-label="Message Orbit"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder={listening ? "Listening…" : "What’s on your mind?"}
-              maxLength={2000}
-            />
-            <IconButton
-              label={listening ? "Stop microphone" : "Use microphone"}
-              className={listening ? "mic-active" : ""}
-              onClick={startListening}
-            >
-              <Mic size={17} />
-            </IconButton>
-            <button
-              type="submit"
-              className="send-button"
-              disabled={!chatInput.trim() || chatBusy}
-              aria-label="Send message"
-            >
-              <ArrowUpRight size={17} />
-            </button>
-          </form>
-          <div className="chat-disclaimer">
-            {connections.assistant.configured
-              ? "AI can make mistakes. Take a moment to check."
-              : "Local commands are available. Enable AI in your environment."}
-          </div>
-        </section>
+            <div className="chat-disclaimer">
+              {connections.assistant.configured
+                ? "OpenAI API · Separate from ChatGPT. Audio transcription sends recordings to OpenAI."
+                : "Browser dictation may use your browser’s speech service. Full AI needs a separate API key."}
+            </div>
+          </section>
+        </div>
       )}
       {modal === "connections" && (
         <ModalShell
@@ -1745,6 +1955,12 @@ export default function App() {
             Your calendar, conversations, files, and favorite sounds. Connected
             on your terms.
           </p>
+          <CalendarConnect
+            connected={Boolean(connections.calendar?.connected)}
+            source={connections.calendar?.source}
+            feedName={connections.calendar?.feedName}
+            onChanged={() => void refresh()}
+          />
           <div className="connection-list">
             {(["google", "spotify"] as const).map((provider) => (
               <div className="connection-card" key={provider}>
@@ -1766,7 +1982,7 @@ export default function App() {
                   </h3>
                   <p>
                     {provider === "google"
-                      ? "Calendar, important emails & recent Drive files."
+                      ? "Optional: Gmail & Drive, plus Google Calendar."
                       : "Your music. The perfect backdrop to your day."}
                   </p>
                   <span>
@@ -1806,10 +2022,11 @@ export default function App() {
               <div>
                 <strong>A one-time setup, then it’s all yours.</strong>
                 <p>
-                  To enable an integration, add its OAuth client credentials to
-                  your server’s <code>.env</code> file and restart. The README
-                  has the steps and exact callback URLs. Credentials stay on
-                  your server.
+                  Calendar feeds and weather need no OAuth client or trial. For
+                  optional Spotify / Google access, add its OAuth client
+                  credentials to your server’s <code>.env</code> file and
+                  restart. The README has the steps and exact callback URLs.
+                  Credentials stay on your server.
                 </p>
                 <div className="setup-providers">
                   {!connections.google.configured && (
@@ -1822,16 +2039,127 @@ export default function App() {
               </div>
             </div>
           )}
+          <label className="setting-toggle">
+            <input
+              type="checkbox"
+              checked={demoMode}
+              onChange={(e) => setDemoMode(e.target.checked)}
+            />
+            <span>
+              Show sample content for unconnected services
+              <small>
+                Off by default. Your data and sample data are labeled
+                separately.
+              </small>
+            </span>
+          </label>
+          <button
+            className="text-button"
+            onClick={() => setModal("assistantSettings")}
+          >
+            Assistant & voice settings
+            <ArrowUpRight size={14} />
+          </button>
           <div className="privacy-note">
             <span>
               <CheckCheck size={15} /> Designed for your own private space
             </span>
             <p>
               Tasks and notes are saved in this browser. Connected accounts use
-              a private server token store. Demo content is shown for services
-              you haven’t connected.
+              a private server token store. Your calendar feed link is private
+              too. Disconnected services stay empty unless you enable sample
+              mode.
             </p>
           </div>
+        </ModalShell>
+      )}
+      {modal === "assistantSettings" && (
+        <ModalShell
+          title="A voice. A little personality. Your copilot."
+          eyebrow="ASSISTANT & VOICE"
+          onClose={closeModal}
+          wide
+        >
+          <div className="assistant-settings-intro">
+            <AssistantCharacter state="idle" compact />
+            <p>
+              Orbit carries a handoff from our build and remembers conversations
+              saved in this browser. It can’t read your ChatGPT account or this
+              chat in the background.
+            </p>
+          </div>
+          <div className="ai-setup-card">
+            <h3>
+              {connections.assistant.configured
+                ? "OpenAI is connected"
+                : "Enable full conversations"}
+            </h3>
+            <p>
+              {connections.assistant.configured
+                ? "Your server is configured for OpenAI conversations and recorded-audio transcription."
+                : "Add ORBIT_AI_KEY (or OPENAI_API_KEY) to your private .env file, then restart Orbit. Use an API key from platform.openai.com; ChatGPT subscriptions do not include API usage."}
+            </p>
+            <code>ORBIT_AI_KEY=your-private-api-key</code>
+            <p>
+              Never paste the key into this chat or your dashboard conversation.
+              Questions, recent website messages, and dashboard context are sent
+              to OpenAI when AI is enabled.
+            </p>
+          </div>
+          <label className="setting-toggle">
+            <input
+              type="checkbox"
+              checked={trackNextSteps}
+              onChange={(e) => setTrackNextSteps(e.target.checked)}
+            />
+            <span>
+              Keep track of next steps as we talk
+              <small>
+                Save up to three concrete AI-suggested actions per reply to your
+                to-dos. Reversible, local to this browser; review or delete
+                anytime.
+              </small>
+            </span>
+          </label>
+          <label className="setting-toggle">
+            <input
+              type="checkbox"
+              checked={voice}
+              onChange={(e) => {
+                setVoice(e.target.checked);
+                if (!e.target.checked) {
+                  window.speechSynthesis?.cancel();
+                  setSpeaking(false);
+                }
+              }}
+            />
+            <span>
+              Read replies aloud
+              <small>Uses your browser’s available voices.</small>
+            </span>
+          </label>
+          <div className="voice-help">
+            <Mic size={18} />
+            <div>
+              <strong>Microphone not working?</strong>
+              <p>
+                Allow microphone access for this site in your browser and in
+                macOS System Settings → Privacy & Security → Microphone. Chrome
+                or Safari on a local address / HTTPS works best. Native speech
+                services need an internet connection. With an API key, “Use
+                audio transcription” provides an alternate recording path.
+              </p>
+            </div>
+          </div>
+          <a
+            className="text-button"
+            href="https://chatgpt.com/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open ChatGPT for this account’s conversations
+            <ExternalLink size={13} />
+          </a>
         </ModalShell>
       )}
       {modal === "search" && (
@@ -2064,12 +2392,13 @@ export default function App() {
           }
           onClose={closeDetail}
         >
-          {!googleLive && (
-            <div className="detail-sample">
-              <SampleTag />
-              <span>A glimpse of your connected dashboard</span>
-            </div>
-          )}
+          {(detail.type === "event" ? !calendarLive : !googleLive) &&
+            demoMode && (
+              <div className="detail-sample">
+                <SampleTag />
+                <span>A glimpse of your connected dashboard</span>
+              </div>
+            )}
           {detail.type === "email" ? (
             <>
               <div className="email-detail-from">
@@ -2143,7 +2472,7 @@ export default function App() {
                   {detail.item.location || "Personal calendar"}
                 </span>
               </div>
-              {googleLive && detail.item.meetingUrl ? (
+              {calendarLive && detail.item.meetingUrl ? (
                 <a
                   className="primary-button detail-action"
                   href={detail.item.meetingUrl}
@@ -2153,14 +2482,14 @@ export default function App() {
                   Join meeting
                   <ArrowUpRight size={15} />
                 </a>
-              ) : googleLive && detail.item.url ? (
+              ) : calendarLive && detail.item.url ? (
                 <a
                   className="primary-button detail-action"
                   href={detail.item.url}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Open in Google Calendar
+                  Open event
                   <ArrowUpRight size={15} />
                 </a>
               ) : (
@@ -2171,7 +2500,7 @@ export default function App() {
                     setModal("connections");
                   }}
                 >
-                  {googleLive
+                  {calendarLive
                     ? "Manage calendar connection"
                     : "Connect your calendar"}
                   <ArrowUpRight size={15} />
@@ -2242,15 +2571,4 @@ export default function App() {
       )}
     </div>
   );
-}
-interface SpeechRecognitionLike {
-  lang: string;
-  interimResults: boolean;
-  onresult: (event: {
-    results: { [index: number]: { [index: number]: { transcript: string } } };
-  }) => void;
-  onend: () => void;
-  onerror: () => void;
-  start: () => void;
-  stop: () => void;
 }
