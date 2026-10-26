@@ -1,4 +1,4 @@
-# Orbit v4.2
+# Orbit v4.3
 
 A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
@@ -33,6 +33,10 @@ The overview status strip only shows the event count when a calendar is connecte
 ## v4.2: finish and refine
 
 Orbit 4.2 tightens focus timer controls and copy, and expands the animated rain layer across the full focus card while keeping the timer controls readable above it. The feature set was reviewed across the API, browser, media, shopping, calendar, weather, and local storage flows; the existing regression checks cover connected and disconnected states, imports, playback, shopping comparisons, and responsive layouts.
+
+## v4.3: Today, Planner, and Finances
+
+The overview has a compact daily brief with the next event, up to three priority tasks, open task count, and a prominent current temperature. The weather panel shows only a seven-day forecast; location and units are changed in profile settings. Planner combines the existing calendar with tasks and optional due dates and priority labels. Finances is a separate private section for manually entered income and expenses. Entries stay local, are included in Orbit backups, and do not appear on the overview. No bank connection or paid service is required.
 
 ## v4.0: watch and discover
 

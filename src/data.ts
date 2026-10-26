@@ -59,6 +59,8 @@ export type Task = {
   title: string;
   done: boolean;
   source?: "build" | "assistant" | "you";
+  dueDate?: string;
+  priority?: "high" | "normal" | "low";
 };
 const today = new Date();
 export function atDay(hour: number, minute = 0, dayOffset = 0) {
@@ -238,7 +240,7 @@ export const initialTasks: Task[] = [
   { id: "v2-spotify", title: "Connect Spotify", done: true, source: "build" },
 ];
 export const buildHandoff =
-  "Orbit V4.1 for Joe: a restrained navy personal dashboard with readable typography, a live clock and time-of-day icon. Calendar .ics import and private ICS feeds are server-backed; loopback development accepts localhost or 127.0.0.1 origins. Google inbox/Drive and Spotify require separate OAuth connections. Weather uses Open-Meteo. Media opens with popular TVMaze shows, then supports catalog search, cast and IMDb links, optional OMDb Rotten Tomatoes ratings, a privacy-preserving YouTube no-cookie player, and a grid of official streaming-service links. Shopping Scout requests optional live eBay Browse listings when private credentials are configured; otherwise it preserves saved searches, retailer links, product images, and delivered-price comparisons without scraping or inventing inventory. Focus supports 5, 10, 25, 50, or custom-minute sessions with contained rain animation and browser-generated rain, roof, window, storm, snow, or hail soundscapes during an active session. The bottom-left Joe avatar opens the wide consolidated profile and settings surface. AI suggestions require explicit approval. Credentials must never be requested in chat.";
+  "Orbit V4.3 for Joe: local-first navy dashboard with a compact Today brief, integrated calendar and task planner, seven-day forecast, weather location and units in Settings, and a separate private manual finance panel. Preserve existing Spotify, ICS, Google, weather, media, shopping, focus, assistant, and backup behavior. Finance entries are included only in explicit Orbit backups; Orbit does not connect to banks. No fake integration data, silent external actions, or required paid services.";
 export const defaultConnections: Connections = {
   google: { configured: false, connected: false, authUrl: "/api/auth/google" },
   spotify: {

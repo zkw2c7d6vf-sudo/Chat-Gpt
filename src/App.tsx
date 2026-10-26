@@ -41,6 +41,7 @@ import {
   ShoppingBag,
   Volume2,
   VolumeX,
+  Wallet,
   X,
 } from "lucide-react";
 import type {
@@ -72,8 +73,16 @@ import { MediaCenter, MediaSummary } from "./media/MediaCenter";
 import ShoppingScout from "./ShoppingScout";
 import BackupPanel from "./BackupPanel";
 import CommandCenter, { QuickCapture, proposeTasks } from "./CommandCenter";
+import FinancePanel from "./FinancePanel";
 
-type View = "overview" | "calendar" | "inbox" | "files" | "media" | "shopping";
+type View =
+  | "overview"
+  | "calendar"
+  | "inbox"
+  | "files"
+  | "media"
+  | "shopping"
+  | "finance";
 type Modal =
   "connections" | "search" | "notifications" | "assistantSettings" | null;
 type Detail =
@@ -421,6 +430,8 @@ export default function App() {
   const [notes, setNotes] = useState(() => stored("orbit-notes", ""));
   const [taskTab, setTaskTab] = useState("tasks");
   const [taskInput, setTaskInput] = useState("");
+  const [taskDueDate, setTaskDueDate] = useState("");
+  const [taskPriority, setTaskPriority] = useState<Task["priority"]>("normal");
   const [focusMinutes, setFocusMinutes] = useState(25);
   const [customFocusMinutes, setCustomFocusMinutes] = useState("");
   const [customFocusMode, setCustomFocusMode] = useState(false);
@@ -443,6 +454,12 @@ export default function App() {
     stored("orbit-track-steps", true),
   );
   const [weatherSummary, setWeatherSummary] = useState("");
+  const [weatherTemp, setWeatherTemp] = useState<{
+    temperature: number;
+    unit: "fahrenheit" | "celsius";
+    description: string;
+    location: string;
+  } | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
@@ -743,10 +760,17 @@ export default function App() {
     e?.preventDefault();
     if (!taskInput.trim()) return;
     setTasks((t) => [
+      {
+        id: crypto.randomUUID(),
+        title: taskInput.trim(),
+        done: false,
+        dueDate: taskDueDate || undefined,
+        priority: taskPriority,
+      },
       ...t,
-      { id: crypto.randomUUID(), title: taskInput.trim(), done: false },
     ]);
     setTaskInput("");
+    setTaskDueDate("");
   };
   const startFocus = () => {
     if (remaining === 0) setRemaining(focusMinutes * 60);
@@ -1584,6 +1608,17 @@ export default function App() {
                   </button>
                   <span>
                     {task.title}
+                    {(task.dueDate ||
+                      (task.priority && task.priority !== "normal")) && (
+                      <small className="task-planner-meta">
+                        {task.dueDate
+                          ? `Due ${new Date(`${task.dueDate}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                          : ""}
+                        {task.priority && task.priority !== "normal"
+                          ? ` · ${task.priority} priority`
+                          : ""}
+                      </small>
+                    )}
                     {task.source && (
                       <small className="task-source">
                         {task.source === "build" ? "OUR BUILD" : "ORBIT"}
@@ -1611,6 +1646,23 @@ export default function App() {
               onChange={(e) => setTaskInput(e.target.value)}
               maxLength={200}
             />
+            <input
+              aria-label="Task due date"
+              type="date"
+              value={taskDueDate}
+              onChange={(e) => setTaskDueDate(e.target.value)}
+            />
+            <select
+              aria-label="Task priority"
+              value={taskPriority}
+              onChange={(e) =>
+                setTaskPriority(e.target.value as Task["priority"])
+              }
+            >
+              <option value="high">High</option>
+              <option value="normal">Normal</option>
+              <option value="low">Low</option>
+            </select>
             {taskInput.trim() && (
               <IconButton label="Save task" onClick={() => addTask()}>
                 <ArrowUpRight size={15} />
@@ -1648,18 +1700,19 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 4.2</span>
+            orbit<span>PERSONAL / 4.3</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
         <div className="nav-group">
           {[
             { id: "overview", label: "Overview", icon: LayoutDashboard },
-            { id: "calendar", label: "Calendar", icon: CalendarDays },
+            { id: "calendar", label: "Planner", icon: CalendarDays },
             { id: "inbox", label: "Inbox", icon: Mail },
             { id: "files", label: "Files", icon: Folder },
             { id: "media", label: "Media Center", icon: Clapperboard },
             { id: "shopping", label: "Shopping Scout", icon: ShoppingBag },
+            { id: "finance", label: "Finances", icon: Wallet },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1707,7 +1760,9 @@ export default function App() {
                   ? "Media Center"
                   : view === "shopping"
                     ? "Shopping Scout"
-                    : view[0].toUpperCase() + view.slice(1)}
+                    : view === "finance"
+                      ? "Finances"
+                      : view[0].toUpperCase() + view.slice(1)}
             </span>
           </div>
           <div className="topbar-right">
@@ -1782,7 +1837,9 @@ export default function App() {
                         ? "Media Center."
                         : view === "shopping"
                           ? "Shopping Scout."
-                          : "Your files."}
+                          : view === "finance"
+                            ? "Your finances."
+                            : "Your files."}
                 <span className="heading-dot">.</span>
               </h1>
             </div>
@@ -1831,6 +1888,38 @@ export default function App() {
                   Profile & settings <ArrowUpRight size={12} />
                 </button>
               </div>
+              <section className="card daily-brief">
+                <span className="eyebrow">YOUR DAY</span>
+                <strong>
+                  {todayEvents.length
+                    ? `Next: ${todayEvents[0].title} · ${shortTime(todayEvents[0].start)}`
+                    : "No upcoming calendar events"}
+                </strong>
+                <span>{tasks.filter((t) => !t.done).length} open tasks</span>
+                <span className="today-priorities">
+                  {tasks
+                    .filter((t) => !t.done)
+                    .sort(
+                      (a, b) =>
+                        ({ high: 0, normal: 1, low: 2 })[
+                          a.priority || "normal"
+                        ] -
+                        { high: 0, normal: 1, low: 2 }[b.priority || "normal"],
+                    )
+                    .slice(0, 3)
+                    .map((task) => task.title)
+                    .join(" · ")}
+                </span>
+                {weatherTemp && (
+                  <strong className="today-temperature">
+                    {weatherTemp.temperature}°
+                    {weatherTemp.unit === "fahrenheit" ? "F" : "C"}
+                    <small>
+                      {weatherTemp.location} · {weatherTemp.description}
+                    </small>
+                  </strong>
+                )}
+              </section>
               <div className="v2-primary">
                 <div className="essentials-column">
                   {calendarPanel()}
@@ -1841,7 +1930,10 @@ export default function App() {
                   {focusPanel()}
                 </div>
                 <div className="atmosphere-column">
-                  <WeatherPanel onWeather={setWeatherSummary} />
+                  <WeatherPanel
+                    onWeather={setWeatherSummary}
+                    onTemperature={setWeatherTemp}
+                  />
                   {musicPanel()}
                 </div>
               </div>
@@ -1886,6 +1978,7 @@ export default function App() {
             <div className="workspace-grid">
               <div>{calendarPanel(true)}</div>
               <div className="workspace-aside">
+                {tasksPanel()}
                 {focusPanel()}
                 <section className="card gentle-card">
                   <Sparkles size={20} />
@@ -1927,6 +2020,8 @@ export default function App() {
             />
           ) : view === "shopping" ? (
             <ShoppingScout />
+          ) : view === "finance" ? (
+            <FinancePanel />
           ) : (
             <>
               {filesPanel(true)}
@@ -1945,7 +2040,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 4.2 <span>·</span> Joe
+              Orbit 4.3 <span>·</span> Joe
             </span>
             <span>
               {loading ? (
@@ -2166,12 +2261,13 @@ export default function App() {
               <strong>Joe</strong>
               <span>Personal dashboard · private space</span>
             </div>
-            <small>Orbit 4.2</small>
+            <small>Orbit 4.3</small>
           </div>
           <p className="modal-intro">
             Connections, local preferences, assistant settings, and backups in
             one place.
           </p>
+          <WeatherPanel settingsOnly />
           <CalendarConnect
             connected={Boolean(connections.calendar?.connected)}
             source={connections.calendar?.source}

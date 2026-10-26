@@ -36,7 +36,7 @@ await page.route("**/api/weather**", (route) => {
         isDay: true,
         time: date + "T12:00",
       },
-      daily: Array.from({ length: 5 }, (_, i) => ({
+      daily: Array.from({ length: 7 }, (_, i) => ({
         date: new Date(Date.now() + i * 864e5).toISOString().slice(0, 10),
         high: 61,
         low: 44,
@@ -115,7 +115,7 @@ try {
       await page.setViewportSize({ width, height: 1000 });
       for (const name of [
         "Overview",
-        "Calendar",
+        "Planner",
         "Inbox",
         "Files",
         "Media Center",

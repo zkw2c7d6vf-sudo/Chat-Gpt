@@ -207,7 +207,7 @@ async function fixture(options = {}) {
           isDay: true,
           time: `${localDate()}T12:00`,
         },
-        daily: Array.from({ length: 5 }, (_, i) => ({
+        daily: Array.from({ length: 7 }, (_, i) => ({
           date: localDate(i),
           high: unit === "celsius" ? 20 : 68,
           low: unit === "celsius" ? 11 : 52,
@@ -299,37 +299,38 @@ try {
     },
   );
   await check(
-    "Buffalo weather loads a five-day forecast without a key",
+    "Buffalo seven-day weather forecast loads without a key",
     async () => {
       const weather = page.getByRole("region", {
         name: "Weather",
         exact: true,
       });
-      await visible(weather.getByRole("button", { name: /Buffalo/ }));
-      await visible(weather.getByLabel("Five-day forecast"));
+      await visible(weather.getByLabel("Seven-day forecast"));
+      assert.equal(await weather.locator(".weather-forecast > div").count(), 7);
       assert(
         state.weatherCalls.some(
           (q) => q.name === "Buffalo" && q.unit === "fahrenheit",
         ),
       );
-      assert.match(await weather.textContent(), /65/);
+      assert.match(await page.locator(".daily-brief").textContent(), /65°F/);
     },
   );
   await check("weather location search and units persist", async () => {
-    const weather = page.getByRole("region", { name: "Weather", exact: true });
+    await settings(page);
+    const weather = page.getByRole("region", { name: "Weather settings" });
     await weather.getByRole("button", { name: /Buffalo/ }).click();
     await weather
       .getByRole("textbox", { name: "Search weather location" })
       .fill("Toronto");
     await weather.getByRole("button", { name: "Search cities" }).click();
     await weather.getByRole("button", { name: /Toronto.*Ontario/ }).click();
-    await visible(weather.getByRole("button", { name: /Toronto/ }));
     await weather.getByRole("button", { name: "°C", exact: true }).click();
     await page.waitForFunction(
       () => localStorage.getItem("orbit-weather-unit") === "celsius",
     );
     await page.reload({ waitUntil: "networkidle" });
-    const updated = page.getByRole("region", { name: "Weather", exact: true });
+    await settings(page);
+    const updated = page.getByRole("region", { name: "Weather settings" });
     await visible(updated.getByRole("button", { name: /Toronto/ }));
     assert.equal(
       await updated
@@ -337,6 +338,7 @@ try {
         .getAttribute("aria-pressed"),
       "true",
     );
+    await closeDialog(page);
   });
   await check(
     "private ICS feed connects without Google credentials",
@@ -413,9 +415,7 @@ try {
       await home(page);
       const input = page.getByRole("textbox", { name: "Add a little to-do" });
       await input.fill("Browser V2 task");
-      await page
-        .getByRole("button", { name: "Save task", exact: true })
-        .click();
+      await input.press("Enter");
       assert.equal(
         await page
           .locator(".task-list")
@@ -606,7 +606,7 @@ try {
     async () => {
       for (const width of [390, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 1000 });
-        for (const view of ["Overview", "Calendar", "Inbox", "Files"]) {
+        for (const view of ["Overview", "Planner", "Inbox", "Files"]) {
           await page.getByRole("button", { name: view, exact: true }).click();
           const size = await page.evaluate(() => ({
             viewport: innerWidth,
@@ -774,6 +774,33 @@ try {
       box = await page.getByRole("dialog").last().boundingBox();
       assert(box.x >= 0 && box.x + box.width <= 390);
       await closeDialog(page);
+    },
+  );
+  await check(
+    "finance is a separate local panel and entries persist",
+    async () => {
+      await closeDialog(page);
+      await page.setViewportSize({ width: 1440, height: 1100 });
+      await page.getByRole("button", { name: "Finances", exact: true }).click();
+      await page
+        .getByRole("textbox", { name: "Finance item" })
+        .fill("Test groceries");
+      await page
+        .getByRole("combobox", { name: "Finance type" })
+        .selectOption("expense");
+      await page.getByRole("spinbutton", { name: "Amount" }).fill("24.50");
+      await page.getByRole("spinbutton", { name: "Amount" }).press("Enter");
+      await visible(page.getByText("Test groceries", { exact: true }));
+      assert.match(
+        await page.locator(".finance-panel header").textContent(),
+        /-?\$24\.50/,
+      );
+      await page.reload({ waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Finances", exact: true }).click();
+      await visible(page.getByText("Test groceries", { exact: true }));
+      await page
+        .getByRole("button", { name: "Delete Test groceries", exact: true })
+        .click();
     },
   );
   await check("no unexpected browser runtime or console errors", async () => {

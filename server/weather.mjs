@@ -112,7 +112,7 @@ export function createWeatherService({
           temperature_unit: unit,
           wind_speed_unit: unit === "fahrenheit" ? "mph" : "kmh",
           timezone: "auto",
-          forecast_days: "5",
+          forecast_days: "7",
         }).toString();
         const data = await requestJson(
           url,
@@ -146,7 +146,7 @@ export function createWeatherService({
             "Weather data was incomplete. Please try again shortly.",
           );
         }
-        const days = daily.time.slice(0, 5).map((date, index) => {
+        const days = daily.time.slice(0, 7).map((date, index) => {
           const high = daily.temperature_2m_max[index];
           const low = daily.temperature_2m_min[index];
           const weatherCode = daily.weather_code[index];

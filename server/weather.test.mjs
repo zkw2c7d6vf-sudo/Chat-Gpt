@@ -24,7 +24,7 @@ function forecast() {
   };
 }
 
-test("weather defaults to live Buffalo Fahrenheit data and five-day request", async () => {
+test("weather defaults to live Buffalo Fahrenheit data and seven-day request", async () => {
   let requested;
   const service = createWeatherService({
     fetch: async (url) => {
@@ -50,7 +50,7 @@ test("weather defaults to live Buffalo Fahrenheit data and five-day request", as
   });
   assert.equal(weather.attribution, "Open-Meteo");
   assert.equal(requested.hostname, "api.open-meteo.com");
-  assert.equal(requested.searchParams.get("forecast_days"), "5");
+  assert.equal(requested.searchParams.get("forecast_days"), "7");
   assert.equal(requested.searchParams.get("temperature_unit"), "fahrenheit");
   assert.equal(requested.searchParams.get("wind_speed_unit"), "mph");
   assert.equal(requested.searchParams.get("timezone"), "auto");

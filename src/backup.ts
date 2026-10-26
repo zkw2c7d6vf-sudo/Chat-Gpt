@@ -17,6 +17,7 @@ export const BACKUP_KEYS = [
   "orbit-seed-v3",
   "orbit-shopping-searches-v1",
   "orbit-shopping-offers-v1",
+  "orbit-finance-v1",
 ] as const;
 export type BackupKey = (typeof BACKUP_KEYS)[number];
 export type DashboardBackup = {
@@ -228,9 +229,18 @@ function validValue(key: BackupKey, value: unknown): boolean {
         !["build", "assistant", "you"].includes(String(item.source))
       )
         return false;
+      if (item.dueDate !== undefined && !day(item.dueDate)) return false;
+      if (
+        item.priority !== undefined &&
+        !["high", "normal", "low"].includes(String(item.priority))
+      )
+        return false;
       if (
         Object.keys(item).some(
-          (field) => !["id", "title", "done", "source"].includes(field),
+          (field) =>
+            !["id", "title", "done", "source", "dueDate", "priority"].includes(
+              field,
+            ),
         )
       )
         return false;
@@ -238,6 +248,26 @@ function validValue(key: BackupKey, value: unknown): boolean {
       ids.add(item.id);
       return true;
     });
+  }
+  if (key === "orbit-finance-v1") {
+    return (
+      Array.isArray(value) &&
+      value.length <= 5000 &&
+      value.every(
+        (entry) =>
+          object(entry) &&
+          text(entry.id, 200, false) &&
+          text(entry.label, 200, false) &&
+          typeof entry.amount === "number" &&
+          Number.isFinite(entry.amount) &&
+          entry.amount > 0 &&
+          ["income", "expense"].includes(String(entry.kind)) &&
+          timestamp(entry.date) &&
+          Object.keys(entry).every((field) =>
+            ["id", "label", "amount", "kind", "date"].includes(field),
+          ),
+      )
+    );
   }
   if (key === "orbit-messages") {
     return (

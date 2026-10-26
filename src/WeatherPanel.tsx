@@ -11,14 +11,12 @@ import {
   CloudRain,
   CloudSnow,
   CloudSun,
-  Droplets,
   LoaderCircle,
   MapPin,
   Moon,
   RotateCcw,
   Search,
   Sun,
-  Wind,
   X,
 } from "lucide-react";
 import "./widgets.css";
@@ -137,8 +135,17 @@ function WeatherIcon({
 }
 export default function WeatherPanel({
   onWeather,
+  settingsOnly = false,
+  onTemperature,
 }: {
   onWeather?: (summary: string) => void;
+  settingsOnly?: boolean;
+  onTemperature?: (value: {
+    temperature: number;
+    unit: Unit;
+    description: string;
+    location: string;
+  }) => void;
 }) {
   const [location, setLocation] = useState<Location>(savedLocation);
   const [unit, setUnit] = useState<Unit>(savedUnit);
@@ -217,6 +224,15 @@ export default function WeatherPanel({
       clearInterval(id);
     };
   }, [location, unit, retry]);
+  useEffect(() => {
+    if (data)
+      onTemperature?.({
+        temperature: Math.round(data.current.temperature),
+        unit,
+        description: weatherDescription(data.current.weatherCode),
+        location: location.name,
+      });
+  }, [data, unit, location, onTemperature]);
   useEffect(() => () => searchController?.abort(), [searchController]);
   async function search(event: FormEvent) {
     event.preventDefault();
@@ -275,46 +291,54 @@ export default function WeatherPanel({
     }
   }
   return (
-    <section className="card weather-card" aria-label="Weather">
+    <section
+      className={`card weather-card ${settingsOnly ? "weather-settings-only" : ""}`}
+      aria-label={settingsOnly ? "Weather settings" : "Weather"}
+    >
       <div className="weather-header">
         <h2>
           <CloudSun size={17} />
           Weather
         </h2>
-        <div className="weather-unit-toggle" aria-label="Temperature units">
-          <button
-            type="button"
-            className={unit === "fahrenheit" ? "active" : ""}
-            aria-pressed={unit === "fahrenheit"}
-            onClick={() => changeUnit("fahrenheit")}
-          >
-            °F
-          </button>
-          <button
-            type="button"
-            className={unit === "celsius" ? "active" : ""}
-            aria-pressed={unit === "celsius"}
-            onClick={() => changeUnit("celsius")}
-          >
-            °C
-          </button>
-        </div>
+        {settingsOnly && (
+          <div className="weather-unit-toggle" aria-label="Temperature units">
+            <button
+              type="button"
+              className={unit === "fahrenheit" ? "active" : ""}
+              aria-pressed={unit === "fahrenheit"}
+              onClick={() => changeUnit("fahrenheit")}
+            >
+              °F
+            </button>
+            <button
+              type="button"
+              className={unit === "celsius" ? "active" : ""}
+              aria-pressed={unit === "celsius"}
+              onClick={() => changeUnit("celsius")}
+            >
+              °C
+            </button>
+          </div>
+        )}
       </div>
-      <button
-        type="button"
-        className="weather-location"
-        aria-expanded={editing}
-        onClick={() => {
-          setEditing(!editing);
-          setSearchError("");
-          setSearched(false);
-        }}
-      >
-        <MapPin size={13} />
-        <span>{location.name}</span>
-        <ChevronDown size={13} />
-      </button>
-      {editing && (
+      {settingsOnly && <p>Forecast location · {location.name}</p>}
+      {settingsOnly && (
+        <button
+          type="button"
+          className="weather-location"
+          aria-expanded={editing}
+          onClick={() => {
+            setEditing(!editing);
+            setSearchError("");
+            setSearched(false);
+          }}
+        >
+          <MapPin size={13} />
+          <span>{location.name}</span>
+          <ChevronDown size={13} />
+        </button>
+      )}
+      {settingsOnly && editing && (
         <div className="weather-location-picker">
           <form onSubmit={search}>
             <Search size={15} />
@@ -387,40 +411,17 @@ export default function WeatherPanel({
           </button>
         </div>
       )}
-      {data ? (
+      {settingsOnly && data ? (
+        <p>
+          Current: {Math.round(data.current.temperature)}° ·{" "}
+          {weatherDescription(data.current.weatherCode)}
+        </p>
+      ) : settingsOnly && loading ? (
+        <p>Loading weather preferences…</p>
+      ) : settingsOnly ? null : data ? (
         <>
-          <div className="weather-current">
-            <div>
-              <strong>
-                {Math.round(data.current.temperature)}
-                <span>°</span>
-              </strong>
-              <div>
-                <p>{weatherDescription(data.current.weatherCode)}</p>
-                <span>Feels like {Math.round(data.current.feelsLike)}°</span>
-              </div>
-            </div>
-            <span className="weather-main-icon">
-              <WeatherIcon
-                code={data.current.weatherCode}
-                isDay={data.current.isDay}
-                size={57}
-              />
-            </span>
-          </div>
-          <div className="weather-conditions">
-            <span>
-              <Wind size={13} />
-              {Math.round(data.current.windSpeed)}{" "}
-              {unit === "fahrenheit" ? "mph" : "km/h"}
-            </span>
-            <span>
-              <Droplets size={13} />
-              {Math.round(data.current.humidity)}% humidity
-            </span>
-          </div>
-          <div className="weather-forecast" aria-label="Five-day forecast">
-            {data.daily.slice(0, 5).map((day, i) => (
+          <div className="weather-forecast" aria-label="Seven-day forecast">
+            {data.daily.slice(0, 7).map((day, i) => (
               <div key={day.date}>
                 <span>
                   {i === 0
@@ -434,9 +435,6 @@ export default function WeatherPanel({
                 <strong>
                   {Math.round(day.high)}°<small>{Math.round(day.low)}°</small>
                 </strong>
-                <span className="weather-rain" title="Chance of precipitation">
-                  {Math.round(day.precipitationChance || 0)}%
-                </span>
               </div>
             ))}
           </div>

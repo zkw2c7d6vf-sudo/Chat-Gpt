@@ -133,7 +133,7 @@ await context.route("**/api/**", async (route) => {
         isDay: true,
         time: new Date().toISOString(),
       },
-      daily: Array.from({ length: 5 }, (_, i) => ({
+      daily: Array.from({ length: 7 }, (_, i) => ({
         date: new Date(Date.now() + i * 86400000).toISOString().slice(0, 10),
         high: 65,
         low: 49,
