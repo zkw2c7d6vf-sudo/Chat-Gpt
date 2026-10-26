@@ -37,11 +37,14 @@ export default function CalendarConnect({
         headers: { "Content-Type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (!response.ok)
         throw new Error(
-          data.error ||
-            "Your calendar could not be connected. Please try again.",
+          response.status === 403 &&
+            String(data.error || "").includes("dashboard origin")
+            ? `Orbit’s local server is using a different address than ${window.location.origin}. Stop every Orbit Terminal window, then start this version with npm run dev and open http://127.0.0.1:5173.`
+            : data.error ||
+                "Your calendar could not be connected. Please try again.",
         );
       setUrl("");
       setSuccess(

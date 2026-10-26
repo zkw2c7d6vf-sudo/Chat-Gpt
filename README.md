@@ -1,4 +1,4 @@
-# Orbit v3.2
+# Orbit v3.3
 
 A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
@@ -12,6 +12,12 @@ npm run dev
 ```
 
 Keep Terminal running and open the app at `http://127.0.0.1:5173`. The web app uses port **5173**, forwarding `/api` requests to the API on port **3001**. Local calendar imports also work through `http://localhost:5173`, but use `127.0.0.1` consistently for Spotify because its registered callback requires it.
+
+## v3.3: readability and shopping comparison
+
+v3.3 increases everyday text sizing, makes the local clock more prominent, and adds a time-of-day icon. Calendar imports remain private and server-backed. If a calendar import reports a dashboard-origin error, stop any older Orbit Terminal windows, start this copy with `npm run dev`, then open `http://127.0.0.1:5173`.
+
+Shopping Scout now saves searches and lets you save actual listings from Amazon, Walmart, Target, Depop, or Vinted with item price, shipping, link, and note. It sorts the listings you save by delivered total. It does not scrape stores or claim a live web-wide lowest price. Orbit’s product principles are in [design-philosophy.md](docs/design-philosophy.md).
 
 For a restricted cloud workspace, use `npm ci --cache /tmp/orbit-npm-cache` instead. No Git worktree is needed: use the existing checkout.
 

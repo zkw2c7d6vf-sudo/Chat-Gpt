@@ -1,10 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { ExternalLink, Plus, Search, Trash2 } from "lucide-react";
+import { ExternalLink, Plus, Search, Tag, Trash2, Trophy } from "lucide-react";
 import "./shopping.css";
 
-type SavedSearch = { id: string; query: string };
-const storageKey = "orbit-shopping-searches-v1";
+type SavedSearch = { id: string; query: string; createdAt: string };
+type StoredSearch = Omit<SavedSearch, "createdAt"> & { createdAt?: unknown };
+type Offer = {
+  id: string;
+  searchId: string;
+  store: string;
+  url: string;
+  price: number;
+  shipping: number;
+  note: string;
+};
+const searchesKey = "orbit-shopping-searches-v1";
+const offersKey = "orbit-shopping-offers-v1";
 const retailers = [
   ["Amazon", "https://www.amazon.com/s?k="],
   ["Walmart", "https://www.walmart.com/search?q="],
@@ -13,60 +24,165 @@ const retailers = [
   ["Vinted", "https://www.vinted.com/catalog?search_text="],
 ] as const;
 
-function load(): SavedSearch[] {
+function load<T>(key: string, valid: (value: unknown) => value is T[]): T[] {
   try {
-    const value = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    return Array.isArray(value)
-      ? value.filter(
-          (item) =>
-            item &&
-            typeof item.id === "string" &&
-            typeof item.query === "string",
-        )
-      : [];
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return valid(value) ? value : [];
   } catch {
     return [];
   }
 }
+function searches() {
+  return load<StoredSearch>(
+    searchesKey,
+    (value): value is StoredSearch[] =>
+      Array.isArray(value) &&
+      value.every(
+        (item) =>
+          item &&
+          typeof item.id === "string" &&
+          typeof item.query === "string" &&
+          (item.createdAt === undefined || typeof item.createdAt === "string"),
+      ),
+  ).map((item) => ({
+    id: item.id,
+    query: item.query,
+    createdAt:
+      typeof item.createdAt === "string"
+        ? item.createdAt
+        : new Date(0).toISOString(),
+  }));
+}
+function offers() {
+  return load<Offer>(
+    offersKey,
+    (value): value is Offer[] =>
+      Array.isArray(value) &&
+      value.every(
+        (item) =>
+          item &&
+          typeof item.id === "string" &&
+          typeof item.searchId === "string" &&
+          typeof item.store === "string" &&
+          typeof item.url === "string" &&
+          typeof item.price === "number" &&
+          typeof item.shipping === "number" &&
+          typeof item.note === "string",
+      ),
+  );
+}
+function total(offer: Offer) {
+  return offer.price + offer.shipping;
+}
 
 export default function ShoppingScout() {
   const [query, setQuery] = useState("");
-  const [saved, setSaved] = useState<SavedSearch[]>(load);
+  const [saved, setSaved] = useState<SavedSearch[]>(searches);
+  const [savedOffers, setSavedOffers] = useState<Offer[]>(offers);
+  const [addingFor, setAddingFor] = useState<string | null>(null);
+  const [store, setStore] = useState("Amazon");
+  const [url, setUrl] = useState("");
+  const [price, setPrice] = useState("");
+  const [shipping, setShipping] = useState("0");
+  const [note, setNote] = useState("");
+  const [formError, setFormError] = useState("");
   useEffect(
-    () => localStorage.setItem(storageKey, JSON.stringify(saved)),
+    () => localStorage.setItem(searchesKey, JSON.stringify(saved)),
     [saved],
   );
+  useEffect(
+    () => localStorage.setItem(offersKey, JSON.stringify(savedOffers)),
+    [savedOffers],
+  );
   const clean = query.trim().slice(0, 120);
-  const add = (event: FormEvent) => {
+  const feed = useMemo(
+    () =>
+      saved
+        .slice(0, 6)
+        .map((item) => ({
+          ...item,
+          offers: savedOffers.filter((offer) => offer.searchId === item.id),
+        })),
+    [saved, savedOffers],
+  );
+  const addSearch = (event: FormEvent) => {
     event.preventDefault();
     if (!clean) return;
     setSaved((current) =>
       current.some((item) => item.query.toLowerCase() === clean.toLowerCase())
         ? current
-        : [{ id: crypto.randomUUID(), query: clean }, ...current].slice(0, 12),
+        : [
+            {
+              id: crypto.randomUUID(),
+              query: clean,
+              createdAt: new Date().toISOString(),
+            },
+            ...current,
+          ].slice(0, 12),
     );
     setQuery("");
+  };
+  const clearOfferForm = () => {
+    setAddingFor(null);
+    setStore("Amazon");
+    setUrl("");
+    setPrice("");
+    setShipping("0");
+    setNote("");
+    setFormError("");
+  };
+  const addOffer = (event: FormEvent) => {
+    event.preventDefault();
+    if (!addingFor) return;
+    const itemPrice = Number(price),
+      itemShipping = Number(shipping || 0);
+    if (
+      !Number.isFinite(itemPrice) ||
+      itemPrice < 0 ||
+      !Number.isFinite(itemShipping) ||
+      itemShipping < 0
+    ) {
+      setFormError("Enter a valid item price and shipping cost.");
+      return;
+    }
+    if (url && !/^https:\/\//i.test(url)) {
+      setFormError("Listing links must begin with https://.");
+      return;
+    }
+    setSavedOffers((current) => [
+      {
+        id: crypto.randomUUID(),
+        searchId: addingFor,
+        store,
+        url: url.trim(),
+        price: itemPrice,
+        shipping: itemShipping,
+        note: note.trim().slice(0, 140),
+      },
+      ...current,
+    ]);
+    clearOfferForm();
   };
   return (
     <section className="shopping-scout" aria-label="Orbit Shopping Scout">
       <div className="shopping-scout-heading">
         <div>
-          <span className="eyebrow">RESEARCH</span>
+          <span className="eyebrow">SHOPPING</span>
           <h2>Shopping Scout</h2>
         </div>
-        <span className="shopping-status">Prototype</span>
+        <span className="shopping-status">Local comparison</span>
       </div>
       <p>
-        Save something you are considering, then open the same search at each
-        retailer. Prices and availability stay on the retailer’s site.
+        Build a feed from what you are looking for. Search each retailer, then
+        save any real listing you find to compare its delivered price here.
       </p>
-      <form onSubmit={add} className="shopping-search">
-        <Search size={16} />
+      <form onSubmit={addSearch} className="shopping-search">
+        <Search size={18} />
         <input
           aria-label="Item to research"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="What are you looking for?"
+          placeholder="Add something you want to find"
           maxLength={120}
         />
         <button
@@ -74,49 +190,183 @@ export default function ShoppingScout() {
           disabled={!clean}
           aria-label="Save shopping search"
         >
-          <Plus size={16} />
-          Save
+          <Plus size={16} /> Save
         </button>
       </form>
-      {saved.length ? (
+      {feed.length ? (
         <div className="shopping-saved">
-          {saved.map((item) => (
-            <article key={item.id}>
-              <div className="shopping-query-row">
-                <strong>{item.query}</strong>
-                <button
-                  aria-label={`Remove ${item.query}`}
-                  onClick={() =>
-                    setSaved((current) =>
-                      current.filter((x) => x.id !== item.id),
-                    )
-                  }
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-              <div className="retailer-links">
-                {retailers.map(([name, base]) => (
-                  <a
-                    key={name}
-                    href={`${base}${encodeURIComponent(item.query)}`}
-                    target="_blank"
-                    rel="noreferrer"
+          {feed.map((item) => {
+            const compared = [...item.offers].sort(
+              (a, b) => total(a) - total(b),
+            );
+            return (
+              <article key={item.id}>
+                <div className="shopping-query-row">
+                  <strong>{item.query}</strong>
+                  <button
+                    aria-label={`Remove ${item.query}`}
+                    onClick={() => {
+                      setSaved((current) =>
+                        current.filter((x) => x.id !== item.id),
+                      );
+                      setSavedOffers((current) =>
+                        current.filter((x) => x.searchId !== item.id),
+                      );
+                    }}
                   >
-                    {name} <ExternalLink size={11} />
-                  </a>
-                ))}
-              </div>
-            </article>
-          ))}
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div
+                  className="retailer-links"
+                  aria-label={`Search stores for ${item.query}`}
+                >
+                  {retailers.map(([name, base]) => (
+                    <a
+                      key={name}
+                      href={`${base}${encodeURIComponent(item.query)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {name} <ExternalLink size={11} />
+                    </a>
+                  ))}
+                </div>
+                {compared.length ? (
+                  <ol
+                    className="offer-list"
+                    aria-label={`Saved offers for ${item.query}`}
+                  >
+                    {compared.map((offer, index) => (
+                      <li
+                        key={offer.id}
+                        className={index === 0 ? "best-offer" : ""}
+                      >
+                        <span>
+                          {index === 0 ? (
+                            <Trophy size={13} aria-label="Lowest saved total" />
+                          ) : (
+                            <Tag size={13} />
+                          )}{" "}
+                          {offer.store}
+                        </span>
+                        <strong>${total(offer).toFixed(2)}</strong>
+                        {offer.shipping > 0 && (
+                          <small>
+                            ${offer.price.toFixed(2)} + $
+                            {offer.shipping.toFixed(2)} shipping
+                          </small>
+                        )}
+                        {offer.note && <small>{offer.note}</small>}
+                        <div>
+                          {offer.url && (
+                            <a
+                              href={offer.url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Listing <ExternalLink size={11} />
+                            </a>
+                          )}
+                          <button
+                            aria-label={`Remove ${offer.store} offer for ${item.query}`}
+                            onClick={() =>
+                              setSavedOffers((current) =>
+                                current.filter((x) => x.id !== offer.id),
+                              )
+                            }
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <div className="shopping-empty">No listings saved yet.</div>
+                )}
+                {addingFor === item.id ? (
+                  <form className="offer-form" onSubmit={addOffer}>
+                    <label>
+                      Store
+                      <select
+                        value={store}
+                        onChange={(event) => setStore(event.target.value)}
+                      >
+                        {retailers.map(([name]) => (
+                          <option key={name}>{name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Item price
+                      <input
+                        aria-label="Item price"
+                        inputMode="decimal"
+                        value={price}
+                        onChange={(event) => setPrice(event.target.value)}
+                        placeholder="0.00"
+                        required
+                      />
+                    </label>
+                    <label>
+                      Shipping
+                      <input
+                        aria-label="Shipping cost"
+                        inputMode="decimal"
+                        value={shipping}
+                        onChange={(event) => setShipping(event.target.value)}
+                      />
+                    </label>
+                    <label className="offer-url">
+                      Listing link (optional)
+                      <input
+                        aria-label="Listing link"
+                        value={url}
+                        onChange={(event) => setUrl(event.target.value)}
+                        placeholder="https://…"
+                      />
+                    </label>
+                    <label className="offer-url">
+                      Note (optional)
+                      <input
+                        aria-label="Listing note"
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        maxLength={140}
+                      />
+                    </label>
+                    {formError && <p role="alert">{formError}</p>}
+                    <div>
+                      <button type="submit">Save offer</button>
+                      <button type="button" onClick={clearOfferForm}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <button
+                    className="add-offer"
+                    onClick={() => {
+                      clearOfferForm();
+                      setAddingFor(item.id);
+                    }}
+                  >
+                    Compare a listing <Plus size={13} />
+                  </button>
+                )}
+              </article>
+            );
+          })}
         </div>
       ) : (
-        <div className="shopping-empty">Saved searches will appear here.</div>
+        <div className="shopping-empty">
+          Save a search to begin your personal shopping feed.
+        </div>
       )}
       <small>
-        Orbit does not scrape retailer sites, access accounts, or claim a live
-        best price. A future comparison feature needs approved retailer data
-        access or affiliate product feeds.
+        Orbit compares only listings you save. It does not scrape retailers,
+        access accounts, or claim that unsaved prices are current.
       </small>
     </section>
   );

@@ -68,6 +68,7 @@ try {
         0,
       );
       assert.equal(await page.locator(".page-heading p").count(), 0);
+      assert.equal(await page.locator(".local-clock svg").count(), 1);
       assert.equal(
         await page
           .getByText(
@@ -160,7 +161,7 @@ try {
     },
   );
   await check(
-    "shopping research saves local searches without price claims",
+    "shopping research saves local searches and compares saved prices",
     async () => {
       await page
         .getByRole("button", { name: "Shopping Scout", exact: true })
@@ -171,10 +172,15 @@ try {
       await page.getByRole("button", { name: "Save shopping search" }).click();
       await page.getByText("navy jacket", { exact: true }).waitFor();
       assert.equal(
-        await page.getByText(/does not scrape retailer sites/i).count(),
+        await page.getByText(/does not scrape retailers/i).count(),
         1,
       );
       assert.equal(await page.getByRole("link", { name: /Amazon/ }).count(), 1);
+      await page.getByRole("button", { name: /Compare a listing/ }).click();
+      await page.getByRole("textbox", { name: "Item price" }).fill("49.99");
+      await page.getByRole("textbox", { name: "Shipping cost" }).fill("5");
+      await page.getByRole("button", { name: "Save offer" }).click();
+      await page.getByText("$54.99", { exact: true }).waitFor();
       await page.getByRole("button", { name: "Remove navy jacket" }).click();
     },
   );

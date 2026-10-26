@@ -215,12 +215,62 @@ body {
   height: 12px;
 }
 .local-clock {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   font-family: "Manrope Variable", sans-serif;
-  font-size: 20px;
-  font-weight: 400;
+  font-size: 25px;
+  font-weight: 500;
   letter-spacing: -0.5px;
   color: #b7cbe9;
   font-variant-numeric: tabular-nums;
+}
+.local-clock svg {
+  width: 20px;
+  height: 20px;
+  color: #c3d7f0;
+}
+/* v3.3 readability pass: preserve the quiet density while restoring a
+   comfortable default reading size at a normal browser zoom. */
+.orbit-v31 .nav-text {
+  font-size: 12px;
+}
+.orbit-v31 .sidebar-label,
+.orbit-v31 .page-heading .eyebrow {
+  font-size: 9px;
+}
+.orbit-v31 .today-date,
+.orbit-v31 .sync-status,
+.orbit-v31 .v2-status-strip {
+  font-size: 11px;
+}
+.orbit-v31 .card-header h2,
+.orbit-v31 .card-header h3 {
+  font-size: 14px;
+}
+.orbit-v31 .task-item,
+.orbit-v31 .event-row,
+.orbit-v31 .mail-row,
+.orbit-v31 .file-row {
+  font-size: 12px;
+}
+.orbit-v31 .task-item small,
+.orbit-v31 .event-row small,
+.orbit-v31 .mail-row small,
+.orbit-v31 .file-row small {
+  font-size: 10px;
+}
+.orbit-v31 .command-card h3,
+.orbit-v31 .command-card h4,
+.orbit-v31 .command-empty,
+.orbit-v31 .command-caption {
+  font-size: 11px;
+}
+.orbit-v31 .priority-row strong,
+.orbit-v31 .responsibility-row strong,
+.orbit-v31 .habit-row,
+.orbit-v31 .goal-row label {
+  font-size: 12px;
 }
 .orbit-v31 .v2-status-strip {
   padding: 12px 0 22px;

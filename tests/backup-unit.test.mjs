@@ -47,7 +47,18 @@ test("backup exports only approved dashboard text and never account, media, or d
     }),
     "orbit-delivery-v3": "private delivery",
     "orbit-shopping-searches-v1": JSON.stringify([
-      { id: "search1", query: "navy sneakers" },
+      { id: "search1", query: "navy sneakers", createdAt: when },
+    ]),
+    "orbit-shopping-offers-v1": JSON.stringify([
+      {
+        id: "offer1",
+        searchId: "search1",
+        store: "Target",
+        url: "https://www.target.com/p/example",
+        price: 49.99,
+        shipping: 0,
+        note: "Saved listing",
+      },
     ]),
     "secret-token": "secret",
     "orbit-media": "media metadata",
@@ -58,6 +69,7 @@ test("backup exports only approved dashboard text and never account, media, or d
     "orbit-weather-location",
     "orbit-weather-unit",
     "orbit-shopping-searches-v1",
+    "orbit-shopping-offers-v1",
   ]);
   assert.equal(JSON.stringify(backup).includes("private delivery"), false);
   assert.equal(JSON.stringify(backup).includes("secret"), false);

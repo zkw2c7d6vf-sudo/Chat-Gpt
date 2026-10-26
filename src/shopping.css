@@ -112,6 +112,113 @@
   border-radius: 5px;
   padding: 5px 6px;
 }
+.offer-list {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  padding: 0;
+  margin: 13px 0;
+}
+.offer-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  padding: 9px;
+  border: 1px solid #8ca9d31d;
+  border-radius: 6px;
+  color: #aebfda;
+  font-size: 12px;
+}
+.offer-list li.best-offer {
+  border-color: #b6d1f149;
+  background: #95b8e70c;
+}
+.offer-list li > span,
+.offer-list li > div,
+.offer-list a {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.offer-list li > strong {
+  color: #e1ebfa;
+  font-variant-numeric: tabular-nums;
+}
+.offer-list small {
+  grid-column: 1/-1;
+  color: #8299bb;
+  font-size: 10px;
+}
+.offer-list li > div {
+  grid-column: 1/-1;
+  justify-content: space-between;
+}
+.offer-list li > div a {
+  color: #9bb9e2;
+  font-size: 10px;
+}
+.offer-list li > div button {
+  color: #7894bd;
+  padding: 2px;
+}
+.add-offer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #b7cce9;
+  padding: 6px 0;
+  font-size: 11px;
+}
+.offer-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin: 13px 0 3px;
+  padding-top: 13px;
+  border-top: 1px solid #8ba9d21b;
+}
+.offer-form label {
+  display: grid;
+  gap: 5px;
+  color: #9bb1d1;
+  font-size: 10px;
+}
+.offer-form .offer-url,
+.offer-form > div,
+.offer-form > p {
+  grid-column: 1/-1;
+}
+.offer-form input,
+.offer-form select {
+  min-width: 0;
+  border: 1px solid #8ca8d22d;
+  border-radius: 5px;
+  padding: 7px;
+  background: #07101f;
+  color: #d5e2f6;
+  font: inherit;
+}
+.offer-form > div {
+  display: flex;
+  gap: 8px;
+}
+.offer-form > div button {
+  padding: 7px 9px;
+  border: 1px solid #9db9e438;
+  border-radius: 5px;
+  color: #d7e4f7;
+  background: #728eb923;
+  font-size: 10px;
+}
+.offer-form > div button + button {
+  background: transparent;
+  color: #91a8cb;
+}
+.offer-form p {
+  margin: 0;
+  color: #e0a2a2;
+  font-size: 10px;
+}
 @media (max-width: 640px) {
   .shopping-scout {
     padding: 17px;

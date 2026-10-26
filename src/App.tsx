@@ -35,6 +35,8 @@ import {
   Sparkles,
   Star,
   Sun,
+  Sunrise,
+  Moon,
   Target,
   ShoppingBag,
   Volume2,
@@ -574,6 +576,8 @@ export default function App() {
   const hour = today.getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+  const TimeOfDayIcon = hour < 12 ? Sunrise : hour < 18 ? Sun : Moon;
   const openMail = (item: MailMessage) => {
     setDetail({ type: "email", item });
     setRead((r) => [...new Set([...r, item.id])]);
@@ -1475,7 +1479,7 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 3.2</span>
+            orbit<span>PERSONAL / 3.3</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
@@ -1626,7 +1630,15 @@ export default function App() {
                 <CalendarDays size={15} />
                 {dateLabel}
               </div>
-              <time className="local-clock" dateTime={today.toISOString()}>
+              <time
+                className="local-clock"
+                dateTime={today.toISOString()}
+                aria-label={`${timeOfDay}, ${today.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}`}
+              >
+                <TimeOfDayIcon aria-hidden="true" />
                 {today.toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "2-digit",
@@ -1774,7 +1786,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 3.2 <span>·</span> Joe
+              Orbit 3.3 <span>·</span> Joe
             </span>
             <span>
               {loading ? (

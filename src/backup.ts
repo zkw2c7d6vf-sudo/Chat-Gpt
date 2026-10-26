@@ -16,6 +16,7 @@ export const BACKUP_KEYS = [
   "orbit-priorities-v3",
   "orbit-seed-v3",
   "orbit-shopping-searches-v1",
+  "orbit-shopping-offers-v1",
 ] as const;
 export type BackupKey = (typeof BACKUP_KEYS)[number];
 export type DashboardBackup = {
@@ -103,7 +104,40 @@ function validValue(key: BackupKey, value: unknown): boolean {
       12,
       (item) =>
         text(item.query, 120, false) &&
-        Object.keys(item).every((field) => ["id", "query"].includes(field)),
+        timestamp(item.createdAt) &&
+        Object.keys(item).every((field) =>
+          ["id", "query", "createdAt"].includes(field),
+        ),
+    );
+  if (key === "orbit-shopping-offers-v1")
+    return uniqueRecords(
+      value,
+      200,
+      (item) =>
+        text(item.searchId, 200, false) &&
+        text(item.store, 100, false) &&
+        text(item.url, 2048) &&
+        (!item.url || /^https:\/\//i.test(String(item.url))) &&
+        typeof item.price === "number" &&
+        Number.isFinite(item.price) &&
+        item.price >= 0 &&
+        item.price <= 1e9 &&
+        typeof item.shipping === "number" &&
+        Number.isFinite(item.shipping) &&
+        item.shipping >= 0 &&
+        item.shipping <= 1e9 &&
+        text(item.note, 140) &&
+        Object.keys(item).every((field) =>
+          [
+            "id",
+            "searchId",
+            "store",
+            "url",
+            "price",
+            "shipping",
+            "note",
+          ].includes(field),
+        ),
     );
   if (key === "orbit-command-v3")
     return uniqueRecords(
