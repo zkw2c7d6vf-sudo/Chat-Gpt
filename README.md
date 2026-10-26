@@ -1,4 +1,4 @@
-# Orbit v3.3
+# Orbit v4.0
 
 A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
@@ -18,6 +18,16 @@ Keep Terminal running and open the app at `http://127.0.0.1:5173`. The web app u
 v3.3 increases everyday text sizing, makes the local clock more prominent, and adds a time-of-day icon. Calendar imports remain private and server-backed. If a calendar import reports a dashboard-origin error, stop any older Orbit Terminal windows, start this copy with `npm run dev`, then open `http://127.0.0.1:5173`.
 
 Shopping Scout now saves searches and lets you save actual listings from Amazon, Walmart, Target, Depop, or Vinted with item price, shipping, link, and note. It sorts the listings you save by delivered total. It does not scrape stores or claim a live web-wide lowest price. Orbit’s product principles are in [design-philosophy.md](docs/design-philosophy.md).
+
+## v4.0: watch and discover
+
+Media Center includes a TVMaze-powered show search with catalog images, cast cards, IMDb links, and an optional Rotten Tomatoes rating lookup through OMDb. Without `OMDB_API_KEY`, the ratings row explains that the provider is not configured; Orbit never fabricates a score. Add `OMDB_API_KEY` privately to `.env` and restart the API to enable it.
+
+The same media area includes a YouTube no-cookie player and local saved video IDs. Tubi and Pluto TV are offered as external search links because those services control their own playback, availability, and embedding permissions; Orbit does not bypass their restrictions. The local library and native browser player remain available for files you own.
+
+Shopping listing cards can include a product image URL copied from the retailer’s listing page. Images are displayed directly by the browser and remain optional; Orbit does not proxy or scrape retailer pages. Saved comparison data is included in validated dashboard backups.
+
+Focus now has an optional contained rain animation and browser-generated rain noise. It requires a user click to start audio, runs only while the focus session is active, and respects reduced-motion settings.
 
 For a restricted cloud workspace, use `npm ci --cache /tmp/orbit-npm-cache` instead. No Git worktree is needed: use the existing checkout.
 

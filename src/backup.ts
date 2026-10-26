@@ -118,6 +118,9 @@ function validValue(key: BackupKey, value: unknown): boolean {
         text(item.store, 100, false) &&
         text(item.url, 2048) &&
         (!item.url || /^https:\/\//i.test(String(item.url))) &&
+        (item.image === undefined ||
+          (text(item.image, 2048) &&
+            /^https:\/\//i.test(String(item.image)))) &&
         typeof item.price === "number" &&
         Number.isFinite(item.price) &&
         item.price >= 0 &&
@@ -133,6 +136,7 @@ function validValue(key: BackupKey, value: unknown): boolean {
             "searchId",
             "store",
             "url",
+            "image",
             "price",
             "shipping",
             "note",

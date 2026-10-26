@@ -35,6 +35,7 @@ import {
   updateMedia,
 } from "./store";
 import MediaPlayer, { formatDuration } from "./MediaPlayer";
+import MediaDiscovery from "./MediaDiscovery";
 import "./media.css";
 
 function bytes(value: number) {
@@ -352,6 +353,7 @@ export function MediaCenter({
     : null;
   return (
     <div className="media-center">
+      <MediaDiscovery />
       <div className="media-topline">
         <div className="media-main-tabs">
           <button

@@ -81,6 +81,59 @@ type Detail =
   | { type: "file"; item: DriveFile }
   | { type: "event"; item: CalendarEvent }
   | null;
+type RainEngine = {
+  context: AudioContext;
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+  start: () => void;
+  stop: () => void;
+};
+function makeRainEngine(): RainEngine | null {
+  const AudioContextConstructor =
+    window.AudioContext ||
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext;
+  if (!AudioContextConstructor) return null;
+  const context = new AudioContextConstructor();
+  const buffer = context.createBuffer(
+    1,
+    context.sampleRate * 2,
+    context.sampleRate,
+  );
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++)
+    data[i] = (Math.random() * 2 - 1) * 0.42;
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  const filter = context.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.value = 1550;
+  filter.Q.value = 0.55;
+  const gain = context.createGain();
+  gain.gain.value = 0.055;
+  source.connect(filter).connect(gain).connect(context.destination);
+  let started = false;
+  return {
+    context,
+    source,
+    gain,
+    start: () => {
+      if (!started) {
+        source.start();
+        started = true;
+      }
+      void context.resume();
+      gain.gain.cancelScheduledValues(context.currentTime);
+      gain.gain.linearRampToValueAtTime(0.055, context.currentTime + 0.25);
+    },
+    stop: () => {
+      gain.gain.cancelScheduledValues(context.currentTime);
+      gain.gain.linearRampToValueAtTime(0, context.currentTime + 0.2);
+      void context.suspend();
+    },
+  };
+}
 function stored<T>(key: string, initial: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -355,6 +408,11 @@ export default function App() {
   const [focusMinutes, setFocusMinutes] = useState(25);
   const [remaining, setRemaining] = useState(25 * 60);
   const [focusing, setFocusing] = useState(false);
+  const [rainEnabled, setRainEnabled] = useState(() =>
+    stored("orbit-rain-sound-v1", false),
+  );
+  const [rainError, setRainError] = useState("");
+  const rainEngine = useRef<RainEngine | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [voice, setVoice] = useState(() =>
     stored("orbit-spoken-replies", true),
@@ -473,6 +531,27 @@ export default function App() {
     }, 500);
     return () => clearInterval(id);
   }, [focusing, focusMinutes]);
+  useEffect(() => {
+    localStorage.setItem("orbit-rain-sound-v1", JSON.stringify(rainEnabled));
+    if (focusing && rainEnabled) {
+      if (!rainEngine.current) rainEngine.current = makeRainEngine();
+      if (!rainEngine.current) {
+        setRainError("Rain sound is unavailable in this browser.");
+      } else {
+        rainEngine.current.start();
+        setRainError("");
+      }
+    } else {
+      rainEngine.current?.stop();
+    }
+  }, [focusing, rainEnabled]);
+  useEffect(
+    () => () => {
+      void rainEngine.current?.context.close();
+      rainEngine.current = null;
+    },
+    [],
+  );
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
@@ -1359,6 +1438,35 @@ export default function App() {
           </div>
         </div>
       </div>
+      <div
+        className={`rain-box ${focusing ? "rain-active" : ""}`}
+        aria-hidden="true"
+      >
+        <div className="rain-drop-field">
+          {Array.from({ length: 18 }, (_, index) => (
+            <i key={index} />
+          ))}
+        </div>
+        <span>RAIN</span>
+      </div>
+      <div className="focus-sound-row">
+        <button
+          className={`rain-toggle ${rainEnabled ? "active" : ""}`}
+          aria-pressed={rainEnabled}
+          onClick={() => setRainEnabled((enabled) => !enabled)}
+        >
+          <Volume2 size={13} />
+          Rain sound
+        </button>
+        <span>
+          {rainEnabled ? "Plays while focus is running" : "Sound off"}
+        </span>
+      </div>
+      {rainError && (
+        <p className="focus-sound-error" role="status">
+          {rainError}
+        </p>
+      )}
     </section>
   );
   const tasksPanel = () => (
@@ -1479,7 +1587,7 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 3.3</span>
+            orbit<span>PERSONAL / 4.0</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
@@ -1786,7 +1894,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 3.3 <span>·</span> Joe
+              Orbit 4.0 <span>·</span> Joe
             </span>
             <span>
               {loading ? (

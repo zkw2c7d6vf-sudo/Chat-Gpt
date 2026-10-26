@@ -1411,6 +1411,133 @@ body {
     transition: none !important;
   }
 }
+
+.orbit-v31 .rain-box {
+  position: relative;
+  height: 42px;
+  overflow: hidden;
+  margin-top: 14px;
+  border: 1px solid #8aa9d41c;
+  border-radius: 7px;
+  background: linear-gradient(165deg, #132b46, #0a182c);
+}
+.orbit-v31 .rain-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    #a8c7e50d 50%,
+    transparent 70%
+  );
+  opacity: 0.35;
+}
+.orbit-v31 .rain-box > span {
+  position: absolute;
+  right: 10px;
+  bottom: 7px;
+  z-index: 2;
+  color: #83a6ce;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+}
+.rain-drop-field {
+  position: absolute;
+  inset: 0;
+}
+.rain-drop-field i {
+  position: absolute;
+  top: -10px;
+  left: calc((var(--rain-index, 1) * 17%) - 4%);
+  width: 1px;
+  height: 13px;
+  transform: rotate(19deg);
+  background: #a9c9ec6b;
+  opacity: 0.12;
+}
+.rain-drop-field i:nth-child(2n) {
+  --rain-index: 2;
+}
+.rain-drop-field i:nth-child(3n) {
+  --rain-index: 3;
+}
+.rain-drop-field i:nth-child(4n) {
+  --rain-index: 4;
+}
+.rain-drop-field i:nth-child(5n) {
+  --rain-index: 5;
+}
+.rain-drop-field i:nth-child(6n) {
+  --rain-index: 6;
+}
+.rain-drop-field i:nth-child(7n) {
+  --rain-index: 7;
+}
+.rain-drop-field i:nth-child(8n) {
+  --rain-index: 8;
+}
+.rain-drop-field i:nth-child(9n) {
+  --rain-index: 9;
+}
+.rain-box.rain-active .rain-drop-field i {
+  animation: orbit-rain-fall 1.15s linear infinite;
+  opacity: 0.65;
+}
+.rain-box.rain-active .rain-drop-field i:nth-child(3n) {
+  animation-delay: -0.55s;
+}
+.rain-box.rain-active .rain-drop-field i:nth-child(4n) {
+  animation-delay: -0.82s;
+}
+.rain-box.rain-active .rain-drop-field i:nth-child(5n) {
+  animation-delay: -0.24s;
+}
+@keyframes orbit-rain-fall {
+  from {
+    top: -14px;
+  }
+  to {
+    top: 52px;
+  }
+}
+.focus-sound-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+}
+.rain-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid #9ab7df24;
+  border-radius: 5px;
+  color: #91a9ca;
+  background: transparent;
+  font-size: 10px;
+}
+.rain-toggle.active {
+  color: #c4daf4;
+  border-color: #a4c5ed48;
+  background: #9abbe719;
+}
+.focus-sound-row > span,
+.focus-sound-error {
+  color: #6f89ad;
+  font-size: 9px;
+}
+.focus-sound-error {
+  margin: 7px 0 0;
+  color: #dfa5a5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rain-box.rain-active .rain-drop-field i {
+    animation: none;
+    opacity: 0.3;
+  }
+}
 @media (max-width: 400px) {
   .orbit-v31 .media-toolbar > div {
     flex-wrap: wrap;

@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { parseCalendar } from "./calendar.mjs";
 import { createFeedFetcher, FeedError } from "./feed.mjs";
 import { createWeatherService, WeatherError } from "./weather.mjs";
+import { createMediaService, MediaError } from "./media.mjs";
 
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
@@ -135,6 +136,7 @@ export function createDashboardServer(options = {}) {
     lookup: options.lookup,
   });
   const weather = createWeatherService({ fetch: fetcher });
+  const media = createMediaService({ fetch: fetcher });
   const feedCache = new Map();
   const aiKey = env.ORBIT_AI_KEY || env.OPENAI_API_KEY;
   let loaded = false;
@@ -687,6 +689,21 @@ export function createDashboardServer(options = {}) {
           200,
           await weather.searchLocations(url.searchParams),
         );
+      if (req.method === "GET" && url.pathname === "/api/media/search")
+        return sendJson(
+          res,
+          200,
+          await media.search(url.searchParams.get("query")),
+        );
+      const showMatch = /^\/api\/media\/show\/(\d+)$/.exec(url.pathname);
+      if (req.method === "GET" && showMatch)
+        return sendJson(res, 200, await media.show(showMatch[1]));
+      if (req.method === "GET" && url.pathname === "/api/media/ratings")
+        return sendJson(
+          res,
+          200,
+          await media.ratings(url.searchParams.get("imdb"), env.OMDB_API_KEY),
+        );
       if (req.method === "PUT" && url.pathname === "/api/calendar/feed") {
         const body = await readJson(req);
         const fetched = await feedFetcher(body.url);
@@ -1104,14 +1121,16 @@ export function createDashboardServer(options = {}) {
         res,
         error instanceof PublicError ||
           error instanceof FeedError ||
-          error instanceof WeatherError
+          error instanceof WeatherError ||
+          error instanceof MediaError
           ? error.status
           : 500,
         {
           error:
             error instanceof PublicError ||
             error instanceof FeedError ||
-            error instanceof WeatherError
+            error instanceof WeatherError ||
+            error instanceof MediaError
               ? error.message
               : "The server could not complete this request. Check server configuration and private storage permissions.",
         },

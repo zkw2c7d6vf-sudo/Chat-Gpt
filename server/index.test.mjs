@@ -17,6 +17,41 @@ async function fixture(t, configured = false, behavior = {}) {
       );
     if (String(url) === "https://api.openai.com/v1/audio/transcriptions")
       return Response.json({ text: "Add a task for the dashboard." });
+    if (String(url).includes("api.tvmaze.com/search/shows"))
+      return Response.json([
+        {
+          show: {
+            id: 42,
+            name: "Orbit Test Show",
+            type: "Scripted",
+            summary: "<p>A catalog result.</p>",
+            image: { medium: "https://static.tvmaze.com/show.jpg" },
+            rating: { average: 8.4 },
+            externals: { imdb: "tt1234567" },
+          },
+        },
+      ]);
+    if (String(url).includes("api.tvmaze.com/shows/42/cast"))
+      return Response.json([
+        {
+          person: {
+            name: "Orbit Actor",
+            image: { medium: "https://static.tvmaze.com/person.jpg" },
+            externals: { imdb: "nm1234567" },
+          },
+          character: { name: "The Pilot" },
+        },
+      ]);
+    if (String(url).includes("api.tvmaze.com/shows/42"))
+      return Response.json({
+        id: 42,
+        name: "Orbit Test Show",
+        type: "Scripted",
+        summary: "<p>A catalog result.</p>",
+        image: { medium: "https://static.tvmaze.com/show.jpg" },
+        rating: { average: 8.4 },
+        externals: { imdb: "tt1234567" },
+      });
     if (String(url).includes("/token"))
       return Response.json({
         access_token: "test-access",
@@ -352,6 +387,38 @@ test("local loopback writes work while cross-origin writes stay rejected", async
   });
   assert.equal(assistant.status, 503);
   assert.match((await assistant.json()).error, /not configured/);
+});
+
+test("media catalog normalizes show images, cast and optional ratings", async (t) => {
+  const { call, requests } = await fixture(t);
+  const search = await call("/api/media/search?query=Orbit%20Test");
+  assert.equal(search.status, 200);
+  assert.deepEqual((await search.json())[0], {
+    id: 42,
+    name: "Orbit Test Show",
+    type: "Scripted",
+    language: null,
+    summary: "A catalog result.",
+    image: "https://static.tvmaze.com/show.jpg",
+    rating: 8.4,
+    genres: [],
+    premiered: null,
+    status: null,
+    imdb: "https://www.imdb.com/title/tt1234567/",
+    official: null,
+  });
+  const details = await call("/api/media/show/42");
+  assert.equal(details.status, 200);
+  assert.equal(
+    (await details.json()).cast[0].imdb,
+    "https://www.imdb.com/name/nm1234567/",
+  );
+  const ratings = await call("/api/media/ratings?imdb=tt1234567");
+  assert.deepEqual(await ratings.json(), {
+    available: false,
+    reason: "Add OMDB_API_KEY to enable Rotten Tomatoes scores.",
+  });
+  assert(requests.some((request) => request.url.includes("api.tvmaze.com")));
 });
 
 test("assistant forwards validated conversation history separately from untrusted dashboard context", async (t) => {

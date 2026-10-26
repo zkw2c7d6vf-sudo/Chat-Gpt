@@ -10,6 +10,7 @@ type Offer = {
   searchId: string;
   store: string;
   url: string;
+  image?: string;
   price: number;
   shipping: number;
   note: string;
@@ -23,6 +24,17 @@ const retailers = [
   ["Depop", "https://www.depop.com/search/?q="],
   ["Vinted", "https://www.vinted.com/catalog?search_text="],
 ] as const;
+const relatedTerms: Record<string, string[]> = {
+  jacket: ["rain jacket", "overshirt", "lightweight coat"],
+  coat: ["rain jacket", "overshirt", "lightweight coat"],
+  sneaker: ["running shoes", "everyday sneakers", "trail shoes"],
+  shoe: ["running shoes", "everyday sneakers", "trail shoes"],
+  shirt: ["overshirt", "long sleeve shirt", "linen shirt"],
+  jeans: ["straight leg denim", "cargo pants", "corduroy pants"],
+  desk: ["desk lamp", "monitor stand", "desk organizer"],
+  movie: ["free movies", "new releases", "classic films"],
+  show: ["comedy series", "drama series", "limited series"],
+};
 
 function load<T>(key: string, valid: (value: unknown) => value is T[]): T[] {
   try {
@@ -65,6 +77,7 @@ function offers() {
           typeof item.searchId === "string" &&
           typeof item.store === "string" &&
           typeof item.url === "string" &&
+          (item.image === undefined || typeof item.image === "string") &&
           typeof item.price === "number" &&
           typeof item.shipping === "number" &&
           typeof item.note === "string",
@@ -82,6 +95,7 @@ export default function ShoppingScout() {
   const [addingFor, setAddingFor] = useState<string | null>(null);
   const [store, setStore] = useState("Amazon");
   const [url, setUrl] = useState("");
+  const [image, setImage] = useState("");
   const [price, setPrice] = useState("");
   const [shipping, setShipping] = useState("0");
   const [note, setNote] = useState("");
@@ -97,14 +111,26 @@ export default function ShoppingScout() {
   const clean = query.trim().slice(0, 120);
   const feed = useMemo(
     () =>
-      saved
-        .slice(0, 6)
-        .map((item) => ({
-          ...item,
-          offers: savedOffers.filter((offer) => offer.searchId === item.id),
-        })),
+      saved.slice(0, 6).map((item) => ({
+        ...item,
+        offers: savedOffers.filter((offer) => offer.searchId === item.id),
+      })),
     [saved, savedOffers],
   );
+  const recommendations = useMemo(() => {
+    const existing = new Set(saved.map((item) => item.query.toLowerCase()));
+    return saved
+      .flatMap((item) =>
+        Object.entries(relatedTerms).flatMap(([word, terms]) =>
+          item.query.toLowerCase().includes(word) ? terms : [],
+        ),
+      )
+      .filter(
+        (term, index, all) =>
+          !existing.has(term) && all.indexOf(term) === index,
+      )
+      .slice(0, 5);
+  }, [saved]);
   const addSearch = (event: FormEvent) => {
     event.preventDefault();
     if (!clean) return;
@@ -126,6 +152,7 @@ export default function ShoppingScout() {
     setAddingFor(null);
     setStore("Amazon");
     setUrl("");
+    setImage("");
     setPrice("");
     setShipping("0");
     setNote("");
@@ -149,12 +176,17 @@ export default function ShoppingScout() {
       setFormError("Listing links must begin with https://.");
       return;
     }
+    if (image && !/^https:\/\//i.test(image)) {
+      setFormError("Image links must begin with https://.");
+      return;
+    }
     setSavedOffers((current) => [
       {
         id: crypto.randomUUID(),
         searchId: addingFor,
         store,
         url: url.trim(),
+        image: image.trim(),
         price: itemPrice,
         shipping: itemShipping,
         note: note.trim().slice(0, 140),
@@ -193,6 +225,19 @@ export default function ShoppingScout() {
           <Plus size={16} /> Save
         </button>
       </form>
+      {recommendations.length > 0 && (
+        <div
+          className="shopping-recommendations"
+          aria-label="Suggested searches"
+        >
+          <span>FOR YOU</span>
+          {recommendations.map((term) => (
+            <button key={term} onClick={() => setQuery(term)}>
+              {term} <Plus size={11} />
+            </button>
+          ))}
+        </div>
+      )}
       {feed.length ? (
         <div className="shopping-saved">
           {feed.map((item) => {
@@ -242,6 +287,13 @@ export default function ShoppingScout() {
                         key={offer.id}
                         className={index === 0 ? "best-offer" : ""}
                       >
+                        {offer.image && (
+                          <img
+                            className="offer-thumb"
+                            src={offer.image}
+                            alt=""
+                          />
+                        )}
                         <span>
                           {index === 0 ? (
                             <Trophy size={13} aria-label="Lowest saved total" />
@@ -325,6 +377,15 @@ export default function ShoppingScout() {
                         value={url}
                         onChange={(event) => setUrl(event.target.value)}
                         placeholder="https://…"
+                      />
+                    </label>
+                    <label className="offer-url">
+                      Product image URL (optional)
+                      <input
+                        aria-label="Product image URL"
+                        value={image}
+                        onChange={(event) => setImage(event.target.value)}
+                        placeholder="https://…/image.jpg"
                       />
                     </label>
                     <label className="offer-url">
