@@ -1,6 +1,6 @@
-# Orbit V2
+# Orbit v3.2
 
-A personal command center that puts your day first: calendar, important mail, Spotify, weather, tasks, and a central assistant. Built with React, TypeScript, Vite, and a small Node.js API.
+A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
 ## Start on your Mac
 
@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Keep Terminal running and open the app at `http://127.0.0.1:5173`. Use that same origin each time so browser notes, tasks, and connections remain associated with the same site. The web app uses port **5173**, forwarding `/api` requests to the API on port **3001**.
+Keep Terminal running and open the app at `http://127.0.0.1:5173`. The web app uses port **5173**, forwarding `/api` requests to the API on port **3001**. Local calendar imports also work through `http://localhost:5173`, but use `127.0.0.1` consistently for Spotify because its registered callback requires it.
 
 For a restricted cloud workspace, use `npm ci --cache /tmp/orbit-npm-cache` instead. No Git worktree is needed: use the existing checkout.
 
@@ -66,7 +66,7 @@ The app requests `user-read-currently-playing`, `user-read-playback-state`, and 
 
 ## Talk to Orbit
 
-The central assistant character reflects idle, listening, thinking, and speaking states. Use the large microphone control for dictation, review the resulting text, and send it when ready. Typed messages remain available when the browser cannot provide voice input.
+The optional sidebar assistant provides typed prompts and supported browser dictation. Review dictated text before sending; typed messages remain available when voice is unavailable.
 
 Voice requires microphone permission and a supported browser. Use the local development origin above, or HTTPS when hosted. If permission was previously denied, allow the microphone in the browser's site settings and retry. On a Mac, also check System Settings → Privacy & Security → Microphone. As another option, enable macOS Dictation under System Settings → Keyboard and use its configured shortcut while the message field is focused. Native browser speech recognition may send audio to the browser vendor's speech service under that vendor's terms. Recorded transcription, when available and explicitly started, uses the configured OpenAI API service instead.
 
@@ -136,13 +136,13 @@ Development is isolated on `orbit-v3`; `main` retains V2. Nothing is publicly de
 
 **Media Center** adds Movies, TV, Photos, and a built-in Player for compatible personal files. Files are stored locally in this browser's IndexedDB, not uploaded to Orbit's server. Keep originals: browser storage can be cleared or evicted. Codec support depends on the browser; the player explains unsupported files. Use Tonight’s queue, favorites, and continue-watching progress. No subscription-streaming or DRM bypass is included.
 
-**Tonight’s delivery** accepts an official DoorDash tracking link and manually entered status/ETA. It does not read your DoorDash account or automatically track the driver. Open the official map from the card. The link is private and excluded from dashboard backups.
+**Shopping Scout** saves local searches and opens those searches at Amazon, Walmart, Target, Depop, and Vinted. It does not scrape retailer sites, access shopping accounts, create an algorithmic feed, or claim a live lowest price. A true comparison feature needs authorized retailer/catalog feeds.
 
 **Quick capture** (top bar, or Ctrl/Cmd+Shift+K) saves tasks, notes, ideas, responsibilities, reminders, financial goals, and habits locally. The Daily Command Center displays three priorities from your entered responsibilities and tasks. School/teaching details and financial targets start empty; Orbit does not invent those details or connect a bank. Reminders appear in the app, not as background notifications. Habit checks use the current local day.
 
 **Approval & activity** holds AI-suggested tasks for explicit approval. Approved tasks enter your local list; dismissed suggestions stay out. Explicit task commands remain direct user instructions. No external service action is executed by this approval queue.
 
-**Backup & restore** lives in Connections. Review a backup before applying it; it contains private notes/conversation and local settings. It excludes credentials, connection tokens, private delivery links, and media file bytes. Keep original media separately.
+**Backup & restore** lives in Connections. Review a backup before applying it; it contains private notes/conversation and local settings. It excludes credentials, connection tokens, and media file bytes. Keep original media separately.
 
 Research: [official sources and constraints](docs/v3-research.md). Audit and revision record: [seven V3 passes](docs/v3-revisions.md).
 

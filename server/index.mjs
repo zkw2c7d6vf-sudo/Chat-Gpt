@@ -103,6 +103,26 @@ function decodeEntities(value = "") {
 export function createDashboardServer(options = {}) {
   const env = options.env || process.env;
   const appUrl = new URL(env.APP_URL || "http://127.0.0.1:5173").origin;
+  const configuredOrigin = new URL(appUrl);
+  const isLoopbackHost = (host) =>
+    host === "127.0.0.1" || host === "localhost" || host === "::1";
+  // Vite's proxy sends the browser's origin through to this local API.  Accept
+  // only loopback origins when Orbit itself is configured for loopback; this
+  // makes http://localhost:5173 and the production server on :3001 usable
+  // without turning a deployed dashboard into a permissive CORS endpoint.
+  const trustedOrigin = (origin) => {
+    if (origin === appUrl) return true;
+    try {
+      const candidate = new URL(origin);
+      return (
+        isLoopbackHost(configuredOrigin.hostname) &&
+        isLoopbackHost(candidate.hostname) &&
+        candidate.protocol === "http:"
+      );
+    } catch {
+      return false;
+    }
+  };
   const distDir = resolve(options.distDir || resolve(process.cwd(), "dist"));
   const dataDir = resolve(env.DASHBOARD_DATA_DIR || ".orbit");
   const tokenFile = resolve(dataDir, "connections.json");
@@ -638,7 +658,7 @@ export function createDashboardServer(options = {}) {
       if (
         !["GET", "HEAD"].includes(req.method) &&
         req.headers.origin &&
-        req.headers.origin !== appUrl
+        !trustedOrigin(req.headers.origin)
       ) {
         throw new PublicError(
           "This request must come from the dashboard origin configured in APP_URL.",

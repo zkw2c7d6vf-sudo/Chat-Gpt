@@ -15,6 +15,7 @@ export const BACKUP_KEYS = [
   "orbit-activity-v3",
   "orbit-priorities-v3",
   "orbit-seed-v3",
+  "orbit-shopping-searches-v1",
 ] as const;
 export type BackupKey = (typeof BACKUP_KEYS)[number];
 export type DashboardBackup = {
@@ -96,6 +97,14 @@ function uniqueRecords(
 function validValue(key: BackupKey, value: unknown): boolean {
   if (booleanKeys.has(key)) return typeof value === "boolean";
   if (key === "orbit-priorities-v3") return stringArray(value, 100, 200);
+  if (key === "orbit-shopping-searches-v1")
+    return uniqueRecords(
+      value,
+      12,
+      (item) =>
+        text(item.query, 120, false) &&
+        Object.keys(item).every((field) => ["id", "query"].includes(field)),
+    );
   if (key === "orbit-command-v3")
     return uniqueRecords(
       value,
@@ -264,7 +273,7 @@ function validate(value: unknown): asserts value is DashboardBackup {
   for (const [key, item] of Object.entries(value.data)) {
     if (!(BACKUP_KEYS as readonly string[]).includes(key))
       throw new Error(
-        "This backup contains unsupported data. Account credentials, delivery links, and media files cannot be imported here.",
+        "This backup contains unsupported data. Account credentials and media files cannot be imported here.",
       );
     if (!validValue(key as BackupKey, item))
       throw new Error(

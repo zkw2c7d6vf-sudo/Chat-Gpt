@@ -492,72 +492,6 @@ try {
     },
   );
   await check(
-    "DoorDash handoff rejects unsafe URLs and labels status as manual",
-    async () => {
-      await page
-        .getByRole("button", { name: "Add DoorDash tracking", exact: false })
-        .click();
-      await page
-        .getByRole("textbox", { name: "Restaurant or order label" })
-        .fill("Test dinner");
-      await page
-        .getByLabel("DoorDash tracking link")
-        .fill("javascript:alert(1)");
-      await page
-        .getByRole("button", { name: "Save delivery", exact: false })
-        .click();
-      await visible(page.getByRole("alert"));
-      assert.equal(await page.locator(".delivery-order").count(), 0);
-      await page
-        .getByLabel("DoorDash tracking link")
-        .fill("https://www.doordash.com/orders/test-private-order");
-      const local = await page.evaluate(() => {
-        const eta = new Date(Date.now() + 30 * 60 * 1000);
-        return `${eta.getFullYear()}-${String(eta.getMonth() + 1).padStart(2, "0")}-${String(eta.getDate()).padStart(2, "0")}T${String(eta.getHours()).padStart(2, "0")}:${String(eta.getMinutes()).padStart(2, "0")}`;
-      });
-      await page.getByLabel("Estimated arrival").fill(local);
-      await page
-        .getByRole("button", { name: "Save delivery", exact: false })
-        .click();
-      await visible(page.getByRole("heading", { name: "Test dinner" }));
-      await visible(page.getByText("Manual status", { exact: true }));
-      assert.equal(
-        await page
-          .getByRole("link", { name: "Open live tracking in DoorDash" })
-          .getAttribute("rel"),
-        "noopener noreferrer",
-      );
-      assert(
-        !(await page
-          .locator(".delivery-card")
-          .textContent()
-          .then((x) => x.includes("test-private-order"))),
-      );
-      await page
-        .getByRole("button", { name: "Set status On the way", exact: true })
-        .click();
-      await visible(page.getByText("On the way", { exact: false }).first());
-      await page.reload({ waitUntil: "networkidle" });
-      await visible(page.getByRole("heading", { name: "Test dinner" }));
-    },
-  );
-  await check(
-    "delivery removal is explicit and does not claim cancellation",
-    async () => {
-      await page
-        .getByRole("button", { name: "Clear order", exact: false })
-        .click();
-      await visible(page.getByRole("dialog", { name: "Clear saved delivery" }));
-      await visible(
-        page.getByText(/won’t cancel or change your DoorDash order/),
-      );
-      await page
-        .getByRole("button", { name: "Keep order", exact: true })
-        .click();
-      await visible(page.getByRole("heading", { name: "Test dinner" }));
-    },
-  );
-  await check(
     "quick capture adds real school, finance, habit and task data locally",
     async () => {
       await capture("school", "Browser test assignment");
@@ -733,11 +667,6 @@ try {
       assert.equal(
         await page.evaluate(() => localStorage.getItem("GOOGLE_CLIENT_SECRET")),
         "fake-export-canary",
-      );
-      assert(
-        (
-          await page.evaluate(() => localStorage.getItem("orbit-delivery-v3"))
-        ).includes("test-private-order"),
       );
       assert.equal((await metadata()).length, 2);
     },

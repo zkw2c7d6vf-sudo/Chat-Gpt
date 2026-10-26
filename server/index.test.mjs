@@ -320,8 +320,23 @@ test("a denied Google service reports its own error while other live data surviv
   assert.match(dashboard.errors[0].message, /Enable the required API/);
 });
 
-test("cross-origin writes are rejected, and unavailable AI is explicit", async (t) => {
+test("local loopback writes work while cross-origin writes stay rejected", async (t) => {
   const { call } = await fixture(t);
+  assert.equal(
+    (
+      await call("/api/calendar/import", {
+        method: "PUT",
+        headers: {
+          Origin: "http://localhost:5173",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR",
+        }),
+      })
+    ).status,
+    200,
+  );
   assert.equal(
     (
       await call("/api/disconnect/google", {

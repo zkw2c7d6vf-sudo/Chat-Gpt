@@ -46,6 +46,9 @@ test("backup exports only approved dashboard text and never account, media, or d
       longitude: -78.8784,
     }),
     "orbit-delivery-v3": "private delivery",
+    "orbit-shopping-searches-v1": JSON.stringify([
+      { id: "search1", query: "navy sneakers" },
+    ]),
     "secret-token": "secret",
     "orbit-media": "media metadata",
   });
@@ -54,6 +57,7 @@ test("backup exports only approved dashboard text and never account, media, or d
     "orbit-tasks",
     "orbit-weather-location",
     "orbit-weather-unit",
+    "orbit-shopping-searches-v1",
   ]);
   assert.equal(JSON.stringify(backup).includes("private delivery"), false);
   assert.equal(JSON.stringify(backup).includes("secret"), false);

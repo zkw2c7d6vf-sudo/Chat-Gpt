@@ -118,6 +118,7 @@ try {
         "Inbox",
         "Files",
         "Media Center",
+        "Shopping Scout",
       ]) {
         await page.getByRole("button", { name, exact: true }).click();
         assert(
@@ -156,6 +157,25 @@ try {
         .getByRole("button", { name: "Tasks", exact: false })
         .first()
         .click();
+    },
+  );
+  await check(
+    "shopping research saves local searches without price claims",
+    async () => {
+      await page
+        .getByRole("button", { name: "Shopping Scout", exact: true })
+        .click();
+      await page
+        .getByRole("textbox", { name: "Item to research" })
+        .fill("navy jacket");
+      await page.getByRole("button", { name: "Save shopping search" }).click();
+      await page.getByText("navy jacket", { exact: true }).waitFor();
+      assert.equal(
+        await page.getByText(/does not scrape retailer sites/i).count(),
+        1,
+      );
+      assert.equal(await page.getByRole("link", { name: /Amazon/ }).count(), 1);
+      await page.getByRole("button", { name: "Remove navy jacket" }).click();
     },
   );
   await page.setViewportSize({ width: 1440, height: 1100 });

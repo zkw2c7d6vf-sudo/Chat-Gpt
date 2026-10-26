@@ -36,6 +36,7 @@ import {
   Star,
   Sun,
   Target,
+  ShoppingBag,
   Volume2,
   VolumeX,
   X,
@@ -66,11 +67,11 @@ import CalendarConnect from "./CalendarConnect";
 
 import { useVoice } from "./useVoice";
 import { MediaCenter, MediaSummary } from "./media/MediaCenter";
-import DeliveryPanel from "./DeliveryPanel";
+import ShoppingScout from "./ShoppingScout";
 import BackupPanel from "./BackupPanel";
 import CommandCenter, { QuickCapture, proposeTasks } from "./CommandCenter";
 
-type View = "overview" | "calendar" | "inbox" | "files" | "media";
+type View = "overview" | "calendar" | "inbox" | "files" | "media" | "shopping";
 type Modal =
   "connections" | "search" | "notifications" | "assistantSettings" | null;
 type Detail =
@@ -1474,7 +1475,7 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 3.1</span>
+            orbit<span>PERSONAL / 3.2</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
@@ -1485,6 +1486,7 @@ export default function App() {
             { id: "inbox", label: "Inbox", icon: Mail },
             { id: "files", label: "Files", icon: Folder },
             { id: "media", label: "Media Center", icon: Clapperboard },
+            { id: "shopping", label: "Shopping Scout", icon: ShoppingBag },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1538,7 +1540,9 @@ export default function App() {
                 ? "Overview"
                 : view === "media"
                   ? "Media Center"
-                  : view[0].toUpperCase() + view.slice(1)}
+                  : view === "shopping"
+                    ? "Shopping Scout"
+                    : view[0].toUpperCase() + view.slice(1)}
             </span>
           </div>
           <div className="topbar-right">
@@ -1598,7 +1602,9 @@ export default function App() {
                   ? "OVERVIEW"
                   : view === "media"
                     ? "MEDIA CENTER"
-                    : view.toUpperCase()}
+                    : view === "shopping"
+                      ? "SHOPPING SCOUT"
+                      : view.toUpperCase()}
               </div>
               <h1>
                 {view === "overview"
@@ -1609,7 +1615,9 @@ export default function App() {
                       ? "Your inbox."
                       : view === "media"
                         ? "Media Center."
-                        : "Your files."}
+                        : view === "shopping"
+                          ? "Shopping Scout."
+                          : "Your files."}
                 <span className="heading-dot">.</span>
               </h1>
             </div>
@@ -1688,7 +1696,7 @@ export default function App() {
               />
               <div className="tonight-heading">
                 After hours
-                <span>MEDIA & DELIVERY</span>
+                <span>MEDIA</span>
               </div>
               <div className="tonight-grid">
                 <MediaSummary
@@ -1697,8 +1705,8 @@ export default function App() {
                     navigate("media");
                   }}
                 />
-                <DeliveryPanel />
               </div>
+              <ShoppingScout />
               <div className="v2-files" id="bottom-widgets">
                 {filesPanel()}
               </div>
@@ -1746,6 +1754,8 @@ export default function App() {
               initialMediaId={mediaId}
               onOpened={() => setMediaId(undefined)}
             />
+          ) : view === "shopping" ? (
+            <ShoppingScout />
           ) : (
             <>
               {filesPanel(true)}
@@ -1764,7 +1774,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 3.1 <span>·</span> Joe
+              Orbit 3.2 <span>·</span> Joe
             </span>
             <span>
               {loading ? (

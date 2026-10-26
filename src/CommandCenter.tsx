@@ -4,9 +4,7 @@ import {
   X,
   Check,
   Star,
-  GraduationCap,
-  Target,
-  Heart,
+  ListChecks,
   Inbox,
   ShieldCheck,
   Clock3,
@@ -316,7 +314,7 @@ export default function CommandCenter({
       <div className="command-section-heading">
         <div>
           <span className="eyebrow">PERSONAL</span>
-          <h2>Plans & progress</h2>
+          <h2>Daily Command Center</h2>
           <p></p>
         </div>
         <button className="primary-button" onClick={capture}>
@@ -386,10 +384,10 @@ export default function CommandCenter({
             </p>
           )}
         </section>
-        <section className="card command-card">
+        <section className="card command-card command-day-card">
           <h3>
-            <GraduationCap size={17} />
-            College & teaching
+            <ListChecks size={17} />
+            Today’s commitments
           </h3>
           {responsibilities.slice(0, 4).map((e) => (
             <div className="responsibility-row" key={e.id}>
@@ -413,92 +411,85 @@ export default function CommandCenter({
           ))}
           {!responsibilities.length && (
             <p className="command-empty">
-              Add your actual classes, teaching deadlines, or reminders. Nothing
-              is assumed.
+              Add any deadline, reminder, class, or teaching commitment.
             </p>
           )}
           <button className="text-button" onClick={capture}>
-            Add a responsibility
+            Add a commitment
             <Plus size={12} />
           </button>
-        </section>
-        <section className="card command-card">
-          <h3>
-            <Target size={17} />
-            Financial goals
-          </h3>
-          {entries
-            .filter((e) => e.domain === "finance")
-            .map((e) => (
-              <div className="goal-row" key={e.id}>
-                <label>
-                  {e.title}
+          <div className="command-subsection">
+            <h4>Goals</h4>
+            {entries
+              .filter((e) => e.domain === "finance")
+              .map((e) => (
+                <div className="goal-row" key={e.id}>
+                  <label>
+                    {e.title}
+                    <span>
+                      ${e.amount.toLocaleString()} / $
+                      {e.target.toLocaleString()}
+                    </span>
+                    <input
+                      aria-label={`Current amount for ${e.title}`}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={e.amount}
+                      onChange={(v) =>
+                        update(e.id, {
+                          amount: Number.isFinite(Number(v.target.value))
+                            ? Math.max(0, Number(v.target.value))
+                            : 0,
+                        })
+                      }
+                    />
+                  </label>
+                  <progress value={e.amount} max={e.target || 1} />
+                </div>
+              ))}
+            {!entries.some((e) => e.domain === "finance") && (
+              <p className="command-empty">Add a goal you want to track.</p>
+            )}
+            <button className="text-button" onClick={capture}>
+              Set a goal
+              <Plus size={12} />
+            </button>
+          </div>
+          <div className="command-subsection">
+            <h4>Daily wins</h4>
+            {entries
+              .filter((e) => e.domain === "habit")
+              .map((e) => (
+                <button
+                  className={`habit-row ${e.lastDone === day ? "checked" : ""}`}
+                  key={e.id}
+                  aria-pressed={e.lastDone === day}
+                  onClick={() =>
+                    update(e.id, { lastDone: e.lastDone === day ? "" : day })
+                  }
+                >
                   <span>
-                    ${e.amount.toLocaleString()} / ${e.target.toLocaleString()}
+                    {e.lastDone === day ? (
+                      <Check size={13} />
+                    ) : (
+                      <Plus size={13} />
+                    )}
                   </span>
-                  <input
-                    aria-label={`Current amount for ${e.title}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={e.amount}
-                    onChange={(v) =>
-                      update(e.id, {
-                        amount: Number.isFinite(Number(v.target.value))
-                          ? Math.max(0, Number(v.target.value))
-                          : 0,
-                      })
-                    }
-                  />
-                </label>
-                <progress value={e.amount} max={e.target || 1} />
-              </div>
-            ))}
-          {!entries.some((e) => e.domain === "finance") && (
-            <p className="command-empty">Add an income or savings target.</p>
-          )}
-          <button className="text-button" onClick={capture}>
-            Set a goal
-            <Plus size={12} />
-          </button>
-        </section>
-        <section className="card command-card">
-          <h3>
-            <Heart size={16} />
-            Habits
-          </h3>
-          {entries
-            .filter((e) => e.domain === "habit")
-            .map((e) => (
-              <button
-                className={`habit-row ${e.lastDone === day ? "checked" : ""}`}
-                key={e.id}
-                aria-pressed={e.lastDone === day}
-                onClick={() =>
-                  update(e.id, { lastDone: e.lastDone === day ? "" : day })
-                }
-              >
-                <span>
-                  {e.lastDone === day ? (
-                    <Check size={13} />
-                  ) : (
-                    <Plus size={13} />
-                  )}
-                </span>
-                {e.title}
-                <small>{e.lastDone === day ? "Done today" : "Today"}</small>
-              </button>
-            ))}
-          {!entries.some((e) => e.domain === "habit") && (
-            <p className="command-empty">
-              Choose a habit that matters to you. Check it off for today; it
-              resets on a new day.
-            </p>
-          )}
-          <button className="text-button" onClick={capture}>
-            Add a habit
-            <Plus size={12} />
-          </button>
+                  {e.title}
+                  <small>{e.lastDone === day ? "Done today" : "Today"}</small>
+                </button>
+              ))}
+            {!entries.some((e) => e.domain === "habit") && (
+              <p className="command-empty">
+                Add a repeatable action to check off today.
+              </p>
+            )}
+            <button className="text-button" onClick={capture}>
+              Add a habit
+              <Plus size={12} />
+            </button>
+          </div>
         </section>
       </div>
       <section className="card approval-card">
