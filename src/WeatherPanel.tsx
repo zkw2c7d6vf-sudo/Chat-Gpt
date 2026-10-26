@@ -279,7 +279,7 @@ export default function WeatherPanel({
       <div className="weather-header">
         <h2>
           <CloudSun size={17} />
-          Outside your orbit
+          Weather
         </h2>
         <div className="weather-unit-toggle" aria-label="Temperature units">
           <button

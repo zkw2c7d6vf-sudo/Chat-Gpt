@@ -216,9 +216,7 @@ try {
     "media center is a genuine side tab with empty movies, TV and photo slots",
     async () => {
       await nav("Media Center");
-      await visible(
-        page.getByRole("heading", { name: "A home for your favorites." }),
-      );
+      await visible(page.getByRole("heading", { name: "Library" }));
       for (const name of ["Movies", "TV shows", "Photos"]) {
         await page
           .getByRole("button", { name: new RegExp(`^${name}`) })
@@ -611,7 +609,7 @@ try {
       assistantConfigured = true;
       await page.reload({ waitUntil: "networkidle" });
       await page
-        .getByRole("button", { name: "Type instead", exact: true })
+        .getByRole("button", { name: "Orbit assistant", exact: true })
         .click();
       await page
         .getByRole("textbox", { name: "Message Orbit" })

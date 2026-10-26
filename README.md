@@ -147,3 +147,11 @@ Development is isolated on `orbit-v3`; `main` retains V2. Nothing is publicly de
 Research: [official sources and constraints](docs/v3-research.md). Audit and revision record: [seven V3 passes](docs/v3-revisions.md).
 
 V3 test commands: `npm test` covers backend/backup/updater checks; with `npm run dev` running, `npm run test:e2e` checks preserved V2 workflows and `npm run test:v3` checks new interactions. The V3 browser suite needs FFmpeg to generate tiny test videos plus Chromium/Playwright. Neither FFmpeg nor a paid service is needed to use the app. Media imports currently cap at **500 MiB per file**; keep original files separately.
+
+## V3.1 visual revision
+
+The `orbit-v3.1` branch preserves the V3 and V2 branches. The overview removes the central AI companion and illustrated character, uses a navy space theme with text navigation on desktop, and prioritizes schedule, tasks, weather, music and focus. The local greeting and clock update while the page remains open and address Joe. Filler headings and taglines are shortened. The optional sidebar assistant remains accessible, with no character graphics. Existing data keys and integrations are unchanged; no credentials need to be re-entered simply for this visual update.
+
+Download `orbit-v3.1` into a separate folder to review it. Stop the other Orbit server before starting this one. Follow the private-configuration guidance above if reusing account settings. Keep the same browser origin for existing browser data.
+
+`npm run test:v31` checks the personal greeting, live noon/evening transitions, navigation at five screen widths and saved notes. `npm run test:e2e` and `npm run test:v3` cover preserved functionality. Design review: [v3.1-review.md](docs/v3.1-review.md).

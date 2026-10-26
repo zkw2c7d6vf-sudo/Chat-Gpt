@@ -1,3 +1,4 @@
+process.env.TZ = "America/New_York";
 /** Orbit V2 browser checks. Start npm run dev before running npm run test:e2e. */
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -286,10 +287,14 @@ try {
       assert.equal(await page.locator(".agenda-event").count(), 0);
       const calendar = await page.locator(".calendar-card").boundingBox();
       assert(calendar.y < 500, "Calendar is buried below decorative content");
+      assert.equal(
+        await page.locator(".copilot-card,.orbit-character").count(),
+        0,
+      );
       await visible(
-        page
-          .getByRole("button", { name: "Talk to Orbit", exact: true })
-          .first(),
+        page.getByRole("heading", {
+          name: /Good (morning|afternoon|evening), Joe\./,
+        }),
       );
     },
   );
@@ -412,11 +417,18 @@ try {
         .getByRole("button", { name: "Save task", exact: true })
         .click();
       assert.equal(
-        await page.getByText("Browser V2 task", { exact: true }).count(),
+        await page
+          .locator(".task-list")
+          .getByText("Browser V2 task", { exact: true })
+          .count(),
         1,
       );
       await page.reload({ waitUntil: "networkidle" });
-      await visible(page.getByText("Browser V2 task", { exact: true }));
+      await visible(
+        page
+          .locator(".task-list")
+          .getByText("Browser V2 task", { exact: true }),
+      );
       await page
         .getByRole("button", { name: "Complete Browser V2 task", exact: true })
         .click();
@@ -430,7 +442,10 @@ try {
         .getByRole("button", { name: "Delete Browser V2 task", exact: true })
         .click();
       assert.equal(
-        await page.getByText("Browser V2 task", { exact: true }).count(),
+        await page
+          .locator(".task-list")
+          .getByText("Browser V2 task", { exact: true })
+          .count(),
         0,
       );
     },
@@ -469,10 +484,10 @@ try {
     assert.equal(await page.locator(".timer-ring>span").textContent(), "25:00");
   });
   await check(
-    "prominent assistant opens conversation and retains local messages",
+    "sidebar assistant opens conversation and retains local messages",
     async () => {
       await page
-        .getByRole("button", { name: "Type instead", exact: true })
+        .getByRole("button", { name: "Orbit assistant", exact: true })
         .first()
         .click();
       await visible(page.getByRole("dialog", { name: "Orbit assistant" }));
@@ -489,7 +504,7 @@ try {
       await closeDialog(page);
       await page.reload({ waitUntil: "networkidle" });
       await page
-        .getByRole("button", { name: "Type instead", exact: true })
+        .getByRole("button", { name: "Orbit assistant", exact: true })
         .first()
         .click();
       await visible(
@@ -504,7 +519,7 @@ try {
     "dictation appends a draft and never automatically sends",
     async () => {
       await page
-        .getByRole("button", { name: "Type instead", exact: true })
+        .getByRole("button", { name: "Orbit assistant", exact: true })
         .first()
         .click();
       const input = page.getByRole("textbox", { name: "Message Orbit" });
@@ -565,7 +580,7 @@ try {
     "conversation traps keyboard focus and restores the trigger",
     async () => {
       const trigger = page.getByRole("button", {
-        name: "Type instead",
+        name: "Orbit assistant",
         exact: true,
       });
       await trigger.click();
@@ -678,7 +693,7 @@ try {
       );
       assert.deepEqual(ls.playbackBody, { playing: false });
       await lp
-        .getByRole("button", { name: "Type instead", exact: true })
+        .getByRole("button", { name: "Orbit assistant", exact: true })
         .first()
         .click();
       await lp
@@ -717,7 +732,7 @@ try {
         }),
       );
       await lp
-        .getByRole("button", { name: "Type instead", exact: true })
+        .getByRole("button", { name: "Orbit assistant", exact: true })
         .click();
       await lp
         .getByRole("button", { name: "Clear conversation", exact: true })
@@ -747,7 +762,7 @@ try {
     "mobile conversation and settings stay inside the viewport",
     async () => {
       await page
-        .getByRole("button", { name: "Type instead", exact: true })
+        .getByRole("button", { name: "Orbit assistant", exact: true })
         .first()
         .click();
       let box = await page

@@ -201,7 +201,7 @@ export function QuickCapture({
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
               required
-              placeholder="An assignment, a thought, a goal…"
+              placeholder="Title"
             />
           </label>
           <label>
@@ -315,9 +315,9 @@ export default function CommandCenter({
     <section className="command-center">
       <div className="command-section-heading">
         <div>
-          <span className="eyebrow">A LITTLE DIRECTION</span>
-          <h2>Your daily command center</h2>
-          <p>Local priorities, not another feed to keep up with.</p>
+          <span className="eyebrow">PERSONAL</span>
+          <h2>Plans & progress</h2>
+          <p></p>
         </div>
         <button className="primary-button" onClick={capture}>
           <Plus size={15} />
@@ -328,10 +328,10 @@ export default function CommandCenter({
         <section className="card command-card">
           <h3>
             <Star size={16} />
-            Three things that matter
+            Priorities
           </h3>
           <p className="command-caption">
-            Pinned items first, then dated responsibilities and open tasks.
+            Pinned items first, then deadlines and open tasks.
           </p>
           <select
             className="priority-picker"
@@ -425,7 +425,7 @@ export default function CommandCenter({
         <section className="card command-card">
           <h3>
             <Target size={17} />
-            Money & momentum
+            Financial goals
           </h3>
           {entries
             .filter((e) => e.domain === "finance")
@@ -455,10 +455,7 @@ export default function CommandCenter({
               </div>
             ))}
           {!entries.some((e) => e.domain === "finance") && (
-            <p className="command-empty">
-              Track an income target or savings goal manually. No bank
-              connection or invented balance.
-            </p>
+            <p className="command-empty">Add an income or savings target.</p>
           )}
           <button className="text-button" onClick={capture}>
             Set a goal
@@ -468,7 +465,7 @@ export default function CommandCenter({
         <section className="card command-card">
           <h3>
             <Heart size={16} />
-            Small daily wins
+            Habits
           </h3>
           {entries
             .filter((e) => e.domain === "habit")

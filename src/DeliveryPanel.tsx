@@ -245,7 +245,7 @@ export default function DeliveryPanel() {
       <div className="delivery-card-heading">
         <h2>
           <ShoppingBag size={18} />
-          Dinner, in your orbit
+          Delivery
         </h2>
         <span className="delivery-manual-badge">Manual status</span>
       </div>
@@ -359,10 +359,10 @@ export default function DeliveryPanel() {
             <Bike size={24} />
           </span>
           <div>
-            <h3>A movie. A good meal. A little downtime.</h3>
+            <h3>Track an order</h3>
             <p>
-              Keep tonight’s order link and your arrival estimate beside your
-              watch list.
+              Save your tracking link and arrival estimate alongside your watch
+              list.
             </p>
             <button
               type="button"

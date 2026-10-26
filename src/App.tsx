@@ -63,7 +63,7 @@ import {
 
 import WeatherPanel from "./WeatherPanel";
 import CalendarConnect from "./CalendarConnect";
-import AssistantCharacter from "./AssistantCharacter";
+
 import { useVoice } from "./useVoice";
 import { MediaCenter, MediaSummary } from "./media/MediaCenter";
 import DeliveryPanel from "./DeliveryPanel";
@@ -328,6 +328,11 @@ function ModalShell({
 
 export default function App() {
   const [view, setView] = useState<View>("overview");
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
   const [mediaId, setMediaId] = useState<string>();
   const [modal, setModal] = useState<Modal>(null);
   const [detail, setDetail] = useState<Detail>(null);
@@ -559,12 +564,12 @@ export default function App() {
   const important = emails.filter((e) => e.important);
   const done = tasks.filter((t) => t.done).length;
   const progress = remaining / (focusMinutes * 60);
-  const dateLabel = new Date().toLocaleDateString("en-US", {
+  const dateLabel = new Date(now).toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
-  const today = new Date();
+  const today = new Date(now);
   const hour = today.getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -775,7 +780,7 @@ export default function App() {
               .slice(0, 3)
               .map((m) => `${m.from}: “${m.subject}”`)
               .join(". ")}. You can open them in your inbox.`
-          : "Your inbox has no important emails right now. A little breathing room.";
+          : "No important emails are loaded.";
       } else if (/file|drive|document/.test(text.toLowerCase())) {
         navigate("files");
         answer = `Here are your ${googleLive ? "" : demoMode ? "sample " : "currently loaded "}recent files. ${files
@@ -808,13 +813,6 @@ export default function App() {
     if (listening) dictation.stop();
     else void dictation.start();
   };
-  const characterState = listening
-    ? "listening"
-    : chatBusy || transcribing
-      ? "thinking"
-      : speaking
-        ? "speaking"
-        : "idle";
   const closeModal = useCallback(() => {
     setModal(null);
     setQuery("");
@@ -827,7 +825,7 @@ export default function App() {
     >
       <CardHeader
         icon={<CalendarDays size={18} />}
-        title="Your day, at a glance"
+        title="Schedule"
         action={() => navigate("calendar")}
       >
         {!calendarLive && demoMode ? (
@@ -948,13 +946,13 @@ export default function App() {
             <Sun size={27} />
             <strong>
               {calendarLive || demoMode
-                ? "A little breathing room."
-                : "Your calendar, without the setup maze."}
+                ? "No events scheduled."
+                : "Calendar not connected"}
             </strong>
             <p>
               {calendarLive || demoMode
                 ? "No events on this day."
-                : "Paste a private ICS link or import a calendar file. No Google Cloud required."}
+                : "Add an ICS link or import a calendar file."}
             </p>
             {!calendarLive && !demoMode && (
               <button
@@ -983,7 +981,7 @@ export default function App() {
     <section className={`card inbox-card ${expanded ? "expanded-card" : ""}`}>
       <CardHeader
         icon={<Mail size={18} />}
-        title="A quieter inbox"
+        title="Inbox"
         action={() => navigate("inbox")}
       >
         {!googleLive && demoMode && <SampleTag />}
@@ -1035,7 +1033,9 @@ export default function App() {
           <div className="empty-state">
             <CheckCheck size={28} />
             <strong>
-              {googleLive || demoMode ? "All caught up." : "An honest inbox."}
+              {googleLive || demoMode
+                ? "All caught up."
+                : "Email not connected"}
             </strong>
             <p>
               {googleLive || demoMode
@@ -1051,9 +1051,9 @@ export default function App() {
         </span>
         <p>
           {important.length
-            ? "Just what matters. The rest can wait."
+            ? "Important mail"
             : googleLive || demoMode
-              ? "A clear inbox. A little more headspace."
+              ? "No important mail"
               : "An ICS calendar does not grant email access."}
         </p>
       </div>
@@ -1078,7 +1078,7 @@ export default function App() {
     <section className={`card files-card ${expanded ? "expanded-card" : ""}`}>
       <CardHeader
         icon={<DriveIcon />}
-        title="Pick up where you left off"
+        title="Recent files"
         action={() => navigate("files")}
       >
         {!googleLive && demoMode && <SampleTag />}
@@ -1142,7 +1142,7 @@ export default function App() {
       {files.length === 0 && (
         <div className="empty-state">
           <Folder size={28} />
-          <strong>A fresh space.</strong>
+          <strong>No connected files</strong>
           <p>
             Drive isn’t connected. You can still open Drive directly; calendar
             feeds don’t grant file access.
@@ -1168,7 +1168,7 @@ export default function App() {
   );
   const musicPanel = () => (
     <section className="card music-card">
-      <CardHeader icon={<SpotifyIcon size={18} />} title="Set the mood">
+      <CardHeader icon={<SpotifyIcon size={18} />} title="Spotify">
         {!connections.spotify.connected && (
           <span className="spotify-label">Spotify</span>
         )}
@@ -1190,7 +1190,7 @@ export default function App() {
         </div>
         <div className="track-info">
           <span className="micro-label">
-            {track ? "NOW PLAYING" : "A LITTLE HEADSPACE"}
+            {track ? "NOW PLAYING" : "SPOTIFY PLAYLIST"}
           </span>
           <h3>{track?.title || "Deep Focus"}</h3>
           <p>{track?.artist || "Ambient sounds. Clear thoughts."}</p>
@@ -1200,7 +1200,7 @@ export default function App() {
               {track.device || "Spotify"}
             </span>
           ) : (
-            <span className="playlist-label">Your next favorite playlist</span>
+            <span className="playlist-label">Connect to control playback</span>
           )}
         </div>
       </div>
@@ -1270,7 +1270,8 @@ export default function App() {
     <section className={`card focus-card ${focusing ? "focus-active" : ""}`}>
       <div className="focus-heading">
         <span>
-          <Target size={17} />A moment of focus
+          <Target size={17} />
+          Focus timer
         </span>
         <button
           className="duration-chip"
@@ -1313,12 +1314,12 @@ export default function App() {
               ? "One thing at a time."
               : remaining === 0
                 ? "Beautifully done."
-                : "Find your flow."}
+                : "Ready to focus?"}
           </h3>
           <p>
             {focusing
-              ? "A little less noise. A little more you."
-              : "Give your next big idea a little space."}
+              ? "Focus session in progress."
+              : "Choose a duration and start."}
           </p>
           <div className="focus-buttons">
             <button
@@ -1364,7 +1365,7 @@ export default function App() {
             onClick={() => setTaskTab("tasks")}
           >
             <CheckCheck size={17} />
-            Your next steps<span>{tasks.length - done}</span>
+            Tasks<span>{tasks.length - done}</span>
           </button>
           <button
             className={taskTab === "notes" ? "active" : ""}
@@ -1380,7 +1381,7 @@ export default function App() {
           <div className="task-provenance">
             <span>
               <Sparkles size={12} />
-              From our build & your conversations
+              Build & personal tasks
             </span>
             <span>
               {done}/{tasks.length} done
@@ -1460,7 +1461,7 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell orbit-v2 orbit-v3">
+    <div className="app-shell orbit-v2 orbit-v3 orbit-v31">
       <aside className="sidebar">
         <a
           href="#"
@@ -1472,7 +1473,11 @@ export default function App() {
           }}
         >
           <OrbitLogo />
+          <span className="sidebar-wordmark">
+            orbit<span>PERSONAL / 3.1</span>
+          </span>
         </a>
+        <div className="sidebar-label">WORKSPACE</div>
         <div className="nav-group">
           {[
             { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -1491,6 +1496,7 @@ export default function App() {
             >
               <Icon size={21} />
               {view === id && <span />}
+              <span className="nav-text">{label}</span>
               <span className="nav-tooltip">{label}</span>
             </button>
           ))}
@@ -1503,6 +1509,7 @@ export default function App() {
           title="Orbit assistant"
         >
           <AudioLines size={22} />
+          <span className="nav-text">Assistant</span>
         </button>
         <div className="sidebar-bottom">
           <button
@@ -1512,20 +1519,27 @@ export default function App() {
             title="Settings and connections"
           >
             <Settings2 size={21} />
+            <span className="nav-text">Connections</span>
           </button>
           <button
             className="profile-avatar"
             onClick={() => setModal("connections")}
             aria-label="Your accounts"
           >
-            Y<span />
+            J<span />
           </button>
         </div>
       </aside>
       <div className="main-shell">
         <header className="topbar">
           <div className="wordmark" onClick={() => navigate("overview")}>
-            orbit<span>YOUR PERSONAL SPACE</span>
+            <span className="header-section">
+              {view === "overview"
+                ? "Overview"
+                : view === "media"
+                  ? "Media Center"
+                  : view[0].toUpperCase() + view.slice(1)}
+            </span>
           </div>
           <div className="topbar-right">
             <button
@@ -1552,7 +1566,11 @@ export default function App() {
               onClick={() => setModal("connections")}
             >
               <i className={googleLive ? "live" : ""} />
-              {demoMode ? "Sample mode" : "Your space"}
+              {demoMode
+                ? "Sample mode"
+                : googleLive || connections.spotify.connected || calendarLive
+                  ? "Connected"
+                  : "Connect accounts"}
             </button>
             <span className="topbar-divider" />
             <IconButton
@@ -1567,7 +1585,7 @@ export default function App() {
               onClick={() => setModal("connections")}
               aria-label="Profile and connections"
             >
-              Y
+              J
             </button>
           </div>
         </header>
@@ -1575,42 +1593,37 @@ export default function App() {
           <div className="page-heading">
             <div>
               <div className="eyebrow">
-                <span className="tiny-star">✦</span> A LITTLE MORE CONNECTED. A
-                LITTLE MORE YOU.
+                JOE’S DASHBOARD <span className="heading-separator">/</span>{" "}
+                {view === "overview"
+                  ? "OVERVIEW"
+                  : view === "media"
+                    ? "MEDIA CENTER"
+                    : view.toUpperCase()}
               </div>
               <h1>
                 {view === "overview"
-                  ? `${greeting}.`
+                  ? `${greeting}, Joe.`
                   : view === "calendar"
-                    ? "Make space for your day."
+                    ? "Your schedule."
                     : view === "inbox"
-                      ? "Just what matters."
+                      ? "Your inbox."
                       : view === "media"
-                        ? "Your own little cinema."
-                        : "Your ideas, all together."}
+                        ? "Media Center."
+                        : "Your files."}
                 <span className="heading-dot">.</span>
               </h1>
-              <p>
-                {view === "overview"
-                  ? "Your essentials. Your next steps. A copilot by your side."
-                  : view === "calendar"
-                    ? "A little structure. A lot of possibility."
-                    : view === "inbox"
-                      ? "Less noise. More of the conversations you care about."
-                      : view === "media"
-                        ? "Movies, TV, photos. A little space to switch off."
-                        : "Pick up a thought. Take it somewhere new."}
-              </p>
             </div>
             <div className="date-weather">
               <div className="today-date">
                 <CalendarDays size={15} />
                 {dateLabel}
               </div>
-              <span>
-                <span className="small-status-dot" />
-                Your space. Your pace.
-              </span>
+              <time className="local-clock" dateTime={today.toISOString()}>
+                {today.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </time>
             </div>
           </div>
           {live?.errors?.length ? (
@@ -1627,14 +1640,14 @@ export default function App() {
               <div className="v2-status-strip">
                 <span>
                   <i className="live-dot" />
-                  ORBIT / V3
+                  TODAY
                 </span>
                 <span>
                   {calendarLive
                     ? `${todayEvents.length} events today`
-                    : "Calendar ready to connect"}
+                    : "Calendar not connected"}
                 </span>
-                <span>{tasks.length - done} next steps</span>
+                <span>{tasks.length - done} open tasks</span>
                 <button onClick={() => setModal("connections")}>
                   Connections <ArrowUpRight size={12} />
                 </button>
@@ -1644,85 +1657,13 @@ export default function App() {
                   {calendarPanel()}
                   {inboxPanel()}
                 </div>
-                <div className="copilot-column">
-                  <section
-                    className={`card copilot-card character-${characterState}`}
-                  >
-                    <div className="copilot-heading">
-                      <span>
-                        <Sparkles size={14} />
-                        YOUR COPILOT
-                      </span>
-                      <button
-                        onClick={() => setModal("assistantSettings")}
-                        aria-label="Assistant settings"
-                      >
-                        <Settings2 size={16} />
-                      </button>
-                    </div>
-                    <div className="character-stage">
-                      <AssistantCharacter state={characterState} />
-                      <span className="character-state">
-                        <i />
-                        {listening
-                          ? "I’m listening"
-                          : transcribing
-                            ? "Turning your voice into words"
-                            : chatBusy
-                              ? "Connecting the dots"
-                              : speaking
-                                ? "A thought for you"
-                                : connections.assistant.configured
-                                  ? "Here, whenever you need me"
-                                  : "Local guide · AI ready"}
-                      </span>
-                    </div>
-                    <h2>
-                      A little more human.
-                      <br />A lot more helpful.
-                    </h2>
-                    <p>
-                      Talk through your day, keep our build moving,
-                      <br />
-                      or just get a thought out of your head.
-                    </p>
-                    <button className="talk-primary" onClick={startListening}>
-                      <Mic size={19} />
-                      {listening ? "Stop dictation" : "Talk to Orbit"}
-                      <span className="talk-wave">
-                        <i />
-                        <i />
-                        <i />
-                        <i />
-                      </span>
-                    </button>
-                    <div className="copilot-actions">
-                      <button onClick={() => setChatOpen(true)}>
-                        Type instead <ArrowUpRight size={12} />
-                      </button>
-                      <span>Review your words before sending</span>
-                    </div>
-                    <div className="copilot-brief">
-                      <span>
-                        <Target size={14} />
-                        <strong>{tasks.length - done}</strong> things to move
-                        forward
-                      </span>
-                      <button
-                        onClick={() =>
-                          void askAssistant("Where are we with our build?")
-                        }
-                      >
-                        Our build <ArrowRight size={13} />
-                      </button>
-                    </div>
-                  </section>
+                <div className="priorities-column">
                   {tasksPanel()}
+                  {focusPanel()}
                 </div>
                 <div className="atmosphere-column">
                   <WeatherPanel onWeather={setWeatherSummary} />
                   {musicPanel()}
-                  {focusPanel()}
                 </div>
               </div>
               <CommandCenter
@@ -1746,8 +1687,8 @@ export default function App() {
                 }
               />
               <div className="tonight-heading">
-                A little room for tonight
-                <span>YOUR LIBRARY + YOUR DELIVERY</span>
+                After hours
+                <span>MEDIA & DELIVERY</span>
               </div>
               <div className="tonight-grid">
                 <MediaSummary
@@ -1822,7 +1763,8 @@ export default function App() {
           )}
           <footer className="page-footer">
             <span>
-              <OrbitLogo />A little space for everything.
+              <OrbitLogo />
+              Orbit 3.1 <span>·</span> Joe
             </span>
             <span>
               {loading ? (
@@ -1836,9 +1778,7 @@ export default function App() {
               ) : (
                 <>
                   {demoMode ? "Sample content" : "Private space"} <span>·</span>{" "}
-                  {calendarLive
-                    ? "Calendar connected"
-                    : "Your data stays yours"}
+                  {calendarLive ? "Calendar connected" : "Local dashboard"}
                 </>
               )}
               <button
@@ -1869,15 +1809,17 @@ export default function App() {
           >
             <div className="chat-heading">
               <span className="chat-avatar">
-                <AssistantCharacter state={characterState} compact />
+                <AudioLines size={21} />
               </span>
               <div>
                 <h2>A conversation with Orbit</h2>
                 <span>
                   <i />
-                  {connections.assistant.configured
-                    ? "AI assistant"
-                    : "Local guide · Enable AI for full conversations"}
+                  {speaking
+                    ? "Speaking"
+                    : connections.assistant.configured
+                      ? "AI assistant"
+                      : "Local guide · Enable AI for full conversations"}
                 </span>
               </div>
               <IconButton
@@ -2162,13 +2104,13 @@ export default function App() {
       )}
       {modal === "assistantSettings" && (
         <ModalShell
-          title="A voice. A little personality. Your copilot."
+          title="Assistant settings"
           eyebrow="ASSISTANT & VOICE"
           onClose={closeModal}
           wide
         >
           <div className="assistant-settings-intro">
-            <AssistantCharacter state="idle" compact />
+            <AudioLines size={26} />
             <p>
               Orbit carries a handoff from our build and remembers conversations
               saved in this browser. It can’t read your ChatGPT account or this
@@ -2263,7 +2205,7 @@ export default function App() {
       {modal === "search" && (
         <ModalShell
           title="What are you looking for?"
-          eyebrow="A LITTLE SHORTCUT"
+          eyebrow="SEARCH"
           onClose={closeModal}
           wide
         >
@@ -2431,7 +2373,7 @@ export default function App() {
       )}
       {modal === "notifications" && (
         <ModalShell
-          title="A little heads-up."
+          title="Notifications"
           eyebrow="YOUR UPDATES"
           onClose={closeModal}
         >

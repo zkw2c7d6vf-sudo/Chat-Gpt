@@ -377,11 +377,7 @@ export function MediaCenter({
       <section className="media-library-intro">
         <div>
           <span className="media-eyebrow">YOUR PERSONAL MEDIA CENTER</span>
-          <h2>
-            {tab === "tonight"
-              ? "A little something to look forward to."
-              : "A home for your favorites."}
-          </h2>
+          <h2>{tab === "tonight" ? "Tonight’s queue" : "Library"}</h2>
           <p>
             {tab === "tonight"
               ? "Pick a movie, line up an episode, and make a night of it."
@@ -1137,7 +1133,8 @@ export function MediaSummary({ onOpen }: { onOpen: (id?: string) => void }) {
     <section className="card media-summary-card">
       <div className="media-summary-heading">
         <h2>
-          <Film size={17} />A little screen time
+          <Film size={17} />
+          Continue watching
         </h2>
         <button
           className="media-icon"
@@ -1182,7 +1179,7 @@ export function MediaSummary({ onOpen }: { onOpen: (id?: string) => void }) {
             <FolderOpen size={23} />
           </span>
           <div>
-            <strong>Make a little room for movie night.</strong>
+            <strong>Your media library</strong>
             <p>Add your movies, TV, and photos.</p>
           </div>
           <Plus size={17} />

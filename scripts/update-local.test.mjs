@@ -24,7 +24,7 @@ test("ZIP updater refreshes application code while preserving credentials, conne
     execFileSync(process.execPath, [script, folder, "--copy-only"]);
     assert.equal(
       JSON.parse(await readFile(join(folder, "package.json"), "utf8")).version,
-      "3.0.0",
+      "3.1.0",
     );
     assert.equal(
       await readFile(join(folder, ".env"), "utf8"),
@@ -42,9 +42,9 @@ test("ZIP updater refreshes application code while preserving credentials, conne
       await readFile(join(folder, "personal.txt"), "utf8"),
       "personal file",
     );
-    assert.match(
+    assert.equal(
       await readFile(join(folder, "src", "App.tsx"), "utf8"),
-      /copilot-card/,
+      await readFile(resolve("src", "App.tsx"), "utf8"),
     );
   } finally {
     await rm(folder, { recursive: true, force: true });
