@@ -1455,11 +1455,7 @@ export default function App() {
                 ? "Beautifully done."
                 : "Ready to focus?"}
           </h3>
-          <p>
-            {focusing
-              ? "Focus session in progress."
-              : "Choose a duration and start."}
-          </p>
+          <p>{focusing ? "Session in progress." : "Choose a time to begin."}</p>
           <div className="focus-buttons">
             <button
               className="focus-start"
@@ -1525,9 +1521,7 @@ export default function App() {
           </select>
           <ChevronDown size={11} />
         </label>
-        <span>
-          {soundscape === "off" ? "Sound off" : "Plays while focus is running"}
-        </span>
+        <span>{soundscape === "off" ? "Sound off" : "During session"}</span>
       </div>
       {soundError && (
         <p className="focus-sound-error" role="status">
@@ -1654,7 +1648,7 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 4.1</span>
+            orbit<span>PERSONAL / 4.2</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
@@ -1951,7 +1945,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 4.1 <span>·</span> Joe
+              Orbit 4.2 <span>·</span> Joe
             </span>
             <span>
               {loading ? (
@@ -2172,7 +2166,7 @@ export default function App() {
               <strong>Joe</strong>
               <span>Personal dashboard · private space</span>
             </div>
-            <small>Orbit 4.1</small>
+            <small>Orbit 4.2</small>
           </div>
           <p className="modal-intro">
             Connections, local preferences, assistant settings, and backups in

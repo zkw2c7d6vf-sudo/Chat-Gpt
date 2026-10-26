@@ -1,4 +1,4 @@
-# Orbit v4.1
+# Orbit v4.2
 
 A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
@@ -29,6 +29,10 @@ Orbit 4.1 refines the dashboard around four practical surfaces:
 - Profile and settings are consolidated into the wide page opened by the bottom-left Joe avatar. The duplicate Connections sidebar destination is removed.
 
 The overview status strip only shows the event count when a calendar is connected; calendar setup guidance remains inside the calendar and profile surfaces.
+
+## v4.2: finish and refine
+
+Orbit 4.2 tightens focus timer controls and copy, and expands the animated rain layer across the full focus card while keeping the timer controls readable above it. The feature set was reviewed across the API, browser, media, shopping, calendar, weather, and local storage flows; the existing regression checks cover connected and disconnected states, imports, playback, shopping comparisons, and responsive layouts.
 
 ## v4.0: watch and discover
 

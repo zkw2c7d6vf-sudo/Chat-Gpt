@@ -249,10 +249,7 @@ export default function ShoppingScout() {
         </div>
         <span className="shopping-status">Local comparison</span>
       </div>
-      <p>
-        Build a feed from what you are looking for. Search each retailer, then
-        save any real listing you find to compare its delivered price here.
-      </p>
+      <p>Search stores, compare listings, and track delivered prices.</p>
       <section className="live-shopping" aria-label="Live shopping listings">
         <div className="live-shopping-heading">
           <div>

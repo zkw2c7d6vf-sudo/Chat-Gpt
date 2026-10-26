@@ -603,6 +603,9 @@ body {
   color: #6381ab;
 }
 .orbit-v31 .focus-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: linear-gradient(110deg, #172b3a, #142437);
   border-color: #9ebac51c;
   padding: 18px 19px;
@@ -611,6 +614,13 @@ body {
 .orbit-v31 .focus-heading > span {
   font-size: 11px;
   color: #9fb9cc;
+}
+.orbit-v31 .focus-heading,
+.orbit-v31 .focus-content,
+.orbit-v31 .focus-sound-row,
+.orbit-v31 .focus-sound-error {
+  position: relative;
+  z-index: 2;
 }
 .orbit-v31 .focus-heading > span > svg {
   color: #8aabba;
@@ -1455,17 +1465,19 @@ body {
 }
 
 .orbit-v31 .rain-box {
-  position: relative;
-  height: 72px;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
   overflow: hidden;
-  margin-top: 14px;
-  border: 1px solid #8aa9d41c;
-  border-radius: 7px;
-  background: linear-gradient(165deg, #132b46, #0a182c);
+  margin: 0;
+  border: 0;
+  border-radius: inherit;
+  background: linear-gradient(165deg, #132b4622, #0a182c18);
+  pointer-events: none;
 }
 .orbit-v31 .rain-box.rain-active {
-  background: linear-gradient(165deg, #173657, #0a1a30);
-  box-shadow: inset 0 0 24px #7aaee01c;
+  background: linear-gradient(165deg, #17365740, #0a1a3038);
+  box-shadow: inset 0 0 44px #7aaee01b;
 }
 .orbit-v31 .rain-box.rain-active::after {
   opacity: 0.85;
@@ -1485,10 +1497,10 @@ body {
 }
 .orbit-v31 .rain-box > span {
   position: absolute;
-  right: 10px;
-  bottom: 7px;
-  z-index: 2;
-  color: #83a6ce;
+  right: 12px;
+  top: 12px;
+  z-index: 1;
+  color: #83a6ce99;
   font-size: 8px;
   letter-spacing: 1.5px;
 }
@@ -1557,7 +1569,7 @@ body {
     top: -14px;
   }
   to {
-    top: 52px;
+    top: 100%;
   }
 }
 .focus-sound-row {
