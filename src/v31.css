@@ -143,6 +143,48 @@ body {
   color: #1c304d;
   border: 2px solid #304866;
 }
+.profile-settings-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 6px 0 18px;
+  padding: 14px;
+  border: 1px solid #9ab7dd22;
+  border-radius: 9px;
+  background: linear-gradient(110deg, #132640, #0e1b2f);
+}
+.profile-settings-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #b8ccea;
+  color: #1e3555;
+  font:
+    600 16px "Manrope Variable",
+    sans-serif;
+}
+.profile-settings-card div {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+.profile-settings-card strong {
+  color: #e0eaf7;
+  font-size: 14px;
+  font-weight: 500;
+}
+.profile-settings-card div span {
+  color: #849cc0;
+  font-size: 10px;
+}
+.profile-settings-card small {
+  color: #7f9ac0;
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
 .orbit-v31 .quick-capture-top {
   padding: 8px 12px;
   border: 1px solid #acc7ec33;
@@ -1414,12 +1456,20 @@ body {
 
 .orbit-v31 .rain-box {
   position: relative;
-  height: 42px;
+  height: 72px;
   overflow: hidden;
   margin-top: 14px;
   border: 1px solid #8aa9d41c;
   border-radius: 7px;
   background: linear-gradient(165deg, #132b46, #0a182c);
+}
+.orbit-v31 .rain-box.rain-active {
+  background: linear-gradient(165deg, #173657, #0a1a30);
+  box-shadow: inset 0 0 24px #7aaee01c;
+}
+.orbit-v31 .rain-box.rain-active::after {
+  opacity: 0.85;
+  animation: orbit-rain-glow 2.4s ease-in-out infinite alternate;
 }
 .orbit-v31 .rain-box::after {
   content: "";
@@ -1480,6 +1530,15 @@ body {
 .rain-drop-field i:nth-child(9n) {
   --rain-index: 9;
 }
+.rain-drop-field i:nth-child(10n) {
+  --rain-index: 10;
+}
+.rain-drop-field i:nth-child(11n) {
+  --rain-index: 11;
+}
+.rain-drop-field i:nth-child(12n) {
+  --rain-index: 12;
+}
 .rain-box.rain-active .rain-drop-field i {
   animation: orbit-rain-fall 1.15s linear infinite;
   opacity: 0.65;
@@ -1507,7 +1566,7 @@ body {
   gap: 9px;
   margin-top: 10px;
 }
-.rain-toggle {
+.soundscape-select {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1518,15 +1577,58 @@ body {
   background: transparent;
   font-size: 10px;
 }
-.rain-toggle.active {
+.soundscape-select select {
+  max-width: 112px;
   color: #c4daf4;
-  border-color: #a4c5ed48;
-  background: #9abbe719;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 10px;
+}
+.soundscape-select option,
+.duration-control option {
+  background: #101d32;
+  color: #d4e1f4;
+}
+.duration-control {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 7px;
+  border: 1px solid #9ab7df24;
+  border-radius: 5px;
+  color: #a8bfdf;
+  background: #91acd30c;
+}
+.duration-control select {
+  max-width: 88px;
+  color: #b8cce7;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 10px;
+}
+.duration-control input {
+  width: 52px;
+  color: #d3e1f3;
+  background: #091527;
+  border: 1px solid #9ab7df2b;
+  border-radius: 4px;
+  padding: 3px 4px;
+  font-size: 10px;
 }
 .focus-sound-row > span,
 .focus-sound-error {
   color: #6f89ad;
   font-size: 9px;
+}
+@keyframes orbit-rain-glow {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .focus-sound-error {
   margin: 7px 0 0;

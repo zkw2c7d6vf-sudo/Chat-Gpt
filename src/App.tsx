@@ -81,14 +81,17 @@ type Detail =
   | { type: "file"; item: DriveFile }
   | { type: "event"; item: CalendarEvent }
   | null;
-type RainEngine = {
+type Soundscape =
+  "off" | "rain" | "roof" | "window" | "storm" | "snow" | "hail";
+type SoundEngine = {
+  kind: Exclude<Soundscape, "off">;
   context: AudioContext;
   source: AudioBufferSourceNode;
   gain: GainNode;
   start: () => void;
   stop: () => void;
 };
-function makeRainEngine(): RainEngine | null {
+function makeSoundEngine(kind: Exclude<Soundscape, "off">): SoundEngine | null {
   const AudioContextConstructor =
     window.AudioContext ||
     (window as typeof window & { webkitAudioContext?: typeof AudioContext })
@@ -107,14 +110,27 @@ function makeRainEngine(): RainEngine | null {
   source.buffer = buffer;
   source.loop = true;
   const filter = context.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.value = 1550;
-  filter.Q.value = 0.55;
+  const settings: Record<
+    Exclude<Soundscape, "off">,
+    [BiquadFilterType, number, number, number]
+  > = {
+    rain: ["bandpass", 1550, 0.55, 0.055],
+    roof: ["lowpass", 920, 0.7, 0.07],
+    window: ["highpass", 2350, 0.45, 0.045],
+    storm: ["bandpass", 720, 0.35, 0.075],
+    snow: ["lowpass", 360, 0.5, 0.035],
+    hail: ["highpass", 3900, 0.5, 0.05],
+  };
+  const [type, frequency, q, volume] = settings[kind];
+  filter.type = type;
+  filter.frequency.value = frequency;
+  filter.Q.value = q;
   const gain = context.createGain();
-  gain.gain.value = 0.055;
+  gain.gain.value = volume;
   source.connect(filter).connect(gain).connect(context.destination);
   let started = false;
   return {
+    kind,
     context,
     source,
     gain,
@@ -125,7 +141,7 @@ function makeRainEngine(): RainEngine | null {
       }
       void context.resume();
       gain.gain.cancelScheduledValues(context.currentTime);
-      gain.gain.linearRampToValueAtTime(0.055, context.currentTime + 0.25);
+      gain.gain.linearRampToValueAtTime(volume, context.currentTime + 0.25);
     },
     stop: () => {
       gain.gain.cancelScheduledValues(context.currentTime);
@@ -406,13 +422,18 @@ export default function App() {
   const [taskTab, setTaskTab] = useState("tasks");
   const [taskInput, setTaskInput] = useState("");
   const [focusMinutes, setFocusMinutes] = useState(25);
+  const [customFocusMinutes, setCustomFocusMinutes] = useState("");
+  const [customFocusMode, setCustomFocusMode] = useState(false);
   const [remaining, setRemaining] = useState(25 * 60);
   const [focusing, setFocusing] = useState(false);
-  const [rainEnabled, setRainEnabled] = useState(() =>
-    stored("orbit-rain-sound-v1", false),
+  const [soundscape, setSoundscape] = useState<Soundscape>(() =>
+    ((value) =>
+      ["off", "rain", "roof", "window", "storm", "snow", "hail"].includes(value)
+        ? (value as Soundscape)
+        : "off")(stored("orbit-focus-sound-v2", "off")),
   );
-  const [rainError, setRainError] = useState("");
-  const rainEngine = useRef<RainEngine | null>(null);
+  const [soundError, setSoundError] = useState("");
+  const soundEngine = useRef<SoundEngine | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [voice, setVoice] = useState(() =>
     stored("orbit-spoken-replies", true),
@@ -532,23 +553,26 @@ export default function App() {
     return () => clearInterval(id);
   }, [focusing, focusMinutes]);
   useEffect(() => {
-    localStorage.setItem("orbit-rain-sound-v1", JSON.stringify(rainEnabled));
-    if (focusing && rainEnabled) {
-      if (!rainEngine.current) rainEngine.current = makeRainEngine();
-      if (!rainEngine.current) {
-        setRainError("Rain sound is unavailable in this browser.");
+    localStorage.setItem("orbit-focus-sound-v2", JSON.stringify(soundscape));
+    if (focusing && soundscape !== "off") {
+      if (soundEngine.current?.kind !== soundscape) {
+        void soundEngine.current?.context.close();
+        soundEngine.current = makeSoundEngine(soundscape);
+      }
+      if (!soundEngine.current) {
+        setSoundError("Focus sound is unavailable in this browser.");
       } else {
-        rainEngine.current.start();
-        setRainError("");
+        soundEngine.current.start();
+        setSoundError("");
       }
     } else {
-      rainEngine.current?.stop();
+      soundEngine.current?.stop();
     }
-  }, [focusing, rainEnabled]);
+  }, [focusing, soundscape]);
   useEffect(
     () => () => {
-      void rainEngine.current?.context.close();
-      rainEngine.current = null;
+      void soundEngine.current?.context.close();
+      soundEngine.current = null;
     },
     [],
   );
@@ -1357,19 +1381,50 @@ export default function App() {
           <Target size={17} />
           Focus timer
         </span>
-        <button
-          className="duration-chip"
-          onClick={() => {
-            const m = focusMinutes === 25 ? 50 : 25;
-            setFocusMinutes(m);
-            setRemaining(m * 60);
-            setFocusing(false);
-          }}
-          title="Switch between 25 and 50 minutes"
-        >
-          {focusMinutes} min
+        <div className="duration-control">
+          <select
+            aria-label="Focus duration"
+            value={customFocusMode ? "custom" : String(focusMinutes)}
+            onChange={(event) => {
+              if (event.target.value === "custom") {
+                setCustomFocusMode(true);
+                setCustomFocusMinutes(String(focusMinutes));
+                return;
+              }
+              const minutes = Number(event.target.value);
+              setCustomFocusMode(false);
+              setFocusMinutes(minutes);
+              setRemaining(minutes * 60);
+              setFocusing(false);
+            }}
+          >
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+            <option value="25">25 min</option>
+            <option value="50">50 min</option>
+            <option value="custom">Custom</option>
+          </select>
           <ChevronDown size={11} />
-        </button>
+          {customFocusMode && (
+            <input
+              aria-label="Custom focus minutes"
+              type="number"
+              min="1"
+              max="1440"
+              value={customFocusMinutes || focusMinutes}
+              onChange={(event) => {
+                setCustomFocusMinutes(event.target.value);
+                const minutes = Math.min(
+                  1440,
+                  Math.max(1, Number(event.target.value) || 1),
+                );
+                setFocusMinutes(minutes);
+                setRemaining(minutes * 60);
+                setFocusing(false);
+              }}
+            />
+          )}
+        </div>
       </div>
       <div className="focus-content">
         <div className="timer-ring">
@@ -1443,28 +1498,40 @@ export default function App() {
         aria-hidden="true"
       >
         <div className="rain-drop-field">
-          {Array.from({ length: 18 }, (_, index) => (
+          {Array.from({ length: 48 }, (_, index) => (
             <i key={index} />
           ))}
         </div>
-        <span>RAIN</span>
+        <span>{soundscape === "off" ? "QUIET" : soundscape.toUpperCase()}</span>
       </div>
       <div className="focus-sound-row">
-        <button
-          className={`rain-toggle ${rainEnabled ? "active" : ""}`}
-          aria-pressed={rainEnabled}
-          onClick={() => setRainEnabled((enabled) => !enabled)}
-        >
+        <label className="soundscape-select">
           <Volume2 size={13} />
-          Rain sound
-        </button>
+          <span>Focus sound</span>
+          <select
+            aria-label="Focus sound"
+            value={soundscape}
+            onChange={(event) =>
+              setSoundscape(event.target.value as Soundscape)
+            }
+          >
+            <option value="off">Quiet</option>
+            <option value="rain">Steady rain</option>
+            <option value="roof">Rain on roof</option>
+            <option value="window">Rain on window</option>
+            <option value="storm">Distant storm</option>
+            <option value="snow">Soft snow</option>
+            <option value="hail">Hail</option>
+          </select>
+          <ChevronDown size={11} />
+        </label>
         <span>
-          {rainEnabled ? "Plays while focus is running" : "Sound off"}
+          {soundscape === "off" ? "Sound off" : "Plays while focus is running"}
         </span>
       </div>
-      {rainError && (
+      {soundError && (
         <p className="focus-sound-error" role="status">
-          {rainError}
+          {soundError}
         </p>
       )}
     </section>
@@ -1587,7 +1654,7 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 4.0</span>
+            orbit<span>PERSONAL / 4.1</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
@@ -1627,18 +1694,10 @@ export default function App() {
         </button>
         <div className="sidebar-bottom">
           <button
-            className="nav-item"
-            onClick={() => setModal("connections")}
-            aria-label="Settings and connections"
-            title="Settings and connections"
-          >
-            <Settings2 size={21} />
-            <span className="nav-text">Connections</span>
-          </button>
-          <button
             className="profile-avatar"
             onClick={() => setModal("connections")}
-            aria-label="Your accounts"
+            aria-label="Settings and connections"
+            title="Joe profile and settings"
           >
             J<span />
           </button>
@@ -1770,14 +1829,12 @@ export default function App() {
                   <i className="live-dot" />
                   TODAY
                 </span>
-                <span>
-                  {calendarLive
-                    ? `${todayEvents.length} events today`
-                    : "Calendar not connected"}
-                </span>
+                {calendarLive && (
+                  <span>{`${todayEvents.length} events today`}</span>
+                )}
                 <span>{tasks.length - done} open tasks</span>
                 <button onClick={() => setModal("connections")}>
-                  Connections <ArrowUpRight size={12} />
+                  Profile & settings <ArrowUpRight size={12} />
                 </button>
               </div>
               <div className="v2-primary">
@@ -1885,7 +1942,7 @@ export default function App() {
                   ? "Your recent files are synced from Google Drive."
                   : "A glimpse of what’s possible. Connect Google Drive to see your own files."}
                 <button onClick={() => setModal("connections")}>
-                  Connections
+                  Profile & settings
                   <ArrowUpRight size={12} />
                 </button>
               </div>
@@ -1894,7 +1951,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 4.0 <span>·</span> Joe
+              Orbit 4.1 <span>·</span> Joe
             </span>
             <span>
               {loading ? (
@@ -2104,14 +2161,22 @@ export default function App() {
       )}
       {modal === "connections" && (
         <ModalShell
-          title="Bring your world into orbit."
-          eyebrow="YOUR CONNECTIONS"
+          title="Joe’s profile & settings"
+          eyebrow="YOUR ORBIT"
           onClose={closeModal}
           wide
         >
+          <div className="profile-settings-card">
+            <span className="profile-settings-avatar">J</span>
+            <div>
+              <strong>Joe</strong>
+              <span>Personal dashboard · private space</span>
+            </div>
+            <small>Orbit 4.1</small>
+          </div>
           <p className="modal-intro">
-            Your calendar, conversations, files, and favorite sounds. Connected
-            on your terms.
+            Connections, local preferences, assistant settings, and backups in
+            one place.
           </p>
           <CalendarConnect
             connected={Boolean(connections.calendar?.connected)}

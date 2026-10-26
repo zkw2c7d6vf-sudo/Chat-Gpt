@@ -36,6 +36,25 @@ await page.route("**/api/media/search**", (route) =>
     ],
   }),
 );
+await page.route("**/api/media/popular**", (route) =>
+  route.fulfill({
+    json: [
+      {
+        id: 42,
+        name: "Orbit Test Show",
+        type: "Scripted",
+        summary: "A catalog result.",
+        image: "https://static.tvmaze.com/show.jpg",
+        rating: 8.4,
+        genres: [],
+        premiered: null,
+        status: null,
+        imdb: "https://www.imdb.com/title/tt1234567/",
+        official: null,
+      },
+    ],
+  }),
+);
 await page.route("**/api/media/show/42", (route) =>
   route.fulfill({
     json: {
@@ -89,7 +108,10 @@ try {
       .getByRole("textbox", { name: "Search shows and movies" })
       .fill("Orbit Test");
     await page.getByRole("button", { name: "Search", exact: true }).click();
-    await page.getByRole("button", { name: /Orbit Test Show/ }).click();
+    await page
+      .getByRole("button", { name: /Orbit Test Show/ })
+      .last()
+      .click();
     await page.getByText("Orbit Actor", { exact: true }).waitFor();
     assert.equal(
       await page.getByRole("link", { name: /Open on IMDb/ }).count(),
@@ -114,10 +136,25 @@ try {
   });
   await check("rain focus mode stays inside the focus card", async () => {
     await page.getByRole("button", { name: "Overview", exact: true }).click();
-    await page.getByRole("button", { name: "Rain sound", exact: true }).click();
+    await page
+      .getByRole("combobox", { name: "Focus duration" })
+      .selectOption("custom");
+    await page
+      .getByRole("spinbutton", { name: "Custom focus minutes" })
+      .fill("7");
+    assert.equal(await page.locator(".timer-ring>span").textContent(), "07:00");
+    await page
+      .getByRole("combobox", { name: "Focus duration" })
+      .selectOption("25");
+    await page
+      .getByRole("combobox", { name: "Focus sound" })
+      .selectOption("rain");
+    await page
+      .getByRole("button", { name: "Start focus", exact: true })
+      .click();
     assert.equal(await page.locator(".focus-card .rain-box").count(), 1);
     assert.equal(
-      await page.locator(".focus-card .rain-toggle.active").count(),
+      await page.locator(".focus-card .rain-box.rain-active").count(),
       1,
     );
   });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ExternalLink,
   Film,
@@ -35,6 +35,20 @@ type Ratings = {
   reason?: string;
   ratings?: { source: string; value: string }[];
 };
+const streamingApps = [
+  ["Netflix", "https://www.netflix.com", "netflix", "E50914"],
+  ["Hulu", "https://www.hulu.com", "hulu", "1CE783"],
+  ["Disney+", "https://www.disneyplus.com", "disneyplus", "113CCF"],
+  ["Max", "https://www.max.com", "hbo", "8B5CF6"],
+  ["Prime Video", "https://www.primevideo.com", "amazonprime", "00A8E1"],
+  ["Apple TV+", "https://tv.apple.com", "appletv", "FFFFFF"],
+  ["Paramount+", "https://www.paramountplus.com", "paramountplus", "0064FF"],
+  ["Peacock", "https://www.peacocktv.com", "peacock", "F6C945"],
+  ["Tubi", "https://tubitv.com", "tubi", "FF501A"],
+  ["Pluto TV", "https://pluto.tv", "plutotv", "F2C94C"],
+  ["Sling Freestream", "https://watch.sling.com", "sling", "F58220"],
+  ["YouTube", "https://www.youtube.com", "youtube", "FF0000"],
+] as const;
 function imageUrl(value: string | null) {
   return value || "";
 }
@@ -66,6 +80,8 @@ function cleanSummary(value: string) {
 export default function MediaDiscovery() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Show[]>([]);
+  const [popular, setPopular] = useState<Show[]>([]);
+  const [popularError, setPopularError] = useState("");
   const [selected, setSelected] = useState<Details | null>(null);
   const [ratings, setRatings] = useState<Ratings | null>(null);
   const [busy, setBusy] = useState(false);
@@ -82,6 +98,22 @@ export default function MediaDiscovery() {
       return [];
     }
   });
+  useEffect(() => {
+    void fetch("/api/media/popular")
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "Popular shows are unavailable.");
+        setPopular(Array.isArray(data) ? data : []);
+      })
+      .catch((reason) =>
+        setPopularError(
+          reason instanceof Error
+            ? reason.message
+            : "Popular shows are unavailable.",
+        ),
+      );
+  }, []);
   const search = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!query.trim()) return;
@@ -164,6 +196,38 @@ export default function MediaDiscovery() {
       </div>
       <div className="discovery-columns">
         <div className="discovery-catalog">
+          <div className="popular-heading">
+            <div>
+              <span className="media-eyebrow">POPULAR NOW</span>
+              <strong>Popular on TVMaze</strong>
+            </div>
+            {popularError && <small>{popularError}</small>}
+          </div>
+          {popular.length > 0 && (
+            <div className="discovery-results popular-results">
+              {popular.slice(0, 6).map((show) => (
+                <button
+                  className="discovery-result"
+                  key={`popular-${show.id}`}
+                  onClick={() => void openShow(show)}
+                >
+                  <span className="discovery-poster">
+                    {show.image ? (
+                      <img src={imageUrl(show.image)} alt="" />
+                    ) : (
+                      <Film size={22} />
+                    )}
+                  </span>
+                  <span>
+                    <strong>{show.name}</strong>
+                    <small>
+                      {show.rating ? `${show.rating}/10` : show.type}
+                    </small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           <form className="discovery-search" onSubmit={search}>
             <Search size={17} />
             <input
@@ -335,29 +399,37 @@ export default function MediaDiscovery() {
               ))}
             </div>
           )}
-          <div className="free-watch">
-            <strong>Free services to explore</strong>
+          <div className="streaming-apps">
+            <div className="streaming-apps-heading">
+              <div>
+                <span className="media-eyebrow">INTEGRATED APPS</span>
+                <strong>Open a streaming service</strong>
+              </div>
+              <small>Official sites</small>
+            </div>
             <p>
-              These services control playback and availability on their own
-              sites.
+              Jump to your services from Orbit. Playback, accounts, and
+              availability stay with each provider.
             </p>
-            <a
-              href={`https://tubitv.com/search/${encodeURIComponent(query || "shows")}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Search Tubi <ExternalLink size={11} />
-            </a>
-            <a
-              href={`https://pluto.tv/search?query=${encodeURIComponent(query || "shows")}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Search Pluto TV <ExternalLink size={11} />
-            </a>
-            <a href="https://watch.sling.com/" target="_blank" rel="noreferrer">
-              Browse Sling Freestream <ExternalLink size={11} />
-            </a>
+            <div className="streaming-app-grid">
+              {streamingApps.map(([name, url, icon, color]) => (
+                <a
+                  className="streaming-app"
+                  key={name}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img
+                    src={`https://cdn.simpleicons.org/${icon}/${color}`}
+                    alt=""
+                    loading="lazy"
+                  />
+                  <span>{name}</span>
+                  <ExternalLink size={11} />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>

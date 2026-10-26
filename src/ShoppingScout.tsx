@@ -15,6 +15,17 @@ type Offer = {
   shipping: number;
   note: string;
 };
+type LiveProduct = {
+  id: string;
+  title: string;
+  image: string | null;
+  url: string | null;
+  price: number | null;
+  currency: string;
+  shipping: number;
+  condition: string | null;
+  seller: string | null;
+};
 const searchesKey = "orbit-shopping-searches-v1";
 const offersKey = "orbit-shopping-offers-v1";
 const retailers = [
@@ -100,6 +111,10 @@ export default function ShoppingScout() {
   const [shipping, setShipping] = useState("0");
   const [note, setNote] = useState("");
   const [formError, setFormError] = useState("");
+  const [liveItems, setLiveItems] = useState<LiveProduct[]>([]);
+  const [liveProvider, setLiveProvider] = useState("eBay");
+  const [liveMessage, setLiveMessage] = useState("");
+  const [liveLoading, setLiveLoading] = useState(false);
   useEffect(
     () => localStorage.setItem(searchesKey, JSON.stringify(saved)),
     [saved],
@@ -109,6 +124,35 @@ export default function ShoppingScout() {
     [savedOffers],
   );
   const clean = query.trim().slice(0, 120);
+  const loadLive = async (term: string) => {
+    setLiveLoading(true);
+    try {
+      const response = await fetch(
+        `/api/shopping/feed?query=${encodeURIComponent(term || "popular")}`,
+      );
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Live shopping is unavailable.");
+      setLiveItems(Array.isArray(data.items) ? data.items : []);
+      setLiveProvider(data.provider || "eBay");
+      setLiveMessage(
+        data.message ||
+          (data.configured ? `Live listings for ${data.query || term}.` : ""),
+      );
+    } catch (error) {
+      setLiveItems([]);
+      setLiveMessage(
+        error instanceof Error
+          ? error.message
+          : "Live shopping is unavailable.",
+      );
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+  useEffect(() => {
+    void loadLive("popular");
+  }, []);
   const feed = useMemo(
     () =>
       saved.slice(0, 6).map((item) => ({
@@ -147,6 +191,7 @@ export default function ShoppingScout() {
           ].slice(0, 12),
     );
     setQuery("");
+    void loadLive(clean);
   };
   const clearOfferForm = () => {
     setAddingFor(null);
@@ -208,6 +253,68 @@ export default function ShoppingScout() {
         Build a feed from what you are looking for. Search each retailer, then
         save any real listing you find to compare its delivered price here.
       </p>
+      <section className="live-shopping" aria-label="Live shopping listings">
+        <div className="live-shopping-heading">
+          <div>
+            <span className="eyebrow">LIVE CATALOG</span>
+            <h3>Browse products</h3>
+          </div>
+          <span>{liveProvider}</span>
+        </div>
+        {liveLoading ? (
+          <p className="shopping-empty">Loading live listings…</p>
+        ) : liveItems.length ? (
+          <div className="live-product-grid">
+            {liveItems.map((item) => (
+              <article className="live-product" key={item.id}>
+                {item.image ? (
+                  <img src={item.image} alt="" />
+                ) : (
+                  <div className="live-product-placeholder">
+                    <Tag size={18} />
+                  </div>
+                )}
+                <div>
+                  <strong>{item.title}</strong>
+                  <small>
+                    {item.condition || "Listing"}
+                    {item.seller ? ` · ${item.seller}` : ""}
+                  </small>
+                  {item.price !== null && (
+                    <b>
+                      {item.currency} {item.price.toFixed(2)}
+                      {item.shipping > 0
+                        ? ` + ${item.shipping.toFixed(2)} shipping`
+                        : ""}
+                    </b>
+                  )}
+                </div>
+                {item.url && (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Open ${item.title}`}
+                  >
+                    <ExternalLink size={13} />
+                  </a>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="shopping-empty">
+            {liveMessage ||
+              "Live product listings need a connected catalog provider."}
+          </p>
+        )}
+        {!liveLoading && liveMessage && !liveItems.length && (
+          <small className="live-shopping-note">
+            {liveMessage} Saved searches and manual comparisons remain available
+            below.
+          </small>
+        )}
+      </section>
       <form onSubmit={addSearch} className="shopping-search">
         <Search size={18} />
         <input

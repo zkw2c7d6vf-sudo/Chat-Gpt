@@ -1,4 +1,4 @@
-# Orbit v4.0
+# Orbit v4.1
 
 A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
@@ -19,6 +19,17 @@ v3.3 increases everyday text sizing, makes the local clock more prominent, and a
 
 Shopping Scout now saves searches and lets you save actual listings from Amazon, Walmart, Target, Depop, or Vinted with item price, shipping, link, and note. It sorts the listings you save by delivered total. It does not scrape stores or claim a live web-wide lowest price. Orbit’s product principles are in [design-philosophy.md](docs/design-philosophy.md).
 
+## v4.1: focus, watch, shop, and settings
+
+Orbit 4.1 refines the dashboard around four practical surfaces:
+
+- Focus offers 5, 10, 25, 50, or custom-minute sessions with browser-generated rain, roof, window, storm, snow, and hail soundscapes. Audio only starts after the user starts a session.
+- Media opens with popular TVMaze shows, keeps cast and IMDb exploration, and places the YouTube player and a grid of official streaming-service links in the lower player area.
+- Shopping Scout requests live product cards through an optional private eBay Browse API connection. Without those credentials it shows a clear setup state and keeps saved searches, retailer links, and manual delivered-price comparisons available.
+- Profile and settings are consolidated into the wide page opened by the bottom-left Joe avatar. The duplicate Connections sidebar destination is removed.
+
+The overview status strip only shows the event count when a calendar is connected; calendar setup guidance remains inside the calendar and profile surfaces.
+
 ## v4.0: watch and discover
 
 Media Center includes a TVMaze-powered show search with catalog images, cast cards, IMDb links, and an optional Rotten Tomatoes rating lookup through OMDb. Without `OMDB_API_KEY`, the ratings row explains that the provider is not configured; Orbit never fabricates a score. Add `OMDB_API_KEY` privately to `.env` and restart the API to enable it.
@@ -26,6 +37,8 @@ Media Center includes a TVMaze-powered show search with catalog images, cast car
 The same media area includes a YouTube no-cookie player and local saved video IDs. Tubi and Pluto TV are offered as external search links because those services control their own playback, availability, and embedding permissions; Orbit does not bypass their restrictions. The local library and native browser player remain available for files you own.
 
 Shopping listing cards can include a product image URL copied from the retailer’s listing page. Images are displayed directly by the browser and remain optional; Orbit does not proxy or scrape retailer pages. Saved comparison data is included in validated dashboard backups.
+
+To show live product cards in Shopping Scout, create an eBay developer application and add its private `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` to `.env`. Orbit uses eBay’s Browse API server-side and never exposes those credentials to the browser. Without them, the saved-search and manual comparison tools still work and the app explains why live inventory is unavailable.
 
 Focus now has an optional contained rain animation and browser-generated rain noise. It requires a user click to start audio, runs only while the focus session is active, and respects reduced-motion settings.
 
@@ -152,7 +165,7 @@ Development is isolated on `orbit-v3`; `main` retains V2. Nothing is publicly de
 
 **Media Center** adds Movies, TV, Photos, and a built-in Player for compatible personal files. Files are stored locally in this browser's IndexedDB, not uploaded to Orbit's server. Keep originals: browser storage can be cleared or evicted. Codec support depends on the browser; the player explains unsupported files. Use Tonight’s queue, favorites, and continue-watching progress. No subscription-streaming or DRM bypass is included.
 
-**Shopping Scout** saves local searches and opens those searches at Amazon, Walmart, Target, Depop, and Vinted. It does not scrape retailer sites, access shopping accounts, create an algorithmic feed, or claim a live lowest price. A true comparison feature needs authorized retailer/catalog feeds.
+**Shopping Scout** saves local searches and opens those searches at Amazon, Walmart, Target, Depop, and Vinted. It can request a live eBay Browse feed when the private eBay credentials are configured; otherwise it keeps the explicit saved-search and manual comparison workflow. Orbit does not scrape retailer sites, access shopping accounts, or claim a web-wide lowest price.
 
 **Quick capture** (top bar, or Ctrl/Cmd+Shift+K) saves tasks, notes, ideas, responsibilities, reminders, financial goals, and habits locally. The Daily Command Center displays three priorities from your entered responsibilities and tasks. School/teaching details and financial targets start empty; Orbit does not invent those details or connect a bank. Reminders appear in the app, not as background notifications. Habit checks use the current local day.
 

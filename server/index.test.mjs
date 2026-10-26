@@ -31,6 +31,18 @@ async function fixture(t, configured = false, behavior = {}) {
           },
         },
       ]);
+    if (String(url).includes("api.tvmaze.com/shows?page=0"))
+      return Response.json([
+        {
+          id: 42,
+          name: "Orbit Test Show",
+          type: "Scripted",
+          summary: "<p>A catalog result.</p>",
+          image: { medium: "https://static.tvmaze.com/show.jpg" },
+          rating: { average: 8.4 },
+          externals: { imdb: "tt1234567" },
+        },
+      ]);
     if (String(url).includes("api.tvmaze.com/shows/42/cast"))
       return Response.json([
         {
@@ -407,6 +419,9 @@ test("media catalog normalizes show images, cast and optional ratings", async (t
     imdb: "https://www.imdb.com/title/tt1234567/",
     official: null,
   });
+  const popular = await call("/api/media/popular");
+  assert.equal(popular.status, 200);
+  assert.equal((await popular.json())[0].name, "Orbit Test Show");
   const details = await call("/api/media/show/42");
   assert.equal(details.status, 200);
   assert.equal(
@@ -419,6 +434,19 @@ test("media catalog normalizes show images, cast and optional ratings", async (t
     reason: "Add OMDB_API_KEY to enable Rotten Tomatoes scores.",
   });
   assert(requests.some((request) => request.url.includes("api.tvmaze.com")));
+});
+
+test("shopping feed stays explicit until a private catalog provider is configured", async (t) => {
+  const { call } = await fixture(t);
+  const response = await call("/api/shopping/feed?query=desk%20lamp");
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    configured: false,
+    provider: "eBay",
+    items: [],
+    message:
+      "Add EBAY_CLIENT_ID and EBAY_CLIENT_SECRET to show live product cards.",
+  });
 });
 
 test("assistant forwards validated conversation history separately from untrusted dashboard context", async (t) => {

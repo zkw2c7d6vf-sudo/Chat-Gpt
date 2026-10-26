@@ -353,7 +353,6 @@ export function MediaCenter({
     : null;
   return (
     <div className="media-center">
-      <MediaDiscovery />
       <div className="media-topline">
         <div className="media-main-tabs">
           <button
@@ -998,6 +997,7 @@ export function MediaCenter({
         remove the library. Streaming-service downloads and DRM-protected files
         won’t play here.
       </p>
+      <MediaDiscovery />
       {active && (
         <MediaPlayer
           item={active}

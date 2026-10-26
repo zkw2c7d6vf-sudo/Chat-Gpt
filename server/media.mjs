@@ -54,6 +54,16 @@ function normalizeShow(show) {
 }
 export function createMediaService({ fetch = globalThis.fetch } = {}) {
   return {
+    async popular() {
+      const data = await json(fetch, "https://api.tvmaze.com/shows?page=0");
+      return cached(
+        "popular",
+        Array.isArray(data)
+          ? data.slice(0, 18).map((show) => normalizeShow(show))
+          : [],
+        900000,
+      );
+    },
     async search(rawQuery) {
       const query = queryText(rawQuery);
       const data = await json(
