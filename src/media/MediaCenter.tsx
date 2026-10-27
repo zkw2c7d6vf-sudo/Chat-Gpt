@@ -1120,7 +1120,13 @@ export function MediaCenter({
   );
 }
 
-export function MediaSummary({ onOpen }: { onOpen: (id?: string) => void }) {
+export function MediaSummary({
+  onOpen,
+  expanded = false,
+}: {
+  onOpen: (id?: string) => void;
+  expanded?: boolean;
+}) {
   const { items, loading, error } = useLibrary();
   const continuing = items
     .filter(
@@ -1128,9 +1134,21 @@ export function MediaSummary({ onOpen }: { onOpen: (id?: string) => void }) {
     )
     .sort((a, b) => b.addedAt - a.addedAt)[0];
   const queued = items
-    .filter((item) => item.queued && item.kind !== "photos")
+    .filter((item) => item.queued && !item.watched && item.kind !== "photos")
     .sort((a, b) => a.queueOrder - b.queueOrder);
   const next = continuing || queued[0];
+  const resumable = items
+    .filter(
+      (item) =>
+        item.kind !== "photos" &&
+        !item.watched &&
+        (item.progress > 2 || item.queued),
+    )
+    .sort(
+      (a, b) =>
+        Number(b.progress > 2) - Number(a.progress > 2) ||
+        a.queueOrder - b.queueOrder,
+    );
   return (
     <section className="card media-summary-card">
       <div className="media-summary-heading">
@@ -1153,7 +1171,7 @@ export function MediaSummary({ onOpen }: { onOpen: (id?: string) => void }) {
           Local media is unavailable in this browser. Open the media center for
           details.
         </p>
-      ) : next ? (
+      ) : next && !expanded ? (
         <button className="media-summary-play" onClick={() => onOpen(next.id)}>
           <span className={`summary-media-art kind-${next.kind}`}>
             <KindIcon kind={next.kind} size={25} />
@@ -1175,7 +1193,7 @@ export function MediaSummary({ onOpen }: { onOpen: (id?: string) => void }) {
             <Play size={14} fill="currentColor" />
           </span>
         </button>
-      ) : (
+      ) : next && expanded ? null : (
         <button className="media-summary-add" onClick={() => onOpen()}>
           <span>
             <FolderOpen size={23} />
@@ -1186,6 +1204,34 @@ export function MediaSummary({ onOpen }: { onOpen: (id?: string) => void }) {
           </div>
           <Plus size={17} />
         </button>
+      )}
+      {expanded && (
+        <div
+          className="oi-media-resume-list"
+          aria-label="Resumable and queued media"
+        >
+          {resumable.map((item) => (
+            <button key={item.id} onClick={() => onOpen(item.id)}>
+              <span>
+                <strong>{item.title}</strong>
+                <small>
+                  {item.progress > 2
+                    ? `Resume ${formatDuration(item.progress)}`
+                    : "Queued"}
+                  {item.duration > 0
+                    ? ` / ${formatDuration(item.duration)}`
+                    : ""}
+                </small>
+                <progress value={item.progress} max={item.duration || 1} />
+              </span>
+              <Play size={16} />
+            </button>
+          ))}
+          <button onClick={() => onOpen()}>
+            Open Media Center <ArrowUpRight size={15} />
+          </button>
+          <p>Local browser files. Keep original files separately.</p>
+        </div>
       )}
       <div className="media-summary-footer">
         <span>

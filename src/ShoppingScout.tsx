@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { newId } from "./id";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { safeHttps } from "./local";
 import type { FormEvent } from "react";
 import { ExternalLink, Plus, Search, Tag, Trash2, Trophy } from "lucide-react";
 import "./shopping.css";
@@ -22,13 +24,14 @@ type LiveProduct = {
   url: string | null;
   price: number | null;
   currency: string;
-  shipping: number;
+  shipping: number | null;
   condition: string | null;
   seller: string | null;
 };
 const searchesKey = "orbit-shopping-searches-v1";
 const offersKey = "orbit-shopping-offers-v1";
 const retailers = [
+  ["eBay", "https://www.ebay.com/sch/i.html?_nkw="],
   ["Amazon", "https://www.amazon.com/s?k="],
   ["Walmart", "https://www.walmart.com/search?q="],
   ["Target", "https://www.target.com/s?searchTerm="],
@@ -115,6 +118,10 @@ export default function ShoppingScout() {
   const [liveProvider, setLiveProvider] = useState("eBay");
   const [liveMessage, setLiveMessage] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
+  const [liveQuery, setLiveQuery] = useState("popular");
+  const [liveSort, setLiveSort] = useState("relevance");
+  const [budget, setBudget] = useState("");
+  const requestVersion = useRef(0);
   useEffect(
     () => localStorage.setItem(searchesKey, JSON.stringify(saved)),
     [saved],
@@ -125,21 +132,25 @@ export default function ShoppingScout() {
   );
   const clean = query.trim().slice(0, 120);
   const loadLive = async (term: string) => {
+    const version = ++requestVersion.current;
     setLiveLoading(true);
     try {
       const response = await fetch(
         `/api/shopping/feed?query=${encodeURIComponent(term || "popular")}`,
       );
       const data = await response.json();
+      if (version !== requestVersion.current) return;
       if (!response.ok)
         throw new Error(data.error || "Live shopping is unavailable.");
       setLiveItems(Array.isArray(data.items) ? data.items : []);
+      setLiveQuery(term);
       setLiveProvider(data.provider || "eBay");
       setLiveMessage(
         data.message ||
           (data.configured ? `Live listings for ${data.query || term}.` : ""),
       );
     } catch (error) {
+      if (version !== requestVersion.current) return;
       setLiveItems([]);
       setLiveMessage(
         error instanceof Error
@@ -147,15 +158,18 @@ export default function ShoppingScout() {
           : "Live shopping is unavailable.",
       );
     } finally {
-      setLiveLoading(false);
+      if (version === requestVersion.current) setLiveLoading(false);
     }
   };
   useEffect(() => {
     void loadLive("popular");
+    return () => {
+      requestVersion.current++;
+    };
   }, []);
   const feed = useMemo(
     () =>
-      saved.slice(0, 6).map((item) => ({
+      saved.map((item) => ({
         ...item,
         offers: savedOffers.filter((offer) => offer.searchId === item.id),
       })),
@@ -178,12 +192,21 @@ export default function ShoppingScout() {
   const addSearch = (event: FormEvent) => {
     event.preventDefault();
     if (!clean) return;
+    if (
+      saved.length >= 12 &&
+      !saved.some((item) => item.query.toLowerCase() === clean.toLowerCase())
+    ) {
+      setLiveMessage(
+        "You have 12 saved searches. Remove one before saving another.",
+      );
+      return;
+    }
     setSaved((current) =>
       current.some((item) => item.query.toLowerCase() === clean.toLowerCase())
         ? current
         : [
             {
-              id: crypto.randomUUID(),
+              id: newId(),
               query: clean,
               createdAt: new Date().toISOString(),
             },
@@ -211,23 +234,26 @@ export default function ShoppingScout() {
     if (
       !Number.isFinite(itemPrice) ||
       itemPrice < 0 ||
+      itemPrice > 1e9 ||
       !Number.isFinite(itemShipping) ||
-      itemShipping < 0
+      itemShipping < 0 ||
+      itemShipping > 1e9 ||
+      savedOffers.length >= 200
     ) {
       setFormError("Enter a valid item price and shipping cost.");
       return;
     }
-    if (url && !/^https:\/\//i.test(url)) {
+    if (url && !safeHttps(url.trim())) {
       setFormError("Listing links must begin with https://.");
       return;
     }
-    if (image && !/^https:\/\//i.test(image)) {
+    if (image && !safeHttps(image.trim())) {
       setFormError("Image links must begin with https://.");
       return;
     }
     setSavedOffers((current) => [
       {
-        id: crypto.randomUUID(),
+        id: newId(),
         searchId: addingFor,
         store,
         url: url.trim(),
@@ -240,6 +266,77 @@ export default function ShoppingScout() {
     ]);
     clearOfferForm();
   };
+  const saveLive = (item: LiveProduct) => {
+    if (
+      item.price === null ||
+      item.shipping === null ||
+      item.currency !== "USD" ||
+      !safeHttps(item.url)
+    ) {
+      setLiveMessage(
+        "This listing needs a USD price, known shipping, and a valid link before it can be compared.",
+      );
+      return;
+    }
+    if (savedOffers.length >= 200) {
+      setLiveMessage("The comparison board holds up to 200 saved listings.");
+      return;
+    }
+    const query =
+      liveQuery === "popular" ? item.title.slice(0, 120) : liveQuery;
+    let search = saved.find(
+      (entry) => entry.query.toLowerCase() === query.toLowerCase(),
+    );
+    if (!search) {
+      if (saved.length >= 12) {
+        setLiveMessage(
+          "Remove a saved search to make room for this comparison.",
+        );
+        return;
+      }
+      search = { id: newId(), query, createdAt: new Date().toISOString() };
+      setSaved((current) => [search!, ...current]);
+    }
+    if (
+      savedOffers.some(
+        (offer) => offer.searchId === search.id && offer.url === item.url,
+      )
+    )
+      return;
+    const snapshot: Offer = {
+      id: newId(),
+      searchId: search.id,
+      store: "eBay",
+      url: item.url!,
+      price: item.price,
+      shipping: item.shipping,
+      note: item.title.slice(0, 140),
+      ...(safeHttps(item.image) ? { image: item.image! } : {}),
+    };
+    setSavedOffers((current) => [snapshot, ...current]);
+    setLiveMessage(
+      "Listing saved as a price snapshot. Check the retailer for current stock and checkout total.",
+    );
+  };
+  const visibleLive = [...liveItems]
+    .filter(
+      (item) =>
+        !budget ||
+        (item.currency === "USD" &&
+          item.price !== null &&
+          item.shipping !== null &&
+          item.price + item.shipping <= Number(budget)),
+    )
+    .sort((a, b) =>
+      liveSort === "price"
+        ? (a.price !== null && a.shipping !== null
+            ? a.price + a.shipping
+            : Infinity) -
+          (b.price !== null && b.shipping !== null
+            ? b.price + b.shipping
+            : Infinity)
+        : 0,
+    );
   return (
     <section className="shopping-scout" aria-label="Orbit Shopping Scout">
       <div className="shopping-scout-heading">
@@ -258,11 +355,39 @@ export default function ShoppingScout() {
           </div>
           <span>{liveProvider}</span>
         </div>
+        {liveItems.length > 0 && (
+          <div className="shopping-live-controls">
+            <label>
+              Sort
+              <select
+                aria-label="Sort live products"
+                value={liveSort}
+                onChange={(event) => setLiveSort(event.target.value)}
+              >
+                <option value="relevance">Relevance</option>
+                <option value="price">Lowest delivered total</option>
+              </select>
+            </label>
+            <label>
+              Budget (USD)
+              <input
+                aria-label="Live shopping budget"
+                type="number"
+                min="0"
+                value={budget}
+                onChange={(event) => setBudget(event.target.value)}
+              />
+            </label>
+            <button onClick={() => void loadLive(liveQuery)}>
+              Refresh listings
+            </button>
+          </div>
+        )}
         {liveLoading ? (
           <p className="shopping-empty">Loading live listings…</p>
         ) : liveItems.length ? (
           <div className="live-product-grid">
-            {liveItems.map((item) => (
+            {visibleLive.map((item) => (
               <article className="live-product" key={item.id}>
                 {item.image ? (
                   <img src={item.image} alt="" />
@@ -280,9 +405,11 @@ export default function ShoppingScout() {
                   {item.price !== null && (
                     <b>
                       {item.currency} {item.price.toFixed(2)}
-                      {item.shipping > 0
-                        ? ` + ${item.shipping.toFixed(2)} shipping`
-                        : ""}
+                      {item.shipping === null
+                        ? " · Shipping not provided"
+                        : item.shipping > 0
+                          ? ` + ${item.shipping.toFixed(2)} shipping`
+                          : ""}
                     </b>
                   )}
                 </div>
@@ -296,6 +423,22 @@ export default function ShoppingScout() {
                     <ExternalLink size={13} />
                   </a>
                 )}
+                <button
+                  className="save-live-product"
+                  aria-label={`Compare ${item.title}`}
+                  disabled={
+                    item.price === null ||
+                    item.shipping === null ||
+                    item.currency !== "USD" ||
+                    !safeHttps(item.url) ||
+                    savedOffers.some((offer) => offer.url === item.url)
+                  }
+                  onClick={() => saveLive(item)}
+                >
+                  {savedOffers.some((offer) => offer.url === item.url)
+                    ? "Saved"
+                    : "Compare"}
+                </button>
               </article>
             ))}
           </div>
@@ -303,6 +446,14 @@ export default function ShoppingScout() {
           <p className="shopping-empty">
             {liveMessage ||
               "Live product listings need a connected catalog provider."}
+          </p>
+        )}
+        {!liveLoading && liveItems.length > 0 && !visibleLive.length && (
+          <p className="shopping-empty">No listings match this budget.</p>
+        )}
+        {liveItems.length > 0 && liveMessage && (
+          <p className="live-shopping-note" role="status">
+            {liveMessage}
           </p>
         )}
         {!liveLoading && liveMessage && !liveItems.length && (
@@ -352,6 +503,13 @@ export default function ShoppingScout() {
               <article key={item.id}>
                 <div className="shopping-query-row">
                   <strong>{item.query}</strong>
+                  <button
+                    className="browse-saved-search"
+                    aria-label={`Browse live listings for ${item.query}`}
+                    onClick={() => void loadLive(item.query)}
+                  >
+                    Browse live
+                  </button>
                   <button
                     aria-label={`Remove ${item.query}`}
                     onClick={() => {

@@ -50,3 +50,30 @@ test("eBay shopping adapter returns image-backed listings without exposing crede
   assert.match(requests[1].options.headers.Authorization, /^Bearer /);
   assert.equal(JSON.stringify(result).includes("client-secret"), false);
 });
+test("unknown delivery cost stays unknown, while zero price and explicit free shipping stay zero", async () => {
+  const service = createShoppingService({
+    env: { EBAY_CLIENT_ID: "shipping-fixture", EBAY_CLIENT_SECRET: "fixture" },
+    fetch: async (url) =>
+      String(url).includes("oauth2/token")
+        ? Response.json({ access_token: "fixture-token", expires_in: 3600 })
+        : Response.json({
+            itemSummaries: [
+              {
+                itemId: "unknown",
+                title: "Missing shipping",
+                price: { value: "0", currency: "USD" },
+              },
+              {
+                itemId: "free",
+                title: "Explicit free shipping",
+                price: { value: "10", currency: "USD" },
+                shippingOptions: [{ shippingCost: { value: "0" } }],
+              },
+            ],
+          }),
+  });
+  const result = await service.feed("shipping");
+  assert.equal(result.items[0].price, 0);
+  assert.equal(result.items[0].shipping, null);
+  assert.equal(result.items[1].shipping, 0);
+});

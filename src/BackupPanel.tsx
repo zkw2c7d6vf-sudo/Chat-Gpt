@@ -102,7 +102,7 @@ export default function BackupPanel() {
           <h3>A little peace of mind.</h3>
           <p>
             Back up your tasks, life goals, notes, conversations, and
-            preferences.
+            preferences, Education Center records, and focus history.
           </p>
         </div>
       </div>
@@ -164,6 +164,14 @@ export default function BackupPanel() {
             .
           </p>
           <dl>
+            <div>
+              <dt>Education records</dt>
+              <dd>{summary.educationCount}</dd>
+            </div>
+            <div>
+              <dt>Focus sessions</dt>
+              <dd>{summary.focusCount}</dd>
+            </div>
             <div>
               <dt>Tasks</dt>
               <dd>{summary.taskCount}</dd>

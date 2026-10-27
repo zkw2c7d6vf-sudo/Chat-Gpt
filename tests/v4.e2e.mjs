@@ -97,7 +97,7 @@ async function check(name, fn) {
   console.log(`PASS ${name}`);
 }
 try {
-  await page.goto(process.env.ORBIT_URL || "http://127.0.0.1:5173", {
+  await page.goto(`${(process.env.ORBIT_URL || "http://127.0.0.1:5173").replace(/\/$/, "")}/?classic-home=1`, {
     waitUntil: "networkidle",
   });
   await check("media discovery shows cast and IMDb links", async () => {
@@ -135,7 +135,7 @@ try {
     await page.getByText("Saved videos", { exact: true }).waitFor();
   });
   await check("rain focus mode stays inside the focus card", async () => {
-    await page.getByRole("button", { name: "Overview", exact: true }).click();
+    await page.getByRole("button", { name: "Home", exact: true }).click();
     await page
       .getByRole("combobox", { name: "Focus duration" })
       .selectOption("custom");

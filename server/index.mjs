@@ -485,7 +485,7 @@ export function createDashboardServer(options = {}) {
   async function getEmails(context) {
     const data = await api(
       "google",
-      "/gmail/v1/users/me/messages?labelIds=INBOX&maxResults=8",
+      "/gmail/v1/users/me/messages?labelIds=INBOX&maxResults=30",
       context,
     );
     const emails = await Promise.all(
@@ -530,7 +530,7 @@ export function createDashboardServer(options = {}) {
     const query = new URLSearchParams({
       q: "trashed = false",
       orderBy: "modifiedTime desc",
-      pageSize: "8",
+      pageSize: "30",
       fields:
         "files(id,name,mimeType,modifiedTime,webViewLink,thumbnailLink,owners(displayName))",
     });

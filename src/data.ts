@@ -240,7 +240,7 @@ export const initialTasks: Task[] = [
   { id: "v2-spotify", title: "Connect Spotify", done: true, source: "build" },
 ];
 export const buildHandoff =
-  "Orbit V4.4 for Joe: local-first navy dashboard with a compact Today brief, integrated calendar and task planner, seven-day forecast, weather location and units in Settings, and a separate private manual finance panel. Preserve existing Spotify, ICS, Google, weather, media, shopping, focus, assistant, and backup behavior. Finance entries are included only in explicit Orbit backups; Orbit does not connect to banks. No fake integration data, silent external actions, or required paid services.";
+  "Orbit 4.5 for Joe: local-first Midnight Navy dashboard with eleven movable, resizable Home widgets and meaningful expanded views; classic-home rollback retained. Weekly Planner shares the original calendar and task data. Education Center records and private notes are local and excluded from AI context; never infer their content. File Studio converts supported images and JSON/CSV locally without uploads. Preserve Spotify, ICS, Google, weather, media, shopping, focus, finance, assistant and backups. Focus has real local completed-session history and opt-in sound after reload. Financial entries stay in the separate manual Finances section. No invented integration data, silent external actions or mandatory paid services. Orbit cannot read ChatGPT conversations automatically.";
 export const defaultConnections: Connections = {
   google: { configured: false, connected: false, authUrl: "/api/auth/google" },
   spotify: {
@@ -274,4 +274,24 @@ export function eventOnDay(event: CalendarEvent, date: Date) {
     start < next &&
     (end > day || (start.getTime() === end.getTime() && sameDay(start, day)))
   );
+}
+
+export function upcomingEvents(
+  events: CalendarEvent[],
+  now = Date.now(),
+  days = 7,
+) {
+  return events
+    .filter((event) =>
+      event.allDay
+        ? eventOnDay(event, new Date(now)) ||
+          eventDate(event.start).getTime() > now
+        : new Date(event.end).getTime() > now,
+    )
+    .filter(
+      (event) => eventDate(event.start).getTime() <= now + days * 86400000,
+    )
+    .sort(
+      (a, b) => eventDate(a.start).getTime() - eventDate(b.start).getTime(),
+    );
 }

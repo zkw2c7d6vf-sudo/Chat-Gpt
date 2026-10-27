@@ -8,3 +8,6 @@ dist/
 *.tsbuildinfo
 test-results/
 playwright-report/
+
+# Intermediate validation files and local development notes
+work/

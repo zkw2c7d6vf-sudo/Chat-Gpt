@@ -1,3 +1,4 @@
+import { newId } from "../id";
 /** Browser-local library. Metadata queries deliberately never read media bytes. */
 export type MediaKind = "movies" | "tv" | "photos";
 export type MediaItem = {
@@ -265,7 +266,7 @@ export async function addMedia(
   const db = await openDatabase();
   const now = Date.now();
   const item: MediaRecord = {
-    id: crypto.randomUUID(),
+    id: newId(),
     title:
       file.name
         .replace(/\.[^.]+$/, "")

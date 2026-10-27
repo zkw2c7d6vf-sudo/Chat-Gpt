@@ -1,5 +1,6 @@
+import { newId } from "./id";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   Clapperboard,
   PlusCircle,
@@ -27,7 +28,6 @@ import {
   MoreHorizontal,
   Pause,
   Play,
-  Plus,
   RotateCcw,
   Search,
   Settings2,
@@ -54,6 +54,7 @@ import type {
 } from "./data";
 import {
   eventDate,
+  upcomingEvents,
   eventOnDay,
   defaultConnections,
   demoEmails,
@@ -65,7 +66,12 @@ import {
   shortTime,
 } from "./data";
 
+import FocusPanel, { FocusAudio } from "./FocusPanel";
+import { useFocus } from "./focus";
+import TaskPanel from "./TaskPanel";
+import { writeLocal } from "./local";
 import WeatherPanel from "./WeatherPanel";
+import ImmersiveHome from "./ImmersiveHome";
 import CalendarConnect from "./CalendarConnect";
 
 import { useVoice } from "./useVoice";
@@ -73,6 +79,12 @@ import { MediaCenter, MediaSummary } from "./media/MediaCenter";
 import ShoppingScout from "./ShoppingScout";
 import BackupPanel from "./BackupPanel";
 import CommandCenter, { QuickCapture, proposeTasks } from "./CommandCenter";
+import EducationCenter from "./EducationCenter";
+import FileStudio from "./FileStudio";
+import WeeklyPlanner from "./WeeklyPlanner";
+import type { EducationRecord } from "./education";
+import { validEducationRecord, educationDeadlines } from "./education";
+import { GraduationCap, Wrench } from "lucide-react";
 import FinancePanel from "./FinancePanel";
 
 type View =
@@ -82,7 +94,9 @@ type View =
   | "files"
   | "media"
   | "shopping"
-  | "finance";
+  | "finance"
+  | "education"
+  | "studio";
 type Modal =
   "connections" | "search" | "notifications" | "assistantSettings" | null;
 type Detail =
@@ -90,75 +104,6 @@ type Detail =
   | { type: "file"; item: DriveFile }
   | { type: "event"; item: CalendarEvent }
   | null;
-type Soundscape =
-  "off" | "rain" | "roof" | "window" | "storm" | "snow" | "hail";
-type SoundEngine = {
-  kind: Exclude<Soundscape, "off">;
-  context: AudioContext;
-  source: AudioBufferSourceNode;
-  gain: GainNode;
-  start: () => void;
-  stop: () => void;
-};
-function makeSoundEngine(kind: Exclude<Soundscape, "off">): SoundEngine | null {
-  const AudioContextConstructor =
-    window.AudioContext ||
-    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext;
-  if (!AudioContextConstructor) return null;
-  const context = new AudioContextConstructor();
-  const buffer = context.createBuffer(
-    1,
-    context.sampleRate * 2,
-    context.sampleRate,
-  );
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++)
-    data[i] = (Math.random() * 2 - 1) * 0.42;
-  const source = context.createBufferSource();
-  source.buffer = buffer;
-  source.loop = true;
-  const filter = context.createBiquadFilter();
-  const settings: Record<
-    Exclude<Soundscape, "off">,
-    [BiquadFilterType, number, number, number]
-  > = {
-    rain: ["bandpass", 1550, 0.55, 0.055],
-    roof: ["lowpass", 920, 0.7, 0.07],
-    window: ["highpass", 2350, 0.45, 0.045],
-    storm: ["bandpass", 720, 0.35, 0.075],
-    snow: ["lowpass", 360, 0.5, 0.035],
-    hail: ["highpass", 3900, 0.5, 0.05],
-  };
-  const [type, frequency, q, volume] = settings[kind];
-  filter.type = type;
-  filter.frequency.value = frequency;
-  filter.Q.value = q;
-  const gain = context.createGain();
-  gain.gain.value = volume;
-  source.connect(filter).connect(gain).connect(context.destination);
-  let started = false;
-  return {
-    kind,
-    context,
-    source,
-    gain,
-    start: () => {
-      if (!started) {
-        source.start();
-        started = true;
-      }
-      void context.resume();
-      gain.gain.cancelScheduledValues(context.currentTime);
-      gain.gain.linearRampToValueAtTime(volume, context.currentTime + 0.25);
-    },
-    stop: () => {
-      gain.gain.cancelScheduledValues(context.currentTime);
-      gain.gain.linearRampToValueAtTime(0, context.currentTime + 0.2);
-      void context.suspend();
-    },
-  };
-}
 function stored<T>(key: string, initial: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -414,6 +359,15 @@ export default function App() {
     const id = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(id);
   }, []);
+  const [education, setEducation] = useState<EducationRecord[]>(() => {
+    const records = stored<unknown>("orbit-education-v1", []);
+    return Array.isArray(records) ? records.filter(validEducationRecord) : [];
+  });
+  const saveEducation = (records: EducationRecord[]) => {
+    if (!writeLocal("orbit-education-v1", records)) return false;
+    setEducation(records);
+    return true;
+  };
   const [mediaId, setMediaId] = useState<string>();
   const [modal, setModal] = useState<Modal>(null);
   const [detail, setDetail] = useState<Detail>(null);
@@ -429,22 +383,6 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
   const [notes, setNotes] = useState(() => stored("orbit-notes", ""));
   const [taskTab, setTaskTab] = useState("tasks");
-  const [taskInput, setTaskInput] = useState("");
-  const [taskDueDate, setTaskDueDate] = useState("");
-  const [taskPriority, setTaskPriority] = useState<Task["priority"]>("normal");
-  const [focusMinutes, setFocusMinutes] = useState(25);
-  const [customFocusMinutes, setCustomFocusMinutes] = useState("");
-  const [customFocusMode, setCustomFocusMode] = useState(false);
-  const [remaining, setRemaining] = useState(25 * 60);
-  const [focusing, setFocusing] = useState(false);
-  const [soundscape, setSoundscape] = useState<Soundscape>(() =>
-    ((value) =>
-      ["off", "rain", "roof", "window", "storm", "snow", "hail"].includes(value)
-        ? (value as Soundscape)
-        : "off")(stored("orbit-focus-sound-v2", "off")),
-  );
-  const [soundError, setSoundError] = useState("");
-  const soundEngine = useRef<SoundEngine | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [voice, setVoice] = useState(() =>
     stored("orbit-spoken-replies", true),
@@ -493,6 +431,13 @@ export default function App() {
     setToast(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 5000);
+  }, []);
+  const focus = useFocus(notify);
+  const [storageError, setStorageError] = useState(false);
+  useEffect(() => {
+    const failed = () => setStorageError(true);
+    window.addEventListener("orbit:storage-error", failed);
+    return () => window.removeEventListener("orbit:storage-error", failed);
   }, []);
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -548,51 +493,14 @@ export default function App() {
     refresh,
   ]);
   useEffect(() => {
-    localStorage.setItem("orbit-tasks", JSON.stringify(tasks));
+    writeLocal("orbit-tasks", tasks);
   }, [tasks]);
   useEffect(() => {
-    localStorage.setItem("orbit-notes", JSON.stringify(notes));
+    writeLocal("orbit-notes", notes);
   }, [notes]);
   useEffect(() => {
     localStorage.setItem("orbit-read", JSON.stringify(read));
   }, [read]);
-  useEffect(() => {
-    if (!focusing) return;
-    const until = Date.now() + remaining * 1000;
-    const id = setInterval(() => {
-      const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-      setRemaining(left);
-      if (left === 0) {
-        setFocusing(false);
-        notify("A little more progress. Your focus session is complete.");
-      }
-    }, 500);
-    return () => clearInterval(id);
-  }, [focusing, focusMinutes]);
-  useEffect(() => {
-    localStorage.setItem("orbit-focus-sound-v2", JSON.stringify(soundscape));
-    if (focusing && soundscape !== "off") {
-      if (soundEngine.current?.kind !== soundscape) {
-        void soundEngine.current?.context.close();
-        soundEngine.current = makeSoundEngine(soundscape);
-      }
-      if (!soundEngine.current) {
-        setSoundError("Focus sound is unavailable in this browser.");
-      } else {
-        soundEngine.current.start();
-        setSoundError("");
-      }
-    } else {
-      soundEngine.current?.stop();
-    }
-  }, [focusing, soundscape]);
-  useEffect(
-    () => () => {
-      void soundEngine.current?.context.close();
-      soundEngine.current = null;
-    },
-    [],
-  );
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
@@ -667,8 +575,18 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("orbit-track-steps", JSON.stringify(trackNextSteps));
   }, [trackNextSteps]);
-  const calendarError = live?.errors.find((error) => error.service === "calendar")?.message;
-  const mailError = live?.errors.find((error) => error.service === "emails")?.message;
+  const calendarError = live?.errors.find(
+    (error) => error.service === "calendar",
+  )?.message;
+  const filesError = live?.errors.find(
+    (error) => error.service === "files",
+  )?.message;
+  const spotifyError = live?.errors.find(
+    (error) => error.service === "spotify",
+  )?.message;
+  const mailError = live?.errors.find(
+    (error) => error.service === "emails",
+  )?.message;
   const googleLive = connections.google.connected;
   const calendarLive = connections.calendar?.connected || googleLive;
   const events = calendarLive
@@ -688,7 +606,6 @@ export default function App() {
   const agenda = events.filter((e) => eventOnDay(e, selectedDate));
   const important = emails.filter((e) => e.important);
   const done = tasks.filter((t) => t.done).length;
-  const progress = remaining / (focusMinutes * 60);
   const dateLabel = new Date(now).toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -758,27 +675,6 @@ export default function App() {
       );
     }
   };
-  const addTask = (e?: FormEvent) => {
-    e?.preventDefault();
-    if (!taskInput.trim()) return;
-    setTasks((t) => [
-      {
-        id: crypto.randomUUID(),
-        title: taskInput.trim(),
-        done: false,
-        dueDate: taskDueDate || undefined,
-        priority: taskPriority,
-      },
-      ...t,
-    ]);
-    setTaskInput("");
-    setTaskDueDate("");
-  };
-  const startFocus = () => {
-    if (remaining === 0) setRemaining(focusMinutes * 60);
-    setFocusing(true);
-    notify("Your focus session is on. One thing at a time.");
-  };
   const say = (text: string) => {
     if (voice && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -806,10 +702,7 @@ export default function App() {
           answer =
             "What would you like to add? Try “Add task: Book a dentist appointment”.";
         } else {
-          setTasks((t) => [
-            ...t,
-            { id: crypto.randomUUID(), title, done: false },
-          ]);
+          setTasks((t) => [...t, { id: newId(), title, done: false }]);
           answer = `Added “${title}” to your little to-dos.`;
         }
       } else if (/^(complete|finish|done) task[: ]/i.test(text)) {
@@ -832,10 +725,10 @@ export default function App() {
           answer =
             "I couldn’t find that task. Use “Complete task: …” followed by its title.";
       } else if (/^(start|begin|resume) (a |the )?(focus|timer)/i.test(text)) {
-        startFocus();
-        answer = `Your ${focusMinutes}-minute focus timer is running. Take a breath, choose one thing, and give it your attention. You’ve got this.`;
+        focus.start();
+        answer = `Your ${focus.settings.minutes}-minute focus timer is running. Take a breath, choose one thing, and give it your attention. You’ve got this.`;
       } else if (/^(pause|stop) (a |the |my )?(focus|timer)/i.test(text)) {
-        setFocusing(false);
+        focus.pause();
         answer =
           "Your focus timer is paused. Take your time — it’ll be here when you’re ready.";
       } else if (connections.assistant.configured) {
@@ -898,14 +791,11 @@ export default function App() {
             ". ",
           )}. Spotify is already connected on your Mac. I have a handoff from this build, but not background access to ChatGPT. Connect an OpenAI API key for open-ended conversations.`;
       } else if (/focus|concentrate|timer/.test(text.toLowerCase())) {
-        startFocus();
-        answer = `Your ${focusMinutes}-minute focus timer is running. Take a breath, choose one thing, and give it your attention. You’ve got this.`;
+        focus.start();
+        answer = `Your ${focus.settings.minutes}-minute focus timer is running. Take a breath, choose one thing, and give it your attention. You’ve got this.`;
       } else if (/^add (a )?task[: ]/i.test(text)) {
         const title = text.replace(/^add (a )?task[: ]+/i, "");
-        setTasks((t) => [
-          ...t,
-          { id: crypto.randomUUID(), title, done: false },
-        ]);
+        setTasks((t) => [...t, { id: newId(), title, done: false }]);
         answer = `Added “${title}” to your little to-dos.`;
       } else if (/mail|inbox|email/.test(text.toLowerCase())) {
         navigate("inbox");
@@ -1001,7 +891,7 @@ export default function App() {
         </div>
       </div>
       <div className="week-strip">
-        {Array.from({ length: 7 }, (_, i) => {
+        {Array.from({ length: expanded ? 14 : 7 }, (_, i) => {
           const date = new Date(selectedDate);
           const offset = (date.getDay() + 6) % 7;
           date.setDate(date.getDate() - offset + i);
@@ -1079,14 +969,17 @@ export default function App() {
           <div className="empty-state">
             <Sun size={27} />
             <strong>
-              {calendarError ? "Calendar could not load" : calendarLive || demoMode
-                ? "No events scheduled."
-                : "Calendar not connected"}
+              {calendarError
+                ? "Calendar could not load"
+                : calendarLive || demoMode
+                  ? "No events scheduled."
+                  : "Calendar not connected"}
             </strong>
             <p>
-              {calendarError || (calendarLive || demoMode
-                ? "No events on this day."
-                : "Add an ICS link or import a calendar file.")}
+              {calendarError ||
+                (calendarLive || demoMode
+                  ? "No events on this day."
+                  : "Add an ICS link or import a calendar file.")}
             </p>
             {!calendarLive && !demoMode && (
               <button
@@ -1167,14 +1060,17 @@ export default function App() {
           <div className="empty-state">
             <CheckCheck size={28} />
             <strong>
-              {mailError ? "Inbox could not load" : googleLive || demoMode
-                ? "All caught up."
-                : "Email not connected"}
+              {mailError
+                ? "Inbox could not load"
+                : googleLive || demoMode
+                  ? "All caught up."
+                  : "Email not connected"}
             </strong>
             <p>
-              {mailError || (googleLive || demoMode
-                ? `No ${mailTab === "important" ? "important " : ""}emails to show.`
-                : "Email isn’t connected. Open Gmail directly, or add optional Google access later.")}
+              {mailError ||
+                (googleLive || demoMode
+                  ? `No ${mailTab === "important" ? "important " : ""}emails to show.`
+                  : "Email isn’t connected. Open Gmail directly, or add optional Google access later.")}
             </p>
           </div>
         )}
@@ -1186,9 +1082,11 @@ export default function App() {
         <p>
           {important.length
             ? "Important mail"
-            : mailError ? "Refresh to try loading mail again." : googleLive || demoMode
-              ? "No important mail"
-              : "An ICS calendar does not grant email access."}
+            : mailError
+              ? "Refresh to try loading mail again."
+              : googleLive || demoMode
+                ? "No important mail"
+                : "An ICS calendar does not grant email access."}
         </p>
       </div>
       <button
@@ -1276,10 +1174,18 @@ export default function App() {
       {files.length === 0 && (
         <div className="empty-state">
           <Folder size={28} />
-          <strong>No connected files</strong>
+          <strong>
+            {filesError
+              ? "Files could not load"
+              : googleLive
+                ? "No recent files"
+                : "Drive not connected"}
+          </strong>
           <p>
-            Drive isn’t connected. You can still open Drive directly; calendar
-            feeds don’t grant file access.
+            {filesError ||
+              (googleLive
+                ? "No recent files were returned by Drive."
+                : "Connect Google Drive to see files. Calendar feeds do not grant file access.")}
           </p>
         </div>
       )}
@@ -1314,11 +1220,7 @@ export default function App() {
           ) : (
             <>
               <div className="album-mountain" />
-              <span>
-                DEEP
-                <br />
-                FOCUS
-              </span>
+              <SpotifyIcon size={30} />
             </>
           )}
         </div>
@@ -1326,8 +1228,8 @@ export default function App() {
           <span className="micro-label">
             {track ? "NOW PLAYING" : "SPOTIFY PLAYLIST"}
           </span>
-          <h3>{track?.title || "Deep Focus"}</h3>
-          <p>{track?.artist || "Ambient sounds. Clear thoughts."}</p>
+          <h3>{track?.title || "No active playback"}</h3>
+          <p>{track?.artist || "Start music in Spotify to see it here."}</p>
           {track ? (
             <span className="track-device">
               <i />
@@ -1400,296 +1302,26 @@ export default function App() {
       )}
     </section>
   );
-  const focusPanel = () => (
-    <section className={`card focus-card ${focusing ? "focus-active" : ""}`}>
-      <div className="focus-heading">
-        <span>
-          <Target size={17} />
-          Focus timer
-        </span>
-        <div className="duration-control">
-          <select
-            aria-label="Focus duration"
-            value={customFocusMode ? "custom" : String(focusMinutes)}
-            onChange={(event) => {
-              if (event.target.value === "custom") {
-                setCustomFocusMode(true);
-                setCustomFocusMinutes(String(focusMinutes));
-                return;
-              }
-              const minutes = Number(event.target.value);
-              setCustomFocusMode(false);
-              setFocusMinutes(minutes);
-              setRemaining(minutes * 60);
-              setFocusing(false);
-            }}
-          >
-            <option value="5">5 min</option>
-            <option value="10">10 min</option>
-            <option value="25">25 min</option>
-            <option value="50">50 min</option>
-            <option value="custom">Custom</option>
-          </select>
-          <ChevronDown size={11} />
-          {customFocusMode && (
-            <input
-              aria-label="Custom focus minutes"
-              type="number"
-              min="1"
-              max="1440"
-              value={customFocusMinutes || focusMinutes}
-              onChange={(event) => {
-                setCustomFocusMinutes(event.target.value);
-                const minutes = Math.min(
-                  1440,
-                  Math.max(1, Number(event.target.value) || 1),
-                );
-                setFocusMinutes(minutes);
-                setRemaining(minutes * 60);
-                setFocusing(false);
-              }}
-            />
-          )}
-        </div>
-      </div>
-      <div className="focus-content">
-        <div className="timer-ring">
-          <svg viewBox="0 0 92 92">
-            <circle cx="46" cy="46" r="40" className="ring-track" />
-            <circle
-              cx="46"
-              cy="46"
-              r="40"
-              className="ring-progress"
-              strokeDasharray={251.3}
-              strokeDashoffset={251.3 * (1 - progress)}
-            />
-          </svg>
-          <span>
-            {Math.floor(remaining / 60)
-              .toString()
-              .padStart(2, "0")}
-            <small>:</small>
-            {(remaining % 60).toString().padStart(2, "0")}
-          </span>
-        </div>
-        <div className="focus-copy">
-          <h3>
-            {focusing
-              ? "One thing at a time."
-              : remaining === 0
-                ? "Beautifully done."
-                : "Ready to focus?"}
-          </h3>
-          <p>{focusing ? "Session in progress." : "Choose a time to begin."}</p>
-          <div className="focus-buttons">
-            <button
-              className="focus-start"
-              onClick={() => {
-                if (remaining === 0) setRemaining(focusMinutes * 60);
-                setFocusing(!focusing);
-              }}
-            >
-              {focusing ? (
-                <Pause size={12} />
-              ) : (
-                <Play size={12} fill="currentColor" />
-              )}
-              {focusing
-                ? "Pause session"
-                : remaining < focusMinutes * 60 && remaining > 0
-                  ? "Resume focus"
-                  : "Start focus"}
-            </button>
-            {remaining < focusMinutes * 60 && (
-              <IconButton
-                label="Reset focus timer"
-                onClick={() => {
-                  setFocusing(false);
-                  setRemaining(focusMinutes * 60);
-                }}
-              >
-                <RotateCcw size={13} />
-              </IconButton>
-            )}
-          </div>
-        </div>
-      </div>
-      <div
-        className={`rain-box ${focusing ? "rain-active" : ""}`}
-        aria-hidden="true"
-      >
-        <div className="rain-drop-field">
-          {Array.from({ length: 48 }, (_, index) => (
-            <i key={index} />
-          ))}
-        </div>
-        <span>{soundscape === "off" ? "QUIET" : soundscape.toUpperCase()}</span>
-      </div>
-      <div className="focus-sound-row">
-        <label className="soundscape-select">
-          <Volume2 size={13} />
-          <span>Focus sound</span>
-          <select
-            aria-label="Focus sound"
-            value={soundscape}
-            onChange={(event) =>
-              setSoundscape(event.target.value as Soundscape)
-            }
-          >
-            <option value="off">Quiet</option>
-            <option value="rain">Steady rain</option>
-            <option value="roof">Rain on roof</option>
-            <option value="window">Rain on window</option>
-            <option value="storm">Distant storm</option>
-            <option value="snow">Soft snow</option>
-            <option value="hail">Hail</option>
-          </select>
-          <ChevronDown size={11} />
-        </label>
-        <span>{soundscape === "off" ? "Sound off" : "During session"}</span>
-      </div>
-      {soundError && (
-        <p className="focus-sound-error" role="status">
-          {soundError}
-        </p>
-      )}
-    </section>
+  const focusPanel = (compact = false) => (
+    <FocusPanel focus={focus} compact={compact} />
   );
-  const tasksPanel = () => (
-    <section className="card tasks-card">
-      <div className="card-header">
-        <div className="task-tabs">
-          <button
-            className={taskTab === "tasks" ? "active" : ""}
-            onClick={() => setTaskTab("tasks")}
-          >
-            <CheckCheck size={17} />
-            Tasks<span>{tasks.length - done}</span>
-          </button>
-          <button
-            className={taskTab === "notes" ? "active" : ""}
-            onClick={() => setTaskTab("notes")}
-          >
-            Notes
-          </button>
-        </div>
-        <span className="local-badge">PRIVATE</span>
-      </div>
-      {taskTab === "tasks" ? (
-        <>
-          <div className="task-provenance">
-            <span>
-              <Sparkles size={12} />
-              Build & personal tasks
-            </span>
-            <span>
-              {done}/{tasks.length} done
-            </span>
-          </div>
-          <div className="task-list">
-            {[...tasks]
-              .sort((a, b) => Number(a.done) - Number(b.done))
-              .map((task) => (
-                <div
-                  key={task.id}
-                  className={`task-row ${task.done ? "done" : ""}`}
-                >
-                  <button
-                    className="task-toggle"
-                    onClick={() =>
-                      setTasks((t) =>
-                        t.map((x) =>
-                          x.id === task.id ? { ...x, done: !x.done } : x,
-                        ),
-                      )
-                    }
-                    aria-label={`${task.done ? "Uncomplete" : "Complete"} ${task.title}`}
-                  >
-                    {task.done && <Check size={12} />}
-                  </button>
-                  <span>
-                    {task.title}
-                    {(task.dueDate ||
-                      (task.priority && task.priority !== "normal")) && (
-                      <small className="task-planner-meta">
-                        {task.dueDate
-                          ? `Due ${new Date(`${task.dueDate}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                          : ""}
-                        {task.priority && task.priority !== "normal"
-                          ? ` · ${task.priority} priority`
-                          : ""}
-                      </small>
-                    )}
-                    {task.source && (
-                      <small className="task-source">
-                        {task.source === "build" ? "OUR BUILD" : "ORBIT"}
-                      </small>
-                    )}
-                  </span>
-                  <IconButton
-                    label={`Delete ${task.title}`}
-                    className="task-delete"
-                    onClick={() =>
-                      setTasks((t) => t.filter((x) => x.id !== task.id))
-                    }
-                  >
-                    <X size={13} />
-                  </IconButton>
-                </div>
-              ))}
-          </div>
-          <form className="add-task" onSubmit={addTask}>
-            <Plus size={15} />
-            <input
-              aria-label="Add a little to-do"
-              placeholder="Add a next step…"
-              value={taskInput}
-              onChange={(e) => setTaskInput(e.target.value)}
-              maxLength={200}
-            />
-            <input
-              aria-label="Task due date"
-              type="date"
-              value={taskDueDate}
-              onChange={(e) => setTaskDueDate(e.target.value)}
-            />
-            <select
-              aria-label="Task priority"
-              value={taskPriority}
-              onChange={(e) =>
-                setTaskPriority(e.target.value as Task["priority"])
-              }
-            >
-              <option value="high">High</option>
-              <option value="normal">Normal</option>
-              <option value="low">Low</option>
-            </select>
-            {taskInput.trim() && (
-              <IconButton label="Save task" onClick={() => addTask()}>
-                <ArrowUpRight size={15} />
-              </IconButton>
-            )}
-          </form>
-        </>
-      ) : (
-        <div className="notes-area">
-          <textarea
-            aria-label="Private notes"
-            placeholder="A thought, an idea, something to remember…"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <span>
-            <Check size={11} /> Saved on this device
-          </span>
-        </div>
-      )}
-    </section>
+  const tasksPanel = (compact = false) => (
+    <TaskPanel
+      tasks={tasks}
+      setTasks={setTasks}
+      notes={notes}
+      setNotes={setNotes}
+      tab={taskTab}
+      setTab={setTaskTab}
+      compact={compact}
+    />
   );
 
   return (
-    <div className="app-shell orbit-v2 orbit-v3 orbit-v31">
+    <div
+      className={`app-shell orbit-v2 orbit-v3 orbit-v31 ${view === "overview" && !new URLSearchParams(window.location.search).has("classic-home") ? "scene-home-shell" : ""}`}
+    >
+      <FocusAudio focus={focus} />
       <aside className="sidebar">
         <a
           href="#"
@@ -1702,14 +1334,16 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 4.4</span>
+            orbit<span>PERSONAL / 4.5</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
         <div className="nav-group">
           {[
-            { id: "overview", label: "Overview", icon: LayoutDashboard },
+            { id: "overview", label: "Home", icon: LayoutDashboard },
             { id: "calendar", label: "Planner", icon: CalendarDays },
+            { id: "education", label: "Education Center", icon: GraduationCap },
+            { id: "studio", label: "File Studio", icon: Wrench },
             { id: "inbox", label: "Inbox", icon: Mail },
             { id: "files", label: "Files", icon: Folder },
             { id: "media", label: "Media Center", icon: Clapperboard },
@@ -1755,9 +1389,14 @@ export default function App() {
       <div className="main-shell">
         <header className="topbar">
           <div className="wordmark" onClick={() => navigate("overview")}>
+            {view === "overview" && (
+              <span className="scene-orbit-name">
+                Orbit <span>/</span>
+              </span>
+            )}
             <span className="header-section">
               {view === "overview"
-                ? "Overview"
+                ? "Home"
                 : view === "media"
                   ? "Media Center"
                   : view === "shopping"
@@ -1781,10 +1420,11 @@ export default function App() {
             </button>
             <button
               className="global-search"
+              aria-label="Search Orbit"
               onClick={() => setModal("search")}
             >
               <Search size={15} />
-              <span>Find anything…</span>
+              <span>Search Orbit…</span>
               <kbd>⌘ K</kbd>
             </button>
             <button
@@ -1816,6 +1456,12 @@ export default function App() {
           </div>
         </header>
         <main>
+          {storageError && (
+            <div className="service-warning" role="alert">
+              Browser storage could not save your changes. Keep this page open
+              and export a dashboard backup from Profile & settings.
+            </div>
+          )}
           <div className="page-heading">
             <div>
               <div className="eyebrow">
@@ -1835,13 +1481,17 @@ export default function App() {
                     ? "Your schedule."
                     : view === "inbox"
                       ? "Your inbox."
-                      : view === "media"
-                        ? "Media Center."
-                        : view === "shopping"
-                          ? "Shopping Scout."
-                          : view === "finance"
-                            ? "Your finances."
-                            : "Your files."}
+                      : view === "education"
+                        ? "Education Center"
+                        : view === "studio"
+                          ? "File Studio"
+                          : view === "media"
+                            ? "Media Center."
+                            : view === "shopping"
+                              ? "Shopping Scout."
+                              : view === "finance"
+                                ? "Your finances."
+                                : "Your files."}
                 <span className="heading-dot">.</span>
               </h1>
             </div>
@@ -1876,130 +1526,615 @@ export default function App() {
             </div>
           ) : null}
           {view === "overview" ? (
-            <>
-              <div className="v2-status-strip">
-                <span>
-                  <i className="live-dot" />
-                  TODAY
-                </span>
-                {calendarLive && (
-                  <span>{`${todayEvents.length} events today`}</span>
-                )}
-                <span>{tasks.length - done} open tasks</span>
-                <button onClick={() => setModal("connections")}>
-                  Profile & settings <ArrowUpRight size={12} />
-                </button>
-              </div>
-              <section className="card daily-brief">
-                <span className="eyebrow">YOUR DAY</span>
-                <strong>
-                  {todayEvents.length
-                    ? `Next: ${todayEvents[0].title} · ${shortTime(todayEvents[0].start)}`
-                    : "No upcoming calendar events"}
-                </strong>
-                <span>{tasks.filter((t) => !t.done).length} open tasks</span>
-                <span className="today-priorities">
-                  {tasks
-                    .filter((t) => !t.done)
-                    .sort(
-                      (a, b) =>
-                        ({ high: 0, normal: 1, low: 2 })[
-                          a.priority || "normal"
-                        ] -
-                        { high: 0, normal: 1, low: 2 }[b.priority || "normal"],
-                    )
-                    .slice(0, 3)
-                    .map((task) => task.title)
-                    .join(" · ")}
-                </span>
-                {weatherTemp && (
-                  <strong className="today-temperature">
-                    {weatherTemp.temperature}°
-                    {weatherTemp.unit === "fahrenheit" ? "F" : "C"}
-                    <small>
-                      {weatherTemp.location} · {weatherTemp.description}
-                    </small>
+            new URLSearchParams(window.location.search).has("classic-home") ? (
+              <>
+                <div className="v2-status-strip">
+                  <span>
+                    <i className="live-dot" />
+                    TODAY
+                  </span>
+                  {calendarLive && (
+                    <span>{`${todayEvents.length} events today`}</span>
+                  )}
+                  <span>{tasks.length - done} open tasks</span>
+                  <button onClick={() => setModal("connections")}>
+                    Profile & settings <ArrowUpRight size={12} />
+                  </button>
+                </div>
+                <section className="card daily-brief">
+                  <span className="eyebrow">YOUR DAY</span>
+                  <strong>
+                    {todayEvents.length
+                      ? `Next: ${todayEvents[0].title} · ${shortTime(todayEvents[0].start)}`
+                      : "No upcoming calendar events"}
                   </strong>
-                )}
-              </section>
-              <div className="v2-primary">
-                <div className="essentials-column">
-                  {calendarPanel()}
-                  {inboxPanel()}
+                  <span>{tasks.filter((t) => !t.done).length} open tasks</span>
+                  <span className="today-priorities">
+                    {tasks
+                      .filter((t) => !t.done)
+                      .sort(
+                        (a, b) =>
+                          ({ high: 0, normal: 1, low: 2 })[
+                            a.priority || "normal"
+                          ] -
+                          { high: 0, normal: 1, low: 2 }[
+                            b.priority || "normal"
+                          ],
+                      )
+                      .slice(0, 3)
+                      .map((task) => task.title)
+                      .join(" · ")}
+                  </span>
+                  {weatherTemp && (
+                    <strong className="today-temperature">
+                      {weatherTemp.temperature}°
+                      {weatherTemp.unit === "fahrenheit" ? "F" : "C"}
+                      <small>
+                        {weatherTemp.location} · {weatherTemp.description}
+                      </small>
+                    </strong>
+                  )}
+                </section>
+                <div className="v2-primary">
+                  <div className="essentials-column">
+                    {calendarPanel()}
+                    {inboxPanel()}
+                  </div>
+                  <div className="priorities-column">
+                    {tasksPanel()}
+                    {focusPanel()}
+                  </div>
+                  <div className="atmosphere-column">
+                    <WeatherPanel
+                      onWeather={setWeatherSummary}
+                      onTemperature={setWeatherTemp}
+                    />
+                    {musicPanel()}
+                  </div>
                 </div>
-                <div className="priorities-column">
-                  {tasksPanel()}
-                  {focusPanel()}
-                </div>
-                <div className="atmosphere-column">
-                  <WeatherPanel
-                    onWeather={setWeatherSummary}
-                    onTemperature={setWeatherTemp}
-                  />
-                  {musicPanel()}
-                </div>
-              </div>
-              <CommandCenter
-                tasks={tasks}
-                onAddTask={(title) =>
-                  setTasks((current) =>
-                    current.some(
-                      (t) => t.title.toLowerCase() === title.toLowerCase(),
+                <CommandCenter
+                  tasks={tasks}
+                  onAddTask={(title) =>
+                    setTasks((current) =>
+                      current.some(
+                        (t) => t.title.toLowerCase() === title.toLowerCase(),
+                      )
+                        ? current
+                        : [
+                            ...current,
+                            {
+                              id: newId(),
+                              title,
+                              done: false,
+                              source: "assistant",
+                            },
+                          ],
                     )
-                      ? current
-                      : [
-                          ...current,
-                          {
-                            id: crypto.randomUUID(),
-                            title,
-                            done: false,
-                            source: "assistant",
-                          },
-                        ],
+                  }
+                />
+                <div className="tonight-heading">
+                  After hours
+                  <span>MEDIA</span>
+                </div>
+                <div className="tonight-grid">
+                  <MediaSummary
+                    onOpen={(id) => {
+                      setMediaId(id);
+                      navigate("media");
+                    }}
+                  />
+                </div>
+                <ShoppingScout />
+                <div className="v2-files" id="bottom-widgets">
+                  {filesPanel()}
+                </div>
+              </>
+            ) : (
+              <ImmersiveHome
+                dateLabel={dateLabel}
+                greeting={greeting}
+                clock={today.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+                widgets={[
+                  {
+                    id: "upnext",
+                    title: "Up next",
+                    icon: CalendarDays,
+                    compact: "Next upcoming event",
+                    expanded: "Next seven days with dates and event details",
+                    render: ({ mode }) => {
+                      const academic: CalendarEvent[] = educationDeadlines(
+                        education,
+                      ).map((record) => ({
+                        id: `education-${record.id}`,
+                        title: record.title,
+                        start: record.dueDate,
+                        end: `${record.dueDate}T23:59:59`,
+                        allDay: true,
+                        location: record.course || record.domain,
+                      }));
+                      const next = upcomingEvents(
+                        [...events, ...academic],
+                        now,
+                      );
+                      return (
+                        <div className="oi-upnext">
+                          {loading ? (
+                            <p role="status">Loading schedule…</p>
+                          ) : next.length ? (
+                            next
+                              .slice(0, mode === "expanded" ? 30 : 1)
+                              .map((event) => (
+                                <button
+                                  key={event.id}
+                                  className="oi-upnext-event"
+                                  onClick={() =>
+                                    event.id.startsWith("education-")
+                                      ? navigate("education")
+                                      : setDetail({
+                                          type: "event",
+                                          item: event,
+                                        })
+                                  }
+                                >
+                                  <strong>{event.title}</strong>
+                                  <span>
+                                    {mode === "expanded" &&
+                                      `${eventDate(event.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · `}
+                                    {event.allDay
+                                      ? "All day"
+                                      : shortTime(event.start)}
+                                  </span>
+                                  {mode === "expanded" && event.location && (
+                                    <span>{event.location}</span>
+                                  )}
+                                </button>
+                              ))
+                          ) : (
+                            <p>
+                              {calendarError ||
+                                (calendarLive || demoMode
+                                  ? "No upcoming events in the next seven days"
+                                  : "Connect a calendar to see upcoming events")}
+                            </p>
+                          )}
+                          {mode === "expanded" && (
+                            <p>
+                              Schedule from{" "}
+                              {connections.calendar?.source === "ics"
+                                ? "your calendar feed"
+                                : googleLive
+                                  ? "Google Calendar"
+                                  : "the connected calendar"}
+                              . Calendar changes are read-only.
+                            </p>
+                          )}
+                          <button
+                            className="oi-inline-link"
+                            onClick={() => navigate("calendar")}
+                          >
+                            Open Planner <ArrowRight size={14} />
+                          </button>
+                        </div>
+                      );
+                    },
+                    height: 190,
+                  },
+                  {
+                    id: "priorities",
+                    title: "Today's priorities",
+                    icon: CheckCheck,
+                    compact: "Three open tasks",
+                    expanded:
+                      "All tasks, filters, editing, due dates and priority",
+                    render: ({ mode }) => tasksPanel(mode === "compact"),
+                    height: 390,
+                  },
+                  {
+                    id: "focus",
+                    title: "Focus session",
+                    icon: Target,
+                    compact: "Timer and duration",
+                    expanded:
+                      "Intention, sound, volume, history and session totals",
+                    render: ({ mode }) => focusPanel(mode === "compact"),
+                    height: 330,
+                  },
+                  {
+                    id: "spotify",
+                    title: "Spotify",
+                    icon: AudioLines,
+                    compact: "Track, artist, playback",
+                    expanded:
+                      "Album, device, progress and full playback controls",
+                    render: ({ mode }) => (
+                      <>
+                        {spotifyError && <p role="alert">{spotifyError}</p>}
+                        {mode === "expanded" ? (
+                          <>
+                            {musicPanel()}
+                            {track && (
+                              <dl className="oi-metadata">
+                                <div>
+                                  <dt>Album</dt>
+                                  <dd>{track.album || "Not provided"}</dd>
+                                </div>
+                                <div>
+                                  <dt>Device</dt>
+                                  <dd>{track.device || "No active device"}</dd>
+                                </div>
+                              </dl>
+                            )}
+                            <button
+                              className="oi-inline-link"
+                              onClick={() => void refresh()}
+                            >
+                              Refresh Spotify
+                            </button>
+                          </>
+                        ) : (
+                          <div className="oi-spotify-compact">
+                            {track ? (
+                              <>
+                                <strong>{track.title}</strong>
+                                <span>{track.artist}</span>
+                                <button
+                                  className="primary-button"
+                                  onClick={() => void playback("toggle")}
+                                >
+                                  {track.isPlaying ? (
+                                    <Pause size={16} />
+                                  ) : (
+                                    <Play size={16} />
+                                  )}{" "}
+                                  {track.isPlaying
+                                    ? "Pause Spotify"
+                                    : "Play Spotify"}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <p>
+                                  {connections.spotify.connected
+                                    ? "No active playback"
+                                    : "Spotify not connected"}
+                                </p>
+                                <button
+                                  className="oi-inline-link"
+                                  onClick={() => setModal("connections")}
+                                >
+                                  {connections.spotify.connected
+                                    ? "Spotify settings"
+                                    : "Connect Spotify"}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ),
+                    height: 260,
+                  },
+                  {
+                    id: "weather",
+                    title: "Weather · 5 days",
+                    icon: Sun,
+                    compact: "Conditions and five days",
+                    expanded:
+                      "Seven days, precipitation, city, units and refresh",
+                    render: ({ mode }) => (
+                      <WeatherPanel
+                        forecastDays={mode === "expanded" ? 7 : 5}
+                        interactive={mode === "expanded"}
+                        showCurrent
+                        onWeather={setWeatherSummary}
+                        onTemperature={setWeatherTemp}
+                      />
+                    ),
+                    height: 325,
+                  },
+                  {
+                    id: "email",
+                    title: "Email",
+                    icon: Mail,
+                    compact: "Three important messages",
+                    expanded:
+                      "Thirty messages, filters, previews, refresh and Inbox",
+                    render: ({ mode }) => (
+                      <>
+                        {inboxPanel(mode === "expanded")}
+                        {mode === "expanded" && (
+                          <>
+                            <p className="oi-detail-note">
+                              {emails.filter((email) => email.unread).length}{" "}
+                              unread in the loaded messages. Opening a message
+                              updates only Orbit’s read marker.
+                            </p>
+                            <button
+                              className="oi-inline-link"
+                              onClick={() => navigate("inbox")}
+                            >
+                              Open Inbox
+                            </button>
+                            <button
+                              className="oi-inline-link"
+                              onClick={() => void refresh()}
+                            >
+                              Refresh email
+                            </button>
+                          </>
+                        )}
+                      </>
+                    ),
+                    height: 360,
+                  },
+                  {
+                    id: "continue",
+                    title: "Continue watching",
+                    icon: Clapperboard,
+                    compact: "One resumable or queued video",
+                    expanded: "All resumable and queued videos with progress",
+                    render: ({ mode }) => (
+                      <MediaSummary
+                        expanded={mode === "expanded"}
+                        onOpen={(id) => {
+                          setMediaId(id);
+                          navigate("media");
+                        }}
+                      />
+                    ),
+                    height: 250,
+                  },
+                  {
+                    id: "notes",
+                    title: "Quick notes",
+                    icon: FileText,
+                    compact: "Short note editor",
+                    expanded: "Full note editor, character count and download",
+                    render: ({ mode }) => (
+                      <div className="oi-notes-editor">
+                        <textarea
+                          className="oi-notes"
+                          aria-label="Quick notes"
+                          placeholder="Notes"
+                          maxLength={500000}
+                          value={notes}
+                          onChange={(event) => setNotes(event.target.value)}
+                        />
+                        {mode === "expanded" && (
+                          <div className="oi-notes-tools">
+                            <span>
+                              {notes.length.toLocaleString()} / 500,000
+                              characters ·{" "}
+                              {notes.trim()
+                                ? notes.trim().split(/\s+/).length
+                                : 0}{" "}
+                              words
+                            </span>
+                            <button
+                              onClick={() => {
+                                const url = URL.createObjectURL(
+                                  new Blob([notes], { type: "text/plain" }),
+                                );
+                                const link = document.createElement("a");
+                                link.href = url;
+                                link.download = "orbit-notes.txt";
+                                link.click();
+                                setTimeout(
+                                  () => URL.revokeObjectURL(url),
+                                  1000,
+                                );
+                              }}
+                            >
+                              Download notes
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ),
+                    height: 265,
+                  },
+                  {
+                    id: "calendar",
+                    title: "Calendar",
+                    icon: CalendarDays,
+                    compact: "Seven dates and selected-day events",
+                    expanded: "Fourteen dates, multi-day agenda and navigation",
+                    render: ({ mode }) => (
+                      <>
+                        {calendarPanel(mode === "expanded")}
+                        {mode === "expanded" && (
+                          <>
+                            <h3 className="oi-section-heading">
+                              Upcoming days
+                            </h3>
+                            <div className="oi-upnext">
+                              {events
+                                .filter(
+                                  (event) =>
+                                    eventDate(event.end).getTime() > now,
+                                )
+                                .slice(0, 40)
+                                .map((event) => (
+                                  <button
+                                    className="oi-upnext-event"
+                                    key={event.id}
+                                    onClick={() =>
+                                      setDetail({ type: "event", item: event })
+                                    }
+                                  >
+                                    <strong>{event.title}</strong>
+                                    <span>
+                                      {eventDate(
+                                        event.start,
+                                      ).toLocaleDateString()}{" "}
+                                      ·{" "}
+                                      {event.allDay
+                                        ? "All day"
+                                        : shortTime(event.start)}
+                                    </span>
+                                  </button>
+                                ))}
+                            </div>
+                            <button
+                              className="oi-inline-link"
+                              onClick={() => navigate("calendar")}
+                            >
+                              Open Planner
+                            </button>
+                          </>
+                        )}
+                      </>
+                    ),
+                    height: 350,
+                  },
+                  {
+                    id: "ambient",
+                    title: "Ambient sound",
+                    icon: Volume2,
+                    compact: "Sound preset",
+                    expanded:
+                      "All presets, real volume control and Focus controls",
+                    render: ({ mode }) => (
+                      <div className="oi-ambient">
+                        <label htmlFor="oi-sound">Focus sound</label>
+                        <select
+                          id="oi-sound"
+                          value={focus.settings.sound}
+                          onChange={(event) =>
+                            focus.setSettings((current) => ({
+                              ...current,
+                              sound: event.target.value as typeof current.sound,
+                            }))
+                          }
+                        >
+                          <option value="off">Off</option>
+                          <option value="rain">Rain</option>
+                          <option value="roof">Roof rain</option>
+                          <option value="window">Window rain</option>
+                          <option value="storm">Storm</option>
+                          <option value="snow">Snow</option>
+                          <option value="hail">Hail</option>
+                        </select>
+                        <p>
+                          {focus.focusing ? "Focus running" : "Focus paused"} ·
+                          sound plays during a session.
+                        </p>
+                        {mode === "expanded" && (
+                          <>
+                            <label>
+                              Sound volume
+                              <input
+                                aria-label="Ambient volume"
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={focus.settings.volume}
+                                onChange={(event) =>
+                                  focus.setSettings((current) => ({
+                                    ...current,
+                                    volume: Number(event.target.value),
+                                  }))
+                                }
+                              />
+                              {focus.settings.volume}%
+                            </label>
+                            <button
+                              className="primary-button"
+                              onClick={
+                                focus.focusing ? focus.pause : focus.start
+                              }
+                            >
+                              {focus.focusing
+                                ? "Pause focus & sound"
+                                : "Start focus & sound"}
+                            </button>
+                            {focus.focusing &&
+                              !focus.audioArmed &&
+                              focus.settings.sound !== "off" && (
+                                <button onClick={focus.armAudio}>
+                                  Resume sound
+                                </button>
+                              )}
+                            <p>
+                              Audio is generated in your browser. Volume changes
+                              the same sound engine used by Focus.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    ),
+                    height: 220,
+                  },
+                  {
+                    id: "files",
+                    title: "Recent files",
+                    icon: Folder,
+                    compact: "Four recent files",
+                    expanded:
+                      "Thirty files, type, modified date and full Files module",
+                    render: ({ mode }) => (
+                      <>
+                        {filesPanel(mode === "expanded")}
+                        {mode === "expanded" && (
+                          <button
+                            className="oi-inline-link"
+                            onClick={() => navigate("files")}
+                          >
+                            Open Files
+                          </button>
+                        )}
+                      </>
+                    ),
+                    height: 240,
+                  },
+                ]}
+              />
+            )
+          ) : view === "calendar" ? (
+            <>
+              <WeeklyPlanner
+                date={selectedDate}
+                setDate={setSelectedDate}
+                events={events}
+                tasks={tasks}
+                education={education}
+                onTask={(id, patch) =>
+                  setTasks((current) =>
+                    current.map((task) =>
+                      task.id === id ? { ...task, ...patch } : task,
+                    ),
                   )
                 }
+                onEvent={(event) => setDetail({ type: "event", item: event })}
+                onEducation={() => navigate("education")}
               />
-              <div className="tonight-heading">
-                After hours
-                <span>MEDIA</span>
-              </div>
-              <div className="tonight-grid">
-                <MediaSummary
-                  onOpen={(id) => {
-                    setMediaId(id);
-                    navigate("media");
-                  }}
-                />
-              </div>
-              <ShoppingScout />
-              <div className="v2-files" id="bottom-widgets">
-                {filesPanel()}
+              <div className="workspace-grid">
+                <div>{calendarPanel(true)}</div>
+                <div className="workspace-aside">
+                  {tasksPanel()}
+                  {focusPanel()}
+                  <section className="card gentle-card">
+                    <Sparkles size={20} />
+                    <h3>A calendar with breathing room.</h3>
+                    <p>
+                      {calendarLive
+                        ? `Your calendar, read-only and in one place. Source: ${connections.calendar?.source === "ics" ? "ICS feed / import" : "Google"}.`
+                        : "Use a private ICS feed or import an .ics file. Your calendar doesn’t need a Google Cloud project."}
+                    </p>
+                    <button
+                      className="text-button"
+                      onClick={() => setModal("connections")}
+                    >
+                      {calendarLive ? "Manage connection" : "Add calendar feed"}
+                      <ArrowUpRight size={14} />
+                    </button>
+                  </section>
+                </div>
               </div>
             </>
-          ) : view === "calendar" ? (
-            <div className="workspace-grid">
-              <div>{calendarPanel(true)}</div>
-              <div className="workspace-aside">
-                {tasksPanel()}
-                {focusPanel()}
-                <section className="card gentle-card">
-                  <Sparkles size={20} />
-                  <h3>A calendar with breathing room.</h3>
-                  <p>
-                    {calendarLive
-                      ? `Your calendar, read-only and in one place. Source: ${connections.calendar?.source === "ics" ? "ICS feed / import" : "Google"}.`
-                      : "Use a private ICS feed or import an .ics file. Your calendar doesn’t need a Google Cloud project."}
-                  </p>
-                  <button
-                    className="text-button"
-                    onClick={() => setModal("connections")}
-                  >
-                    {calendarLive ? "Manage connection" : "Add calendar feed"}
-                    <ArrowUpRight size={14} />
-                  </button>
-                </section>
-              </div>
-            </div>
           ) : view === "inbox" ? (
             <div className="workspace-grid">
               <div>{inboxPanel(true)}</div>
@@ -2022,6 +2157,10 @@ export default function App() {
             />
           ) : view === "shopping" ? (
             <ShoppingScout />
+          ) : view === "education" ? (
+            <EducationCenter records={education} onChange={saveEducation} />
+          ) : view === "studio" ? (
+            <FileStudio />
           ) : view === "finance" ? (
             <FinancePanel />
           ) : (
@@ -2042,7 +2181,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 4.4 <span>·</span> Joe
+              Orbit 4.5 <span>·</span> Joe
             </span>
             <span>
               {loading ? (
@@ -2263,7 +2402,7 @@ export default function App() {
               <strong>Joe</strong>
               <span>Personal dashboard · private space</span>
             </div>
-            <small>Orbit 4.4</small>
+            <small>Orbit 4.5</small>
           </div>
           <p className="modal-intro">
             Connections, local preferences, assistant settings, and backups in
@@ -2482,7 +2621,7 @@ export default function App() {
         onTask={(title) =>
           setTasks((current) => [
             ...current,
-            { id: crypto.randomUUID(), title, done: false, source: "you" },
+            { id: newId(), title, done: false, source: "you" },
           ])
         }
         onNote={(text) =>
@@ -2622,7 +2761,7 @@ export default function App() {
                         setTimeout(
                           () =>
                             document
-                              .getElementById("bottom-widgets")
+                              .getElementById("tasks-panel")
                               ?.scrollIntoView({ behavior: "smooth" }),
                           50,
                         );
@@ -2692,7 +2831,7 @@ export default function App() {
               </div>
             </div>
           ))}
-          {remaining === 0 && (
+          {focus.remaining === 0 && (
             <div className="notification-item">
               <CheckCheck size={22} />
               <div>

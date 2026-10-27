@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { useEffect, useState } from "react";
 import {
   Plus,
@@ -46,7 +47,7 @@ function activity(title: string, status: string) {
     "orbit-activity-v3",
     [
       {
-        id: crypto.randomUUID(),
+        id: newId(),
         title,
         status,
         createdAt: new Date().toISOString(),
@@ -62,7 +63,7 @@ export function proposeTasks(titles: string[]) {
     const clean = title.trim().slice(0, 200);
     if (clean && !known.has(clean.toLowerCase())) {
       list.push({
-        id: crypto.randomUUID(),
+        id: newId(),
         title: clean,
         createdAt: new Date().toISOString(),
       });
@@ -158,7 +159,7 @@ export function QuickCapture({
             if (!title.trim()) return;
             try {
               const entry: Entry = {
-                id: crypto.randomUUID(),
+                id: newId(),
                 title: title.trim(),
                 domain,
                 due,

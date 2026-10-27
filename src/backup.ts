@@ -1,3 +1,4 @@
+import { validEducationRecord } from "./education.ts";
 export const MAX_BACKUP_BYTES = 2 * 1024 * 1024;
 export const BACKUP_KEYS = [
   "orbit-tasks",
@@ -18,6 +19,13 @@ export const BACKUP_KEYS = [
   "orbit-shopping-searches-v1",
   "orbit-shopping-offers-v1",
   "orbit-finance-v1",
+  "orbit-immersive-home-v1",
+  "orbit-home-scene-v2",
+  "orbit-education-v1",
+  "orbit-focus-settings-v45",
+  "orbit-focus-history-v45",
+  "orbit-focus-sound-v2",
+  "orbit-youtube-watchlist-v1",
 ] as const;
 export type BackupKey = (typeof BACKUP_KEYS)[number];
 export type DashboardBackup = {
@@ -35,6 +43,8 @@ export type BackupPreview = {
   settingsCount: number;
   entryCount: number;
   proposalCount: number;
+  educationCount: number;
+  focusCount: number;
 };
 const booleanKeys = new Set<string>([
   "orbit-demo",
@@ -97,6 +107,55 @@ function uniqueRecords(
   });
 }
 function validValue(key: BackupKey, value: unknown): boolean {
+  if (key === "orbit-education-v1")
+    return (
+      Array.isArray(value) &&
+      value.length <= 2000 &&
+      value.every(validEducationRecord) &&
+      new Set(value.map((record) => record.id)).size === value.length
+    );
+  if (key === "orbit-focus-sound-v2")
+    return ["off", "rain", "roof", "window", "storm", "snow", "hail"].includes(
+      String(value),
+    );
+  if (key === "orbit-youtube-watchlist-v1")
+    return (
+      stringArray(value, 12, 11) &&
+      (value as string[]).every((id) => /^[a-zA-Z0-9_-]{11}$/.test(id))
+    );
+  if (key === "orbit-focus-settings-v45")
+    return (
+      object(value) &&
+      Number.isInteger(value.minutes) &&
+      Number(value.minutes) >= 1 &&
+      Number(value.minutes) <= 1440 &&
+      typeof value.volume === "number" &&
+      Number.isFinite(value.volume) &&
+      value.volume >= 0 &&
+      value.volume <= 100 &&
+      text(value.label, 200) &&
+      ["off", "rain", "roof", "window", "storm", "snow", "hail"].includes(
+        String(value.sound),
+      ) &&
+      Object.keys(value).every((field) =>
+        ["minutes", "volume", "label", "sound"].includes(field),
+      )
+    );
+  if (key === "orbit-focus-history-v45")
+    return uniqueRecords(
+      value,
+      120,
+      (item) =>
+        typeof item.minutes === "number" &&
+        Number.isInteger(item.minutes) &&
+        item.minutes >= 1 &&
+        item.minutes <= 1440 &&
+        text(item.label, 200) &&
+        timestamp(item.completedAt) &&
+        Object.keys(item).every((field) =>
+          ["id", "minutes", "label", "completedAt"].includes(field),
+        ),
+    );
   if (booleanKeys.has(key)) return typeof value === "boolean";
   if (key === "orbit-priorities-v3") return stringArray(value, 100, 200);
   if (key === "orbit-shopping-searches-v1")
@@ -121,7 +180,7 @@ function validValue(key: BackupKey, value: unknown): boolean {
         (!item.url || /^https:\/\//i.test(String(item.url))) &&
         (item.image === undefined ||
           (text(item.image, 2048) &&
-            /^https:\/\//i.test(String(item.image)))) &&
+            (!item.image || /^https:\/\//i.test(String(item.image))))) &&
         typeof item.price === "number" &&
         Number.isFinite(item.price) &&
         item.price >= 0 &&
@@ -209,6 +268,66 @@ function validValue(key: BackupKey, value: unknown): boolean {
           ["id", "title", "status", "createdAt"].includes(field),
         ),
     );
+  if (key === "orbit-immersive-home-v1" || key === "orbit-home-scene-v2") {
+    if (
+      !object(value) ||
+      value.version !== 1 ||
+      !["Today", "Study", "Focus", "Unwind"].includes(String(value.space)) ||
+      !object(value.scene) ||
+      !object(value.spaces)
+    )
+      return false;
+    const scene = value.scene;
+    if (
+      !text(scene.id, 100, false) ||
+      !text(scene.title, 200, false) ||
+      !text(scene.category, 100, false) ||
+      !text(scene.background, 5000, false)
+    )
+      return false;
+    if (
+      !/^(radial-gradient\(|linear-gradient\(|https:\/\/upload\.wikimedia\.org\/)/.test(
+        scene.background,
+      )
+    )
+      return false;
+    if (
+      !scene.background.startsWith("https://") &&
+      /url\s*\(|[\x00-\x1f]/i.test(scene.background)
+    )
+      return false;
+    if (
+      scene.thumbnail !== undefined &&
+      (!text(scene.thumbnail, 2048) ||
+        !/^https:\/\/upload\.wikimedia\.org\//.test(scene.thumbnail))
+    )
+      return false;
+    if (scene.credit !== undefined && !text(scene.credit, 200)) return false;
+    const spaces = Object.entries(value.spaces);
+    if (spaces.length > 4) return false;
+    return spaces.every(([name, state]) => {
+      if (
+        !["Today", "Study", "Focus", "Unwind"].includes(name) ||
+        !object(state) ||
+        Object.keys(state).length > 35
+      )
+        return false;
+      return Object.entries(state).every(
+        ([id, w]) =>
+          text(id, 80, false) &&
+          object(w) &&
+          typeof w.closed === "boolean" &&
+          typeof w.minimized === "boolean" &&
+          typeof w.expanded === "boolean" &&
+          ["x", "y", "width", "height", "z"].every(
+            (k) =>
+              typeof w[k] === "number" &&
+              Number.isFinite(w[k]) &&
+              Math.abs(w[k]) <= 100000,
+          ),
+      );
+    });
+  }
   if (key === "orbit-notes") return text(value, 500_000);
   if (key === "orbit-read") return stringArray(value, 10_000, 200);
   if (key === "orbit-weather-unit")
@@ -372,7 +491,26 @@ export function createBackup(
     const stored = storage.getItem(key);
     if (stored === null) continue;
     try {
-      data[key] = key === "orbit-weather-unit" ? stored : JSON.parse(stored);
+      let value = key === "orbit-weather-unit" ? stored : JSON.parse(stored);
+      // Uploaded image bytes can exceed backup limits. Preserve layout, use
+      // the default scene until the user reselects the local image.
+      if (
+        (key === "orbit-immersive-home-v1" || key === "orbit-home-scene-v2") &&
+        object(value) &&
+        object(value.scene) &&
+        value.scene.id === "custom"
+      ) {
+        value = {
+          ...value,
+          scene: {
+            id: "preset-nightfall",
+            title: "Nightfall",
+            category: "Space",
+            background: "linear-gradient(#091329,#0a1021)",
+          },
+        };
+      }
+      data[key] = value;
     } catch {
       throw new Error(
         `Your saved ${key.replace("orbit-", "").replaceAll("-", " ")} data could not be read. Other browser data has not been changed.`,
@@ -411,6 +549,12 @@ export function previewBackup(backup: DashboardBackup): BackupPreview {
       : 0,
     proposalCount: Array.isArray(backup.data["orbit-pending-v3"])
       ? backup.data["orbit-pending-v3"].length
+      : 0,
+    educationCount: Array.isArray(backup.data["orbit-education-v1"])
+      ? backup.data["orbit-education-v1"].length
+      : 0,
+    focusCount: Array.isArray(backup.data["orbit-focus-history-v45"])
+      ? backup.data["orbit-focus-history-v45"].length
       : 0,
   };
 }

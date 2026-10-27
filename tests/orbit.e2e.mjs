@@ -257,7 +257,9 @@ async function fixture(options = {}) {
       body: JSON.stringify(body),
     });
   });
-  await page.goto(base, { waitUntil: "networkidle" });
+  await page.goto(`${base.replace(/\/$/, "")}/?classic-home=1`, {
+    waitUntil: "networkidle",
+  });
   return { context, page, state };
 }
 async function settings(page) {
@@ -267,7 +269,7 @@ async function settings(page) {
   await visible(page.getByRole("dialog").last());
 }
 async function home(page) {
-  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await page.getByRole("button", { name: "Home", exact: true }).click();
 }
 async function closeDialog(page) {
   await page.keyboard.press("Escape");
@@ -546,6 +548,11 @@ try {
           },
         });
       });
+      await page.waitForFunction(() =>
+        document
+          .querySelector('input[aria-label="Message Orbit"]')
+          ?.value.includes("Add this sentence."),
+      );
       assert.match(
         await input.inputValue(),
         /Keep this draft.*Add this sentence/,
@@ -606,7 +613,7 @@ try {
     async () => {
       for (const width of [390, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 1000 });
-        for (const view of ["Overview", "Planner", "Inbox", "Files"]) {
+        for (const view of ["Home", "Planner", "Inbox", "Files"]) {
           await page.getByRole("button", { name: view, exact: true }).click();
           const size = await page.evaluate(() => ({
             viewport: innerWidth,
