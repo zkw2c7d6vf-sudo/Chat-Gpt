@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Wallet } from "lucide-react";
 import "./finance.css";
@@ -48,7 +49,7 @@ export default function FinancePanel() {
     if (!label.trim() || !Number.isFinite(n) || n <= 0) return;
     setEntries([
       {
-        id: crypto.randomUUID(),
+        id: newId(),
         label: label.trim(),
         amount: n,
         kind,
