@@ -422,7 +422,7 @@ export default function WeatherPanel({
         <p>Loading weather preferences…</p>
       ) : settingsOnly ? null : data ? (
         <>
-          <div className="weather-forecast" aria-label={`${forecastDays}-day forecast`}>
+          <div className="weather-forecast" aria-label={forecastDays === 7 ? "Seven-day forecast" : `${forecastDays}-day forecast`}>
             {data.daily.slice(0, Math.max(1, Math.min(7, forecastDays))).map((day, i) => (
               <div key={day.date}>
                 <span>
