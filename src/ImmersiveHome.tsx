@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { ArrowDown, ArrowUp, Check, ChevronDown, Image, Layers3, Maximize2, Minimize2, Minus, RotateCcw, Search, Upload, X } from "lucide-react";
 
-export type HomeWidget = { id: string; title: string; content: ReactNode; width?: number; height?: number };
+export type HomeWidget = { id: string; title: string; content: ReactNode | ((expanded: boolean) => ReactNode); width?: number; height?: number };
 type Geometry = { x: number; y: number; width: number; height: number };
 type WindowState = Geometry & { closed: boolean; minimized: boolean; expanded: boolean; z: number };
 type Scene = { id: string; title: string; category: string; background: string; thumbnail?: string; credit?: string };
@@ -206,7 +206,7 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
               <button aria-label={`${w.expanded?"Restore":"Maximize"} ${widget.title}`} title={w.expanded?"Restore":"Maximize"} onClick={() => update(widget.id,index,{expanded:!w.expanded})}>{w.expanded?<Minimize2 size={14}/>:<Maximize2 size={14}/>}</button>
               <button aria-label={`Close ${widget.title}`} title="Close" onClick={() => update(widget.id,index,{closed:true,minimized:false})}><X size={15}/></button>
             </div></div>
-          <div className="oi-window-body">{widget.content}</div>
+          <div className="oi-window-body">{typeof widget.content === "function" ? widget.content(w.expanded) : widget.content}</div>
           {!narrow && !w.expanded && <div className="oi-resize" role="slider" tabIndex={0} aria-label={`Resize ${widget.title}`} aria-valuemin={170} aria-valuemax={950} aria-valuenow={w.height} onPointerDown={e => start(e,widget.id,index,"resize")} onPointerMove={e => moving(e,index)} onPointerUp={() => drag.current=null} onPointerCancel={() => drag.current=null} onKeyDown={e => {const amount=e.shiftKey?40:10;if(e.key==="ArrowRight"||e.key==="ArrowLeft"||e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();update(widget.id,index,bounded({...w,width:w.width+(e.key==="ArrowRight"?amount:e.key==="ArrowLeft"?-amount:0),height:w.height+(e.key==="ArrowDown"?amount:e.key==="ArrowUp"?-amount:0)}));}}}/>}</section>;
       })}
     </div>
