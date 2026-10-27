@@ -198,7 +198,7 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
         const index = widgets.indexOf(widget), w = windowState(widget.id,index);
         if (w.closed || w.minimized) return null;
         const pos = narrow ? {} : w.expanded ? {left:10,top:10,width:Math.max(300,canvasWidth-20),height:Math.min(850,window.innerHeight-220),zIndex:1000} : { left: bounded(w).x, top: bounded(w).y, width: bounded(w).width, height: bounded(w).height, zIndex: w.z };
-        return <section key={widget.id} className={`oi-window ${w.expanded ? "oi-expanded" : ""}`} style={pos} onPointerDown={() => raise(widget.id,index)} aria-label={`${widget.title} widget`}>
+        return <section key={widget.id} className={`oi-window ${w.expanded ? "oi-expanded" : ""}`} style={pos} onPointerDown={event => { if (!(event.target as HTMLElement).closest("button,input,select,textarea,a")) raise(widget.id,index); }} aria-label={`${widget.title} widget`}>
           <div className="oi-window-bar" tabIndex={0} role="toolbar" aria-label={`Move ${widget.title}`} onPointerDown={e => start(e,widget.id,index,"move")} onPointerMove={e => moving(e,index)} onPointerUp={() => drag.current=null} onPointerCancel={() => drag.current=null}
             onKeyDown={e => { if(!e.key.startsWith("Arrow")) return; e.preventDefault(); const d=e.shiftKey?30:10;if(narrow){reorder(widget.id,e.key==="ArrowUp"?-1:1);return;}update(widget.id,index,bounded({...w,x:w.x+(e.key==="ArrowLeft"?-d:e.key==="ArrowRight"?d:0),y:w.y+(e.key==="ArrowUp"?-d:e.key==="ArrowDown"?d:0)})); }}>
             <span className="oi-window-title">{widget.title}</span><div className="oi-window-controls">
