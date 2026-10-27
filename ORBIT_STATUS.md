@@ -1,5 +1,7 @@
 # Orbit 4.5.2 implementation status
 
+> **Repository coordination update — 2026-10-27:** This branch (`orbit-v4.5.2`) is the authoritative release baseline for upcoming Codex work, even though GitHub's default `main` remains historical V2. See `CODEX_START_HERE.md` and `ORBIT_NEXT_TASK.md`. Draft PR #5 adds a Shopping Scout browser-storage exception guard (commit `0737f819`) but is **not merged, browser-tested, or proven to resolve the reported search crash**. PR #4 holds the current Home work. Previous pass counts below are historical claims from the development record, not a new audit. Do not delete historical branches, deploy, or certify private integrations without verification.
+
 **Interaction refinement:** Dragging now uses animation-frame transforms with one final geometry save, stable desktop DOM order and temporarily suspended blur. The dock defaults to five daily tools plus Backgrounds; boxed search stays visible on mobile. See `docs/home-performance-review.md`.
 
 **Home rebuild:** Implements the user’s supplied earlier concept and confirmed scene-first direction. Today opens three panels, contextual workspaces open two or three, and all eleven tools remain in the dock. New layout storage preserves the 4.5 layout. See `docs/home-rebuild-review.md` for screenshots and acceptance coverage.
