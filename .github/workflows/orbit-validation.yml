@@ -1,10 +1,6 @@
 name: Orbit release validation
 
 on:
-  push:
-    branches:
-      - feat/orbit-immersive-home-2026-10-26
-      - orbit-v4.4
   pull_request:
     branches:
       - orbit-v4.4
