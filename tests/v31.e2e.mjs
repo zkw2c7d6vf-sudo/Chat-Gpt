@@ -56,7 +56,7 @@ async function check(name, fn) {
 }
 try {
   await page.clock.install({ time: new Date("2026-10-25T11:59:50-04:00") });
-  await page.goto(process.env.ORBIT_URL || "http://127.0.0.1:5173", {
+  await page.goto(`${(process.env.ORBIT_URL || "http://127.0.0.1:5173").replace(/\/$/, "")}/?classic-home=1`, {
     waitUntil: "networkidle",
   });
   await check(
@@ -83,7 +83,7 @@ try {
     "active desktop navigation label stays inside its button",
     async () => {
       const button = await page
-        .getByRole("button", { name: "Overview", exact: true })
+        .getByRole("button", { name: "Home", exact: true })
         .boundingBox();
       const label = await page
         .locator(".nav-item.active .nav-text")
@@ -114,7 +114,7 @@ try {
     for (const width of [1440, 1024, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       for (const name of [
-        "Overview",
+        "Home",
         "Planner",
         "Inbox",
         "Files",
@@ -134,7 +134,7 @@ try {
   await check(
     "navigation, private notes and capture remain accessible",
     async () => {
-      await page.getByRole("button", { name: "Overview", exact: true }).click();
+      await page.getByRole("button", { name: "Home", exact: true }).click();
       await page.getByRole("button", { name: "Notes", exact: true }).click();
       await page
         .getByRole("textbox", { name: "Private notes" })
