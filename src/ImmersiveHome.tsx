@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { ArrowDown, ArrowUp, Check, ChevronDown, Image, Layers3, Maximize2, Minimize2, Minus, RotateCcw, Search, Upload, X } from "lucide-react";
-import "./immersive-home.css";
 
 export type HomeWidget = { id: string; title: string; content: ReactNode; width?: number; height?: number };
 type Geometry = { x: number; y: number; width: number; height: number };
@@ -162,7 +161,7 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
     setSaved(prev => { const area = prev.space; return { ...prev, spaces: { ...prev.spaces, [area]: change(prev.spaces[area] || {}) } }; });
   }, []);
   const update = (id: string, index: number, patch: Partial<WindowState>) => setWindows(current => ({ ...current, [id]: { ...defaultWindow(id,index), ...current[id], ...patch } }));
-  useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* browser quota or private mode */ } }, [saved]);
+  useEffect(() => { const t = window.setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* browser quota or private mode */ } }, 120); return () => clearTimeout(t); }, [saved]);
   useEffect(() => { const el = stageRef.current; if (!el) return; const ro = new ResizeObserver(entries => { const width = entries[0].contentRect.width; setCanvasWidth(width); setNarrow(width < 1100); }); ro.observe(el); return () => ro.disconnect(); }, []);
   const bounded = (g: Geometry) => ({ ...g, x: Math.max(0, Math.min(g.x, Math.max(0, canvasWidth - 110))), y: Math.max(0, Math.min(g.y, 2500)), width: Math.min(Math.max(265, g.width), Math.max(265, canvasWidth - 12)), height: Math.max(170, Math.min(g.height, 950)) });
   const start = (event: ReactPointerEvent, id: string, index: number, kind: "move" | "resize") => {
