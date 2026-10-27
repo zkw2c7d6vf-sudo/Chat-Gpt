@@ -1,4 +1,6 @@
-# Orbit next task after 4.5
+# Orbit next task after 4.5.1
+
+Review the rebuilt Home against the user’s supplied screenshot: scene-first, sparse contextual panels and a dock. See `docs/home-rebuild-review.md`. Do not restore the eleven-open-window default.
 
 The immersive Home expansion, Education Center, weekly Planner and supported File Studio tools are implemented. Read `docs/v4.5-review.md` and `ORBIT_STATUS.md` before changing code. The original product requirements remain in the catch-up and dynamic-widget contract documents.
 

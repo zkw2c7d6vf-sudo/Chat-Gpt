@@ -257,7 +257,9 @@ async function fixture(options = {}) {
       body: JSON.stringify(body),
     });
   });
-  await page.goto(`${base.replace(/\/$/, "")}/?classic-home=1`, { waitUntil: "networkidle" });
+  await page.goto(`${base.replace(/\/$/, "")}/?classic-home=1`, {
+    waitUntil: "networkidle",
+  });
   return { context, page, state };
 }
 async function settings(page) {
@@ -546,6 +548,11 @@ try {
           },
         });
       });
+      await page.waitForFunction(() =>
+        document
+          .querySelector('input[aria-label="Message Orbit"]')
+          ?.value.includes("Add this sentence."),
+      );
       assert.match(
         await input.inputValue(),
         /Keep this draft.*Add this sentence/,

@@ -20,6 +20,7 @@ export const BACKUP_KEYS = [
   "orbit-shopping-offers-v1",
   "orbit-finance-v1",
   "orbit-immersive-home-v1",
+  "orbit-home-scene-v2",
   "orbit-education-v1",
   "orbit-focus-settings-v45",
   "orbit-focus-history-v45",
@@ -267,7 +268,7 @@ function validValue(key: BackupKey, value: unknown): boolean {
           ["id", "title", "status", "createdAt"].includes(field),
         ),
     );
-  if (key === "orbit-immersive-home-v1") {
+  if (key === "orbit-immersive-home-v1" || key === "orbit-home-scene-v2") {
     if (
       !object(value) ||
       value.version !== 1 ||
@@ -494,7 +495,7 @@ export function createBackup(
       // Uploaded image bytes can exceed backup limits. Preserve layout, use
       // the default scene until the user reselects the local image.
       if (
-        key === "orbit-immersive-home-v1" &&
+        (key === "orbit-immersive-home-v1" || key === "orbit-home-scene-v2") &&
         object(value) &&
         object(value.scene) &&
         value.scene.id === "custom"

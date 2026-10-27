@@ -1,3 +1,4 @@
+import { allWidgetLayout } from "./home-fixture.mjs";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync } from "node:fs";
 import { chromium } from "playwright";
@@ -57,14 +58,18 @@ async function fixture({ connected = true, serviceErrors = [] } = {}) {
     reducedMotion: "reduce",
     acceptDownloads: true,
   });
-  await context.addInitScript((tasks) => {
-    if (!localStorage.getItem("v45-test-seed")) {
-      localStorage.setItem("orbit-tasks", JSON.stringify(tasks));
-      localStorage.setItem("orbit-seed-v2", "true");
-      localStorage.setItem("orbit-seed-v3", "true");
-      localStorage.setItem("v45-test-seed", "true");
-    }
-  }, taskRecords);
+  await context.addInitScript(
+    ({ tasks, layout }) => {
+      if (!localStorage.getItem("v45-test-seed")) {
+        localStorage.setItem("orbit-tasks", JSON.stringify(tasks));
+        localStorage.setItem("orbit-seed-v2", "true");
+        localStorage.setItem("orbit-seed-v3", "true");
+        localStorage.setItem("orbit-home-scene-v2", JSON.stringify(layout));
+        localStorage.setItem("v45-test-seed", "true");
+      }
+    },
+    { tasks: taskRecords, layout: allWidgetLayout },
+  );
   const state = {
     connected,
     serviceErrors,
@@ -408,8 +413,7 @@ try {
           .click();
         assert.equal(await widget(page, id).count(), 0);
         await page
-          .locator(".oi-dock button")
-          .filter({ hasText: titles[id] })
+          .getByRole("button", { name: `Open ${titles[id]}`, exact: true })
           .click();
         await widget(page, id).waitFor();
         await page
@@ -421,7 +425,7 @@ try {
           .click();
         await page
           .locator(".oi-widget-entry")
-          .filter({ hasText: titles[id] })
+          .filter({ has: page.locator("span").filter({ hasText: titles[id] }) })
           .getByRole("button", { name: "Show", exact: true })
           .click();
         await page
@@ -498,6 +502,12 @@ try {
       await page
         .getByRole("button", { name: "Close widgets", exact: true })
         .click();
+      await page.evaluate(
+        (layout) =>
+          localStorage.setItem("orbit-home-scene-v2", JSON.stringify(layout)),
+        allWidgetLayout,
+      );
+      await page.reload({ waitUntil: "networkidle" });
     },
   );
   await check(
@@ -524,12 +534,12 @@ try {
       assert.equal(await widget(page, "email").count(), 0);
       assert.equal(await widget(page, "files").count(), 0);
       await page.getByRole("button", { name: "Study", exact: true }).click();
-      assert.equal(await page.locator(".oi-window").count(), 11);
+      assert.equal(await page.locator(".oi-window").count(), 3);
       await page.getByRole("button", { name: "Today", exact: true }).click();
       assert.equal(await widget(page, "files").count(), 0);
       await restore(page, "notes");
       await page
-        .locator(".oi-dock button")
+        .locator(".scene-tool-dock button")
         .filter({ hasText: "Email" })
         .click();
       await page.getByRole("button", { name: "Widgets", exact: true }).click();
@@ -550,7 +560,7 @@ try {
         route.abort(),
       );
       await page
-        .getByRole("button", { name: "Backgrounds", exact: true })
+        .getByRole("button", { name: "Choose background", exact: true })
         .click();
       const dialog = page.getByRole("dialog", { name: "Background library" });
       await dialog.getByRole("button", { name: /Built-in scenes/ }).click();
@@ -562,7 +572,7 @@ try {
         /Aurora/,
       );
       await page
-        .getByRole("button", { name: "Backgrounds", exact: true })
+        .getByRole("button", { name: "Choose background", exact: true })
         .click();
       const controls = dialog.locator("button,input:not([hidden])");
       await controls.first().focus();
@@ -738,13 +748,11 @@ try {
         context.fillRect(0, 0, 8, 8);
         return canvas.toDataURL("image/png").split(",")[1];
       });
-      await page
-        .getByLabel("File Studio input")
-        .setInputFiles({
-          name: "test.png",
-          mimeType: "image/png",
-          buffer: Buffer.from(imageBytes, "base64"),
-        });
+      await page.getByLabel("File Studio input").setInputFiles({
+        name: "test.png",
+        mimeType: "image/png",
+        buffer: Buffer.from(imageBytes, "base64"),
+      });
       await page.getByLabel("Image output width").fill("32");
       await page
         .getByRole("button", { name: "Convert image", exact: true })
@@ -896,13 +904,11 @@ try {
       await page
         .getByRole("button", { name: "Settings and connections", exact: true })
         .click();
-      await page
-        .getByLabel("Choose dashboard backup file")
-        .setInputFiles({
-          name: "v45-backup.json",
-          mimeType: "application/json",
-          buffer: Buffer.from(JSON.stringify(backup)),
-        });
+      await page.getByLabel("Choose dashboard backup file").setInputFiles({
+        name: "v45-backup.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify(backup)),
+      });
       await page
         .getByText("Review before restoring", { exact: true })
         .waitFor();

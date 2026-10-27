@@ -1,5 +1,11 @@
 # Orbit development changelog
 
+## 2026-10-27 — 4.5.1 scene-first Home rebuild
+- Rebuilt the Home composition from the supplied earlier reference with a full-screen navy scene, large greeting, slim icon rail and compact dock.
+- Replaced eleven initially open windows with purposeful context defaults and on-demand tools.
+- Preserved old window layout storage and added the new layout to backups.
+- Added desktop/mobile screenshots and scene-specific acceptance coverage while retaining all-widget and module regressions.
+
 ## 2026-10-27 — Orbit 4.5
 
 - Completed meaningful expanded content for every Home widget and the shared typed renderer.

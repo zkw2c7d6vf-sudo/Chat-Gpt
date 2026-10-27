@@ -1,4 +1,6 @@
-# Orbit 4.5 implementation status
+# Orbit 4.5.1 implementation status
+
+**Home rebuild:** Implements the user’s supplied earlier concept and confirmed scene-first direction. Today opens three panels, contextual workspaces open two or three, and all eleven tools remain in the dock. New layout storage preserves the 4.5 layout. See `docs/home-rebuild-review.md` for screenshots and acceptance coverage.
 
 The requested development branch is `feat/orbit-immersive-home-2026-10-26`, based on `orbit-v4.4`, with PR #4. Historical `main` remains unchanged.
 
@@ -15,7 +17,7 @@ The requested development branch is `feat/orbit-immersive-home-2026-10-26`, base
 
 ## Local validation
 
-Production build; **73 unit/API checks**; **72 browser checks** (Home 1, v4.5 25, historical v2 18, v3 17, v3.1 8, v4 3) passed. Real public Open-Meteo and TVMaze requests succeeded. See `docs/v4.5-review.md` and the final GitHub CI run for release-head evidence.
+Production build; **73 unit/API checks**; **73 browser checks** (scene 1, Home 1, v4.5 25, historical v2 18, v3 17, v3.1 8, v4 3) passed. Real public Open-Meteo and TVMaze requests succeeded. See `docs/v4.5-review.md` and the final GitHub CI run for release-head evidence.
 
 ## Release decision
 

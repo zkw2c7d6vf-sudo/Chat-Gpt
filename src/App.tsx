@@ -1318,7 +1318,9 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell orbit-v2 orbit-v3 orbit-v31">
+    <div
+      className={`app-shell orbit-v2 orbit-v3 orbit-v31 ${view === "overview" && !new URLSearchParams(window.location.search).has("classic-home") ? "scene-home-shell" : ""}`}
+    >
       <FocusAudio focus={focus} />
       <aside className="sidebar">
         <a
@@ -1387,6 +1389,11 @@ export default function App() {
       <div className="main-shell">
         <header className="topbar">
           <div className="wordmark" onClick={() => navigate("overview")}>
+            {view === "overview" && (
+              <span className="scene-orbit-name">
+                Orbit <span>/</span>
+              </span>
+            )}
             <span className="header-section">
               {view === "overview"
                 ? "Home"
@@ -1624,6 +1631,11 @@ export default function App() {
             ) : (
               <ImmersiveHome
                 dateLabel={dateLabel}
+                greeting={greeting}
+                clock={today.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
                 widgets={[
                   {
                     id: "upnext",

@@ -55,7 +55,13 @@ type HomeState = {
   scene: Scene;
   spaces: Record<string, Record<string, WindowState>>;
 };
-const KEY = "orbit-immersive-home-v1";
+const KEY = "orbit-home-scene-v2";
+const DEFAULT_VISIBLE: Record<string, string[]> = {
+  Today: ["upnext", "focus", "weather"],
+  Study: ["priorities", "focus", "notes"],
+  Focus: ["focus", "ambient"],
+  Unwind: ["spotify", "continue"],
+};
 const SPACES = ["Today", "Study", "Focus", "Unwind"];
 const SCENE_COLORS = [
   ["Nightfall", "Space", "#091329", "#283f6d", "#0a1021"],
@@ -103,26 +109,25 @@ const PRESETS: Scene[] = SCENE_COLORS.map(([title, category, a, b, c]) => ({
 }));
 const DEFAULT_SCENE = PRESETS[0];
 const DEFAULT_GEOMETRIES: Record<string, Geometry> = {
-  upnext: { x: 18, y: 20, width: 330, height: 190 },
-  priorities: { x: 18, y: 228, width: 330, height: 390 },
-  focus: { x: 370, y: 20, width: 340, height: 330 },
-  spotify: { x: 370, y: 370, width: 340, height: 260 },
-  weather: { x: 732, y: 20, width: 350, height: 325 },
-  email: { x: 732, y: 364, width: 350, height: 360 },
-  continue: { x: 18, y: 640, width: 330, height: 250 },
-  notes: { x: 370, y: 650, width: 340, height: 265 },
-  calendar: { x: 732, y: 744, width: 350, height: 350 },
-  ambient: { x: 18, y: 912, width: 330, height: 220 },
-  files: { x: 370, y: 937, width: 340, height: 240 },
+  upnext: { x: 0, y: 0, width: 300, height: 185 },
+  priorities: { x: 0, y: 0, width: 310, height: 310 },
+  focus: { x: 360, y: 150, width: 320, height: 265 },
+  spotify: { x: 0, y: 215, width: 300, height: 190 },
+  weather: { x: 880, y: 0, width: 320, height: 290 },
+  email: { x: 0, y: 200, width: 320, height: 320 },
+  continue: { x: 360, y: 0, width: 320, height: 240 },
+  notes: { x: 880, y: 0, width: 310, height: 295 },
+  calendar: { x: 700, y: 120, width: 340, height: 340 },
+  ambient: { x: 0, y: 0, width: 300, height: 210 },
+  files: { x: 360, y: 0, width: 330, height: 275 },
 };
-const defaultWindow = (id: string, index: number): WindowState => ({
-  ...(DEFAULT_GEOMETRIES[id] || {
-    x: 24 + (index % 3) * 355,
-    y: 28 + Math.floor(index / 3) * 285,
-    width: 332,
-    height: 260,
-  }),
-  closed: false,
+const defaultWindow = (
+  id: string,
+  index: number,
+  space = "Today",
+): WindowState => ({
+  ...(DEFAULT_GEOMETRIES[id] || { x: 20, y: 20, width: 320, height: 260 }),
+  closed: !(DEFAULT_VISIBLE[space] || DEFAULT_VISIBLE.Today).includes(id),
   minimized: false,
   expanded: false,
   z: index + 1,
@@ -176,7 +181,23 @@ function readState(): HomeState {
   } catch {
     /* local storage unavailable */
   }
-  return { version: 1, space: "Today", scene: DEFAULT_SCENE, spaces: {} };
+  let scene = DEFAULT_SCENE;
+  try {
+    const old = JSON.parse(
+      localStorage.getItem("orbit-immersive-home-v1") || "null",
+    );
+    if (
+      old?.scene &&
+      typeof old.scene.background === "string" &&
+      (PRESETS.some((preset) => preset.id === old.scene.id) ||
+        safePhoto(old.scene.background) ||
+        /^data:image\/(png|jpeg|webp);base64,/.test(old.scene.background))
+    )
+      scene = old.scene;
+  } catch {
+    /* Leave earlier layout untouched. */
+  }
+  return { version: 1, space: "Today", scene, spaces: {} };
 }
 function safePhoto(url: unknown): url is string {
   return (
@@ -504,9 +525,13 @@ function ScenePicker({
 export default function ImmersiveHome({
   widgets,
   dateLabel,
+  greeting,
+  clock,
 }: {
   widgets: HomeWidget[];
   dateLabel: string;
+  greeting: string;
+  clock: string;
 }) {
   const [saved, setSaved] = useState<HomeState>(readState);
   const [showScenes, setShowScenes] = useState(false);
@@ -525,7 +550,7 @@ export default function ImmersiveHome({
   const space = SPACES.includes(saved.space) ? saved.space : "Today";
   const states = saved.spaces[space] || {};
   const windowState = (id: string, index: number): WindowState => ({
-    ...defaultWindow(id, index),
+    ...defaultWindow(id, index, space),
     ...states[id],
   });
   const setWindows = useCallback(
@@ -547,7 +572,7 @@ export default function ImmersiveHome({
   const update = (id: string, index: number, patch: Partial<WindowState>) =>
     setWindows((current) => ({
       ...current,
-      [id]: { ...defaultWindow(id, index), ...current[id], ...patch },
+      [id]: { ...defaultWindow(id, index, space), ...current[id], ...patch },
     }));
   useEffect(() => {
     writeLocal(KEY, saved);
@@ -558,7 +583,7 @@ export default function ImmersiveHome({
     const ro = new ResizeObserver((entries) => {
       const width = entries[0].contentRect.width;
       setCanvasWidth(width);
-      setNarrow(width < 1100);
+      setNarrow(width < 900);
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -632,6 +657,7 @@ export default function ImmersiveHome({
             ...defaultWindow(
               w.id,
               widgets.findIndex((x) => x.id === w.id),
+              space,
             ),
             ...current[w.id],
             z: i + 1,
@@ -659,9 +685,29 @@ export default function ImmersiveHome({
   );
   return (
     <div
-      className={`oi-root ${narrow ? "oi-narrow" : ""}`}
+      className={`oi-root scene-home ${narrow ? "oi-narrow" : ""}`}
+      data-photo={
+        saved.scene.background.startsWith("https://") ||
+        saved.scene.background.startsWith("data:")
+      }
       style={{ backgroundImage: backdrop }}
     >
+      <div className="scene-landscape" aria-hidden="true">
+        <div className="scene-stars" />
+        <div className="scene-moon" />
+        <div className="scene-ridge scene-ridge-far" />
+        <div className="scene-ridge scene-ridge-near" />
+      </div>
+      <div className="scene-greeting">
+        <h1>{greeting}, Joe.</h1>
+        <p>
+          {dateLabel}
+          <span>·</span>
+          {clock}
+          <span>·</span>
+          {saved.scene.title}
+        </p>
+      </div>
       <div className="oi-toolbar">
         <div className="oi-spaces" role="group" aria-label="Workspace">
           {SPACES.map((s) => (
@@ -706,7 +752,7 @@ export default function ImmersiveHome({
             ? undefined
             : {
                 minHeight: Math.max(
-                  1180,
+                  Math.max(410, window.innerHeight - 390),
                   ...widgets.map((widget, index) => {
                     const w = windowState(widget.id, index);
                     return w.closed || w.minimized
@@ -726,11 +772,11 @@ export default function ImmersiveHome({
             : w.expanded
               ? {
                   left: 10,
-                  top: 10,
+                  top: -155,
                   width: Math.max(300, canvasWidth - 20),
                   height: Math.max(
                     300,
-                    Math.min(850, window.innerHeight - 220),
+                    Math.min(850, window.innerHeight - 190),
                   ),
                   zIndex: ordered.indexOf(widget) + 1,
                 }
@@ -857,7 +903,7 @@ export default function ImmersiveHome({
                     ? canvasWidth - 20
                     : bounded(w).width,
                   availableHeight: w.expanded
-                    ? Math.min(850, window.innerHeight - 220)
+                    ? Math.min(850, window.innerHeight - 190)
                     : w.height,
                   workspace: space,
                 })}
@@ -913,33 +959,44 @@ export default function ImmersiveHome({
           );
         })}
       </div>
-      {widgets.some(
-        (widget, index) =>
-          windowState(widget.id, index).minimized &&
-          !windowState(widget.id, index).closed,
-      ) && (
-        <div className="oi-dock" aria-label="Minimized widgets">
-          {widgets
-            .filter(
-              (widget, index) =>
-                windowState(widget.id, index).minimized &&
-                !windowState(widget.id, index).closed,
-            )
-            .map((widget) => (
-              <button
-                key={widget.id}
-                onClick={() =>
-                  update(widget.id, widgets.indexOf(widget), {
-                    minimized: false,
-                    z: ++topZ.current,
-                  })
-                }
-              >
-                {widget.title} <Maximize2 size={12} />
-              </button>
-            ))}
-        </div>
-      )}
+      <nav className="scene-tool-dock" aria-label="Home tools">
+        {widgets.map((widget, index) => {
+          const state = windowState(widget.id, index);
+          const open = !state.closed && !state.minimized;
+          return (
+            <button
+              key={widget.id}
+              aria-label={`${open ? "Hide" : "Open"} ${widget.title}`}
+              aria-pressed={open}
+              title={widget.title}
+              onClick={() => {
+                topZ.current = Math.max(
+                  topZ.current,
+                  ...Object.values(states).map((w) => w.z),
+                );
+                update(widget.id, index, {
+                  closed: open,
+                  minimized: false,
+                  z: ++topZ.current,
+                });
+              }}
+            >
+              <widget.icon size={19} />
+              <span>{widget.title}</span>
+              {state.minimized && <i />}
+            </button>
+          );
+        })}
+        <div className="scene-dock-divider" />
+        <button
+          aria-label="Choose background"
+          title="Backgrounds"
+          onClick={() => setShowScenes(true)}
+        >
+          <Image size={19} />
+          <span>Backgrounds</span>
+        </button>
+      </nav>
       {showWidgets && (
         <div
           className="oi-widget-panel"

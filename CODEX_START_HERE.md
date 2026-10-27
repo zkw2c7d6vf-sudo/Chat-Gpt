@@ -1,4 +1,6 @@
-# Orbit — start here after 4.5
+# Orbit — start here after 4.5.1
+
+Latest user direction supersedes the eleven-open-window composition: Home follows the supplied earlier Orbit reference, scene-first with fewer open panels. Read `docs/home-rebuild-review.md` and its screenshots first. Today opens three tools; the dock exposes all eleven. Preserve old layout data separately.
 
 Read, in order:
 

@@ -7,6 +7,7 @@ import "./v2.css";
 import "./v31.css";
 import "./shopping.css";
 import "./immersive-home.css";
+import "./scene-home.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

@@ -1,4 +1,6 @@
-# Orbit 4.5
+# Orbit 4.5.1
+
+Home has been rebuilt around the supplied scene-first reference: a full-screen navy landscape, compact icon rail, three initial panels and an on-demand tool dock. [View the screenshots and design changes](docs/home-rebuild-review.md). Earlier layouts remain stored separately.
 
 Orbit is Joe’s local personal dashboard. Version 4.5 combines immersive Home, a weekly Planner, Education Center, File Studio, media, shopping, finance, and the existing provider connections.
 

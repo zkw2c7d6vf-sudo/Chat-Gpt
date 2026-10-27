@@ -1,3 +1,4 @@
+import { allWidgetLayout } from "./home-fixture.mjs";
 /** Orbit immersive Home browser acceptance checks. Run with npm run dev, then npm run test:home. */
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -26,8 +27,20 @@ try {
   await home.waitFor();
   assert.equal(
     await page.locator(".oi-window").count(),
+    3,
+    "Only three default widgets render",
+  );
+  await page.evaluate(
+    (layout) =>
+      localStorage.setItem("orbit-home-scene-v2", JSON.stringify(layout)),
+    allWidgetLayout,
+  );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await home.waitFor();
+  assert.equal(
+    await page.locator(".oi-window").count(),
     11,
-    "All eleven default widgets render",
+    "All optional widgets remain available",
   );
   for (const title of [
     "Email",
@@ -45,11 +58,17 @@ try {
   assert.equal(await page.getByText("Edit layout").count(), 0);
   await page.getByRole("button", { name: "Minimize Email" }).click();
   assert.equal(
-    await page.locator(".oi-dock button").filter({ hasText: "Email" }).count(),
+    await page
+      .locator(".scene-tool-dock button")
+      .filter({ hasText: "Email" })
+      .count(),
     1,
     "Minimized Email appears in dock",
   );
-  await page.locator(".oi-dock button").filter({ hasText: "Email" }).click();
+  await page
+    .locator(".scene-tool-dock button")
+    .filter({ hasText: "Email" })
+    .click();
   assert.equal(
     await page.getByRole("toolbar", { name: "Move Email" }).count(),
     1,
@@ -70,7 +89,7 @@ try {
     await page.getByRole("toolbar", { name: "Move Continue watching" }).count(),
     1,
   );
-  await page.getByRole("button", { name: "Backgrounds" }).click();
+  await page.getByRole("button", { name: "Choose background" }).click();
   await page.getByRole("button", { name: /Built-in scenes/ }).click();
   await page
     .getByRole("textbox", { name: "Search backgrounds" })
