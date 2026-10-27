@@ -4,9 +4,10 @@
 
 1. [Full conversation catch-up](docs/CODEX_CONTEXT_CATCHUP_2026-10-27.md) — user quotes, preferences, version history, implementation status, known bugs and protection rules.
 2. [Universal compact/expanded widgets specification](docs/CODEX_HOME_DYNAMIC_WIDGETS.md) — required behavior and test matrix for **all eleven Home widgets**, not just Priorities and Calendar.
-3. [Home integration status and validation instructions](docs/ORBIT_IMMERSIVE_HOME_INTEGRATION.md) — branch, rollback, data preservation, background privacy and commands.
-4. [GitHub PR #4](https://github.com/zkw2c7d6vf-sudo/Chat-Gpt/pull/4) — live diff, current CI, review discussion. Do **not** assume a previously cited commit is the latest head.
-5. Actual sources: `src/App.tsx`, `src/ImmersiveHome.tsx`, `src/immersive-home.css`, `src/WeatherPanel.tsx`, `src/media/MediaCenter.tsx`, `src/backup.ts`, and the existing tests.
+3. [Machine-readable widget expansion contract](docs/home-widget-expansion-contract.json) — required compact/expanded states for each current widget; `tests/home-widget-spec-unit.test.mjs` verifies full manifest coverage, not implementation completeness.
+4. [Home integration status and validation instructions](docs/ORBIT_IMMERSIVE_HOME_INTEGRATION.md) — branch, rollback, data preservation, background privacy and commands.
+5. [GitHub PR #4](https://github.com/zkw2c7d6vf-sudo/Chat-Gpt/pull/4) — live diff, current CI, review discussion. Do **not** assume a previously cited commit is the latest head.
+6. Actual sources: `src/App.tsx`, `src/ImmersiveHome.tsx`, `src/immersive-home.css`, `src/WeatherPanel.tsx`, `src/media/MediaCenter.tsx`, `src/backup.ts`, and the existing tests.
 
 ## What the user wants
 
