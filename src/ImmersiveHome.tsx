@@ -1,12 +1,60 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
-import { ArrowDown, ArrowUp, Check, ChevronDown, Image, Layers3, Maximize2, Minimize2, Minus, RotateCcw, Search, Upload, X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { writeLocal } from "./local";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  Image,
+  Layers3,
+  Maximize2,
+  Minimize2,
+  Minus,
+  RotateCcw,
+  Search,
+  Upload,
+  X,
+} from "lucide-react";
 
-export type HomeWidget = { id: string; title: string; content: ReactNode | ((expanded: boolean) => ReactNode); width?: number; height?: number };
+export type HomeWidgetContext = {
+  mode: "compact" | "expanded";
+  availableWidth: number;
+  availableHeight: number;
+  workspace: string;
+};
+export type HomeWidget = {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  compact: string;
+  expanded: string;
+  render: (context: HomeWidgetContext) => ReactNode;
+  width?: number;
+  height?: number;
+};
 type Geometry = { x: number; y: number; width: number; height: number };
-type WindowState = Geometry & { closed: boolean; minimized: boolean; expanded: boolean; z: number };
-type Scene = { id: string; title: string; category: string; background: string; thumbnail?: string; credit?: string };
-type HomeState = { version: 1; space: string; scene: Scene; spaces: Record<string, Record<string, WindowState>> };
+type WindowState = Geometry & {
+  closed: boolean;
+  minimized: boolean;
+  expanded: boolean;
+  z: number;
+};
+type Scene = {
+  id: string;
+  title: string;
+  category: string;
+  background: string;
+  thumbnail?: string;
+  credit?: string;
+};
+type HomeState = {
+  version: 1;
+  space: string;
+  scene: Scene;
+  spaces: Record<string, Record<string, WindowState>>;
+};
 const KEY = "orbit-immersive-home-v1";
 const SPACES = ["Today", "Study", "Focus", "Unwind"];
 const SCENE_COLORS = [
@@ -48,7 +96,9 @@ const SCENE_COLORS = [
   ["Night Garden", "Nature", "#1a2c34", "#537e71", "#111d2e"],
 ] as const;
 const PRESETS: Scene[] = SCENE_COLORS.map(([title, category, a, b, c]) => ({
-  id: `preset-${title.toLowerCase().replace(/\s+/g, "-")}`, title, category,
+  id: `preset-${title.toLowerCase().replace(/\s+/g, "-")}`,
+  title,
+  category,
   background: `radial-gradient(ellipse at 74% 28%, ${b}b5, transparent 52%), radial-gradient(ellipse at 10% 88%, ${c}, transparent 65%), linear-gradient(145deg, ${a}, ${c})`,
 }));
 const DEFAULT_SCENE = PRESETS[0];
@@ -66,21 +116,88 @@ const DEFAULT_GEOMETRIES: Record<string, Geometry> = {
   files: { x: 370, y: 937, width: 340, height: 240 },
 };
 const defaultWindow = (id: string, index: number): WindowState => ({
-  ...(DEFAULT_GEOMETRIES[id] || { x: 24 + (index % 3) * 355, y: 28 + Math.floor(index / 3) * 285, width: 332, height: 260 }),
-  closed: false, minimized: false, expanded: false, z: index + 1,
+  ...(DEFAULT_GEOMETRIES[id] || {
+    x: 24 + (index % 3) * 355,
+    y: 28 + Math.floor(index / 3) * 285,
+    width: 332,
+    height: 260,
+  }),
+  closed: false,
+  minimized: false,
+  expanded: false,
+  z: index + 1,
 });
 function readState(): HomeState {
   try {
     const value = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (value?.version === 1 && value.spaces && value.scene && typeof value.space === "string") return value;
-  } catch { /* local storage unavailable */ }
+    if (
+      value?.version === 1 &&
+      value.spaces &&
+      typeof value.spaces === "object" &&
+      !Array.isArray(value.spaces) &&
+      value.scene &&
+      typeof value.scene.background === "string" &&
+      typeof value.scene.title === "string" &&
+      SPACES.includes(value.space)
+    ) {
+      const scene = value.scene;
+      const validScene =
+        PRESETS.find((preset) => preset.id === scene.id) ||
+        (safePhoto(scene.background) ||
+        (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(
+          scene.background,
+        ) &&
+          scene.background.length < 2_100_000)
+          ? scene
+          : DEFAULT_SCENE);
+      const spaces: HomeState["spaces"] = {};
+      for (const area of SPACES) {
+        const saved = value.spaces[area];
+        if (!saved || typeof saved !== "object" || Array.isArray(saved))
+          continue;
+        spaces[area] = Object.fromEntries(
+          Object.entries(saved).filter(([id, state]) => {
+            const w = state as WindowState;
+            return (
+              Object.hasOwn(DEFAULT_GEOMETRIES, id) &&
+              w &&
+              ["x", "y", "width", "height", "z"].every((key) =>
+                Number.isFinite(w[key as keyof WindowState]),
+              ) &&
+              [w.closed, w.expanded, w.minimized].every(
+                (flag) => typeof flag === "boolean",
+              )
+            );
+          }),
+        ) as Record<string, WindowState>;
+      }
+      return { version: 1, space: value.space, scene: validScene, spaces };
+    }
+  } catch {
+    /* local storage unavailable */
+  }
   return { version: 1, space: "Today", scene: DEFAULT_SCENE, spaces: {} };
 }
 function safePhoto(url: unknown): url is string {
-  return typeof url === "string" && /^https:\/\/(?:upload\.wikimedia\.org|commons\.wikimedia\.org)\//.test(url);
+  return (
+    typeof url === "string" &&
+    /^https:\/\/(?:upload\.wikimedia\.org|commons\.wikimedia\.org)\//.test(url)
+  );
 }
-function plain(text: unknown) { return String(text || "").replace(/<[^>]*>/g, "").slice(0, 120); }
-function ScenePicker({ current, onSelect, onClose }: { current: Scene; onSelect: (scene: Scene) => void; onClose: () => void }) {
+function plain(text: unknown) {
+  return String(text || "")
+    .replace(/<[^>]*>/g, "")
+    .slice(0, 120);
+}
+function ScenePicker({
+  current,
+  onSelect,
+  onClose,
+}: {
+  current: Scene;
+  onSelect: (scene: Scene) => void;
+  onClose: () => void;
+}) {
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [photos, setPhotos] = useState<Scene[]>([]);
@@ -95,57 +212,302 @@ function ScenePicker({ current, onSelect, onClose }: { current: Scene; onSelect:
     const controller = new AbortController();
     if (tab !== "photos") return () => controller.abort();
     let alive = true;
-    setLoading(true); setError("");
-    const params = new URLSearchParams({ action: "query", format: "json", origin: "*", generator: "search", gsrnamespace: "6", gsrsearch: `filetype:bitmap ${photoSearch || "landscape nature"}`, gsrlimit: "24", gsroffset: String(offset), prop: "imageinfo", iiprop: "url|mime|extmetadata", iiurlwidth: "1200" });
-    fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { signal: controller.signal })
-      .then(async r => { if (!r.ok) throw new Error("Scene search unavailable"); return r.json(); })
-      .then(data => {
+    setLoading(true);
+    setError("");
+    const params = new URLSearchParams({
+      action: "query",
+      format: "json",
+      origin: "*",
+      generator: "search",
+      gsrnamespace: "6",
+      gsrsearch: `filetype:bitmap ${photoSearch || "landscape nature"}`,
+      gsrlimit: "24",
+      gsroffset: String(offset),
+      prop: "imageinfo",
+      iiprop: "url|mime|extmetadata",
+      iiurlwidth: "1200",
+    });
+    fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Scene search unavailable");
+        return r.json();
+      })
+      .then((data) => {
         if (!alive) return;
-        const items: Scene[] = Object.values(data.query?.pages || {}).flatMap((p: any) => {
-          const info = p.imageinfo?.[0];
-          if (!info || !["image/jpeg", "image/png", "image/webp"].includes(info.mime)) return [];
-          const url = info.thumburl || info.url;
-          if (!safePhoto(url)) return [];
-          const credit = plain(info.extmetadata?.Artist?.value || "Wikimedia Commons");
-          return [{ id: `commons-${p.pageid}`, title: plain(p.title).replace(/^File:/, "").replace(/\.(jpe?g|png|webp)$/i, "").replace(/[_-]+/g, " "), category: "Community photos", background: url, thumbnail: url, credit }];
-        });
-        setPhotos(prev => offset === 0 ? items : [...prev, ...items.filter(item => !prev.some(p => p.id === item.id))]);
+        const items: Scene[] = Object.values(data.query?.pages || {}).flatMap(
+          (p: any) => {
+            const info = p.imageinfo?.[0];
+            if (
+              !info ||
+              !["image/jpeg", "image/png", "image/webp"].includes(info.mime)
+            )
+              return [];
+            const url = info.thumburl || info.url;
+            if (!safePhoto(url)) return [];
+            const credit = plain(
+              info.extmetadata?.Artist?.value || "Wikimedia Commons",
+            );
+            return [
+              {
+                id: `commons-${p.pageid}`,
+                title: plain(p.title)
+                  .replace(/^File:/, "")
+                  .replace(/\.(jpe?g|png|webp)$/i, "")
+                  .replace(/[_-]+/g, " "),
+                category: "Community photos",
+                background: url,
+                thumbnail: url,
+                credit,
+              },
+            ];
+          },
+        );
+        setPhotos((prev) =>
+          offset === 0
+            ? items
+            : [
+                ...prev,
+                ...items.filter((item) => !prev.some((p) => p.id === item.id)),
+              ],
+        );
         setMore(Boolean(data.continue));
-      }).catch(e => { if (alive && e.name !== "AbortError") setError("Could not load online scenes. Local scenes remain available."); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; controller.abort(); };
+      })
+      .catch((e) => {
+        if (alive && e.name !== "AbortError")
+          setError(
+            "Could not load online scenes. Local scenes remain available.",
+          );
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+      controller.abort();
+    };
   }, [tab, photoSearch, offset]);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const updateQuery = (value: string) => {
     setQuery(value);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => { setPhotoSearch(value.trim() || "landscape nature"); setOffset(0); }, 400);
+    searchTimer.current = setTimeout(() => {
+      setPhotoSearch(value.trim() || "landscape nature");
+      setOffset(0);
+    }, 400);
   };
-  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
-  const filtered = tab === "presets" ? PRESETS.filter(s => (category === "All" || category === s.category) && `${s.title} ${s.category}`.toLowerCase().includes(query.toLowerCase())) : photos;
+  useEffect(
+    () => () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    },
+    [],
+  );
+  const dialogRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement;
+    dialogRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key !== "Tab") return;
+      const items = [
+        ...(dialogRef.current?.querySelectorAll<HTMLElement>(
+          "button:not(:disabled),input:not([hidden])",
+        ) || []),
+      ].filter((item) => item.getClientRects().length);
+      const first = items[0],
+        last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      }
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("keydown", key);
+      previous?.focus();
+    };
+  }, []);
+  const filtered =
+    tab === "presets"
+      ? PRESETS.filter(
+          (s) =>
+            (category === "All" || category === s.category) &&
+            `${s.title} ${s.category}`
+              .toLowerCase()
+              .includes(query.toLowerCase()),
+        )
+      : photos;
   const upload = (file?: File) => {
     if (!file) return;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 1_500_000) { setError("Choose a PNG, JPEG, or WebP image smaller than 1.5 MB."); return; }
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+      file.size > 1_500_000
+    ) {
+      setError("Choose a PNG, JPEG, or WebP image smaller than 1.5 MB.");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => { if (typeof reader.result === "string") { try { onSelect({ id: "custom", title: file.name, category: "My images", background: reader.result }); onClose(); } catch { setError("Could not save this image."); } } };
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        try {
+          onSelect({
+            id: "custom",
+            title: file.name,
+            category: "My images",
+            background: reader.result,
+          });
+          onClose();
+        } catch {
+          setError("Could not save this image.");
+        }
+      }
+    };
     reader.readAsDataURL(file);
   };
-  return <div className="oi-modal-backdrop" onPointerDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-    <section role="dialog" aria-modal="true" aria-label="Background library" className="oi-scene-modal">
-      <div className="oi-modal-title"><div><h2>Backgrounds</h2><span>Search and select a scene</span></div><button aria-label="Close backgrounds" onClick={onClose}><X size={19}/></button></div>
-      <div className="oi-scene-top"><div className="oi-scene-search"><Search size={17}/><input aria-label="Search backgrounds" placeholder="Search mountains, beaches, cities…" value={query} onChange={e => updateQuery(e.target.value)} /></div>
-        <button onClick={() => uploadRef.current?.click()}><Upload size={16}/> My image</button><input ref={uploadRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={e => upload(e.target.files?.[0])} /></div>
-      <div className="oi-scene-tabs"><button className={tab === "photos" ? "active" : ""} onClick={() => { setTab("photos"); setOffset(0); }}>Search photos</button><button className={tab === "presets" ? "active" : ""} onClick={() => setTab("presets")}>Built-in scenes ({PRESETS.length})</button></div>
-      {tab === "presets" && <div className="oi-scene-categories">{["All", "Nature", "Coast", "City", "Space", "Minimal"].map(c => <button key={c} className={category === c ? "active" : ""} onClick={() => setCategory(c)}>{c}</button>)}</div>}
-      {error && <p className="oi-scene-error" role="status">{error}</p>}
-      <div className="oi-scene-grid">{filtered.map(s => <button className={`oi-scene-option ${current.id === s.id ? "selected" : ""}`} key={s.id} onClick={() => { onSelect(s); onClose(); }}>
-        <span className="oi-scene-thumb" style={s.thumbnail ? { backgroundImage: `linear-gradient(#06101b22,#06101b22),url("${s.thumbnail}")` } : { background: s.background }}/><span className="oi-scene-name">{s.title}</span>{current.id === s.id && <Check size={16} className="oi-scene-check" />}</button>)}</div>
-      {tab === "photos" && <div className="oi-scenes-bottom">{loading ? "Loading photos…" : more ? <button onClick={() => setOffset(o => o + 24)}>Load more photos <ChevronDown size={15}/></button> : !photos.length ? "Try a different search or choose built-in scenes." : ""}<small>Photos: Wikimedia Commons · External imagery and licenses belong to their contributors</small></div>}
-    </section>
-  </div>;
+  return (
+    <div
+      className="oi-modal-backdrop"
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Background library"
+        className="oi-scene-modal"
+      >
+        <div className="oi-modal-title">
+          <div>
+            <h2>Backgrounds</h2>
+            <span>Search and select a scene</span>
+          </div>
+          <button aria-label="Close backgrounds" onClick={onClose}>
+            <X size={19} />
+          </button>
+        </div>
+        <div className="oi-scene-top">
+          <div className="oi-scene-search">
+            <Search size={17} />
+            <input
+              aria-label="Search backgrounds"
+              placeholder="Search mountains, beaches, cities…"
+              value={query}
+              onChange={(e) => updateQuery(e.target.value)}
+            />
+          </div>
+          <button onClick={() => uploadRef.current?.click()}>
+            <Upload size={16} /> My image
+          </button>
+          <input
+            ref={uploadRef}
+            hidden
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) => upload(e.target.files?.[0])}
+          />
+        </div>
+        <div className="oi-scene-tabs">
+          <button
+            className={tab === "photos" ? "active" : ""}
+            onClick={() => {
+              setTab("photos");
+              setOffset(0);
+            }}
+          >
+            Search photos
+          </button>
+          <button
+            className={tab === "presets" ? "active" : ""}
+            onClick={() => setTab("presets")}
+          >
+            Built-in scenes ({PRESETS.length})
+          </button>
+        </div>
+        {tab === "presets" && (
+          <div className="oi-scene-categories">
+            {["All", "Nature", "Coast", "City", "Space", "Minimal"].map((c) => (
+              <button
+                key={c}
+                className={category === c ? "active" : ""}
+                onClick={() => setCategory(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+        {error && (
+          <p className="oi-scene-error" role="status">
+            {error}
+          </p>
+        )}
+        <div className="oi-scene-grid">
+          {filtered.map((s) => (
+            <button
+              className={`oi-scene-option ${current.id === s.id ? "selected" : ""}`}
+              key={s.id}
+              onClick={() => {
+                onSelect(s);
+                onClose();
+              }}
+            >
+              <span
+                className="oi-scene-thumb"
+                style={
+                  s.thumbnail
+                    ? {
+                        backgroundImage: `linear-gradient(#06101b22,#06101b22),url("${s.thumbnail}")`,
+                      }
+                    : { background: s.background }
+                }
+              />
+              <span className="oi-scene-name">{s.title}</span>
+              {current.id === s.id && (
+                <Check size={16} className="oi-scene-check" />
+              )}
+            </button>
+          ))}
+        </div>
+        {tab === "photos" && (
+          <div className="oi-scenes-bottom">
+            {loading ? (
+              "Loading photos…"
+            ) : more ? (
+              <button onClick={() => setOffset((o) => o + 24)}>
+                Load more photos <ChevronDown size={15} />
+              </button>
+            ) : !photos.length ? (
+              "Try a different search or choose built-in scenes."
+            ) : (
+              ""
+            )}
+            <small>
+              Photos: Wikimedia Commons · External imagery and licenses belong
+              to their contributors
+            </small>
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
 
-export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWidget[]; dateLabel: string }) {
+export default function ImmersiveHome({
+  widgets,
+  dateLabel,
+}: {
+  widgets: HomeWidget[];
+  dateLabel: string;
+}) {
   const [saved, setSaved] = useState<HomeState>(readState);
   const [showScenes, setShowScenes] = useState(false);
   const [showWidgets, setShowWidgets] = useState(false);
@@ -153,66 +515,489 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
   const [narrow, setNarrow] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const topZ = useRef(100);
-  const drag = useRef<{ id: string; kind: "move" | "resize"; startX: number; startY: number; geometry: Geometry } | null>(null);
+  const drag = useRef<{
+    id: string;
+    kind: "move" | "resize";
+    startX: number;
+    startY: number;
+    geometry: Geometry;
+  } | null>(null);
   const space = SPACES.includes(saved.space) ? saved.space : "Today";
   const states = saved.spaces[space] || {};
-  const windowState = (id: string, index: number): WindowState => ({ ...defaultWindow(id,index), ...states[id] });
-  const setWindows = useCallback((change: (current: Record<string, WindowState>) => Record<string, WindowState>) => {
-    setSaved(prev => { const area = prev.space; return { ...prev, spaces: { ...prev.spaces, [area]: change(prev.spaces[area] || {}) } }; });
+  const windowState = (id: string, index: number): WindowState => ({
+    ...defaultWindow(id, index),
+    ...states[id],
+  });
+  const setWindows = useCallback(
+    (
+      change: (
+        current: Record<string, WindowState>,
+      ) => Record<string, WindowState>,
+    ) => {
+      setSaved((prev) => {
+        const area = prev.space;
+        return {
+          ...prev,
+          spaces: { ...prev.spaces, [area]: change(prev.spaces[area] || {}) },
+        };
+      });
+    },
+    [],
+  );
+  const update = (id: string, index: number, patch: Partial<WindowState>) =>
+    setWindows((current) => ({
+      ...current,
+      [id]: { ...defaultWindow(id, index), ...current[id], ...patch },
+    }));
+  useEffect(() => {
+    writeLocal(KEY, saved);
+  }, [saved]);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0].contentRect.width;
+      setCanvasWidth(width);
+      setNarrow(width < 1100);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
-  const update = (id: string, index: number, patch: Partial<WindowState>) => setWindows(current => ({ ...current, [id]: { ...defaultWindow(id,index), ...current[id], ...patch } }));
-  useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch { /* browser quota or private mode */ } }, [saved]);
-  useEffect(() => { const el = stageRef.current; if (!el) return; const ro = new ResizeObserver(entries => { const width = entries[0].contentRect.width; setCanvasWidth(width); setNarrow(width < 1100); }); ro.observe(el); return () => ro.disconnect(); }, []);
-  const bounded = (g: Geometry) => ({ ...g, x: Math.max(0, Math.min(g.x, Math.max(0, canvasWidth - 110))), y: Math.max(0, Math.min(g.y, 2500)), width: Math.min(Math.max(265, g.width), Math.max(265, canvasWidth - 12)), height: Math.max(170, Math.min(g.height, 950)) });
-  const start = (event: ReactPointerEvent, id: string, index: number, kind: "move" | "resize") => {
+  const bounded = (g: Geometry) => {
+    const width = Math.min(
+      Math.max(265, g.width),
+      Math.max(265, canvasWidth - 12),
+    );
+    return {
+      ...g,
+      x: Math.max(0, Math.min(g.x, canvasWidth - width)),
+      y: Math.max(0, Math.min(g.y, 2500)),
+      width,
+      height: Math.max(170, Math.min(g.height, 950)),
+    };
+  };
+  const start = (
+    event: ReactPointerEvent,
+    id: string,
+    index: number,
+    kind: "move" | "resize",
+  ) => {
     if (event.button !== 0 || narrow) return;
-    if (kind === "move" && (event.target as HTMLElement).closest("button,input,select,textarea,a")) return;
-    const w = windowState(id,index);
+    if (
+      kind === "move" &&
+      (event.target as HTMLElement).closest("button,input,select,textarea,a")
+    )
+      return;
+    const w = windowState(id, index);
     if (w.expanded) return;
-    drag.current = { id, kind, startX: event.clientX, startY: event.clientY, geometry: w };
-    event.currentTarget.setPointerCapture(event.pointerId); event.preventDefault();
+    drag.current = {
+      id,
+      kind,
+      startX: event.clientX,
+      startY: event.clientY,
+      geometry: w,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
   };
   const moving = (event: ReactPointerEvent, index: number) => {
     if (!drag.current) return;
     const { id, kind, startX, startY, geometry } = drag.current;
-    const dx = event.clientX - startX, dy = event.clientY - startY;
-    const patch = kind === "move" ? bounded({ ...geometry, x: geometry.x + dx, y: geometry.y + dy }) : bounded({ ...geometry, width: geometry.width + dx, height: geometry.height + dy });
-    update(id,index,patch);
+    const dx = event.clientX - startX,
+      dy = event.clientY - startY;
+    const patch =
+      kind === "move"
+        ? bounded({ ...geometry, x: geometry.x + dx, y: geometry.y + dy })
+        : bounded({
+            ...geometry,
+            width: geometry.width + dx,
+            height: geometry.height + dy,
+          });
+    update(id, index, patch);
   };
   const reorder = (id: string, delta: number) => {
-    const items = widgets.map((w,i) => ({ id: w.id, order: windowState(w.id,i).z })).sort((a,b) => a.order-b.order);
-    const from = items.findIndex(w => w.id === id), to = Math.min(items.length-1,Math.max(0,from+delta));
-    if (to===from) return;
-    const [target]=items.splice(from,1); items.splice(to,0,target);
-    setWindows(current => Object.fromEntries(items.map((w,i) => [w.id,{...defaultWindow(w.id,widgets.findIndex(x=>x.id===w.id)),...current[w.id],z:i+1}])));
+    const items = widgets
+      .map((w, i) => ({ id: w.id, order: windowState(w.id, i).z }))
+      .sort((a, b) => a.order - b.order);
+    const from = items.findIndex((w) => w.id === id),
+      to = Math.min(items.length - 1, Math.max(0, from + delta));
+    if (to === from) return;
+    const [target] = items.splice(from, 1);
+    items.splice(to, 0, target);
+    setWindows((current) =>
+      Object.fromEntries(
+        items.map((w, i) => [
+          w.id,
+          {
+            ...defaultWindow(
+              w.id,
+              widgets.findIndex((x) => x.id === w.id),
+            ),
+            ...current[w.id],
+            z: i + 1,
+          },
+        ]),
+      ),
+    );
   };
-  const raise = (id: string, index: number) => update(id,index,{z:++topZ.current});
-  const backdrop = saved.scene.background.startsWith("data:") || saved.scene.background.startsWith("https://") ? `linear-gradient(#07122060,#07122060),url("${saved.scene.background.replaceAll('"','')}")` : saved.scene.background;
-  const ordered = [...widgets].sort((a,b) => windowState(a.id,widgets.indexOf(a)).z - windowState(b.id,widgets.indexOf(b)).z);
-  return <div className={`oi-root ${narrow ? "oi-narrow" : ""}`} style={{ backgroundImage: backdrop }}>
-    <div className="oi-toolbar"><div className="oi-spaces" role="group" aria-label="Workspace">{SPACES.map(s => <button key={s} className={space===s ? "active":""} onClick={() => setSaved(prev => ({...prev,space:s}))}>{s}</button>)}</div>
-      <div className="oi-toolbar-actions"><button onClick={() => {setShowWidgets(true);setShowScenes(false);}}><Layers3 size={15}/> Widgets</button><button onClick={() => {setShowScenes(true);setShowWidgets(false);}}><Image size={15}/> Backgrounds</button></div></div>
-    <div className="oi-scene-credit">{saved.scene.title}{saved.scene.credit ? ` · ${saved.scene.credit}` : ""}</div>
-    <div className="oi-stage" ref={stageRef} aria-label={`${space} workspace`}>
-      {ordered.map(widget => {
-        const index = widgets.indexOf(widget), w = windowState(widget.id,index);
-        if (w.closed || w.minimized) return null;
-        const pos = narrow ? {} : w.expanded ? {left:10,top:10,width:Math.max(300,canvasWidth-20),height:Math.min(850,window.innerHeight-220),zIndex:1000} : { left: bounded(w).x, top: bounded(w).y, width: bounded(w).width, height: bounded(w).height, zIndex: w.z };
-        return <section key={widget.id} className={`oi-window ${w.expanded ? "oi-expanded" : ""}`} style={pos} onPointerDown={event => { if (!(event.target as HTMLElement).closest("button,input,select,textarea,a")) raise(widget.id,index); }} aria-label={`${widget.title} widget`}>
-          <div className="oi-window-bar" tabIndex={0} role="toolbar" aria-label={`Move ${widget.title}`} onPointerDown={e => start(e,widget.id,index,"move")} onPointerMove={e => moving(e,index)} onPointerUp={() => drag.current=null} onPointerCancel={() => drag.current=null}
-            onKeyDown={e => { if(!e.key.startsWith("Arrow")) return; e.preventDefault(); const d=e.shiftKey?30:10;if(narrow){reorder(widget.id,e.key==="ArrowUp"?-1:1);return;}update(widget.id,index,bounded({...w,x:w.x+(e.key==="ArrowLeft"?-d:e.key==="ArrowRight"?d:0),y:w.y+(e.key==="ArrowUp"?-d:e.key==="ArrowDown"?d:0)})); }}>
-            <span className="oi-window-title">{widget.title}</span><div className="oi-window-controls">
-              <button aria-label={`Minimize ${widget.title}`} title="Minimize" onClick={() => update(widget.id,index,{minimized:true})}><Minus size={15}/></button>
-              <button aria-label={`${w.expanded?"Restore":"Maximize"} ${widget.title}`} title={w.expanded?"Restore":"Maximize"} onClick={() => update(widget.id,index,{expanded:!w.expanded})}>{w.expanded?<Minimize2 size={14}/>:<Maximize2 size={14}/>}</button>
-              <button aria-label={`Close ${widget.title}`} title="Close" onClick={() => update(widget.id,index,{closed:true,minimized:false})}><X size={15}/></button>
-            </div></div>
-          <div className="oi-window-body">{typeof widget.content === "function" ? widget.content(w.expanded) : widget.content}</div>
-          {!narrow && !w.expanded && <div className="oi-resize" role="slider" tabIndex={0} aria-label={`Resize ${widget.title}`} aria-valuemin={170} aria-valuemax={950} aria-valuenow={w.height} onPointerDown={e => start(e,widget.id,index,"resize")} onPointerMove={e => moving(e,index)} onPointerUp={() => drag.current=null} onPointerCancel={() => drag.current=null} onKeyDown={e => {const amount=e.shiftKey?40:10;if(e.key==="ArrowRight"||e.key==="ArrowLeft"||e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();update(widget.id,index,bounded({...w,width:w.width+(e.key==="ArrowRight"?amount:e.key==="ArrowLeft"?-amount:0),height:w.height+(e.key==="ArrowDown"?amount:e.key==="ArrowUp"?-amount:0)}));}}}/>}</section>;
-      })}
+  const raise = (id: string, index: number) => {
+    topZ.current = Math.max(
+      topZ.current,
+      ...Object.values(states).map((state) => state.z),
+    );
+    update(id, index, { z: ++topZ.current });
+  };
+  const backdrop =
+    saved.scene.background.startsWith("data:") ||
+    saved.scene.background.startsWith("https://")
+      ? `linear-gradient(#07122060,#07122060),url("${saved.scene.background.replaceAll('"', "")}")`
+      : saved.scene.background;
+  const ordered = [...widgets].sort(
+    (a, b) =>
+      windowState(a.id, widgets.indexOf(a)).z -
+      windowState(b.id, widgets.indexOf(b)).z,
+  );
+  return (
+    <div
+      className={`oi-root ${narrow ? "oi-narrow" : ""}`}
+      style={{ backgroundImage: backdrop }}
+    >
+      <div className="oi-toolbar">
+        <div className="oi-spaces" role="group" aria-label="Workspace">
+          {SPACES.map((s) => (
+            <button
+              key={s}
+              className={space === s ? "active" : ""}
+              onClick={() => setSaved((prev) => ({ ...prev, space: s }))}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="oi-toolbar-actions">
+          <button
+            onClick={() => {
+              setShowWidgets(true);
+              setShowScenes(false);
+            }}
+          >
+            <Layers3 size={15} /> Widgets
+          </button>
+          <button
+            onClick={() => {
+              setShowScenes(true);
+              setShowWidgets(false);
+            }}
+          >
+            <Image size={15} /> Backgrounds
+          </button>
+        </div>
+      </div>
+      <div className="oi-scene-credit">
+        {saved.scene.title}
+        {saved.scene.credit ? ` · ${saved.scene.credit}` : ""}
+      </div>
+      <div
+        className="oi-stage"
+        ref={stageRef}
+        aria-label={`${space} workspace`}
+        style={
+          narrow
+            ? undefined
+            : {
+                minHeight: Math.max(
+                  1180,
+                  ...widgets.map((widget, index) => {
+                    const w = windowState(widget.id, index);
+                    return w.closed || w.minimized
+                      ? 0
+                      : bounded(w).y + bounded(w).height + 20;
+                  }),
+                ),
+              }
+        }
+      >
+        {ordered.map((widget) => {
+          const index = widgets.indexOf(widget),
+            w = windowState(widget.id, index);
+          if (w.closed || w.minimized) return null;
+          const pos = narrow
+            ? {}
+            : w.expanded
+              ? {
+                  left: 10,
+                  top: 10,
+                  width: Math.max(300, canvasWidth - 20),
+                  height: Math.max(
+                    300,
+                    Math.min(850, window.innerHeight - 220),
+                  ),
+                  zIndex: ordered.indexOf(widget) + 1,
+                }
+              : {
+                  left: bounded(w).x,
+                  top: bounded(w).y,
+                  width: bounded(w).width,
+                  height: bounded(w).height,
+                  zIndex: ordered.indexOf(widget) + 1,
+                };
+          const mode =
+            w.expanded || (!narrow && w.width >= 600 && w.height >= 440)
+              ? "expanded"
+              : "compact";
+          return (
+            <section
+              key={widget.id}
+              data-widget-id={widget.id}
+              data-content-mode={mode}
+              className={`oi-window ${w.expanded ? "oi-expanded" : ""}`}
+              style={pos}
+              onPointerDown={(event) => {
+                if (
+                  !(event.target as HTMLElement).closest(
+                    "button,input,select,textarea,a",
+                  )
+                )
+                  raise(widget.id, index);
+              }}
+              aria-label={`${widget.title} widget`}
+            >
+              <div
+                className="oi-window-bar"
+                tabIndex={0}
+                role="toolbar"
+                aria-label={`Move ${widget.title}`}
+                onPointerDown={(e) => start(e, widget.id, index, "move")}
+                onPointerMove={(e) => moving(e, index)}
+                onPointerUp={() => (drag.current = null)}
+                onPointerCancel={() => (drag.current = null)}
+                onKeyDown={(e) => {
+                  if (!e.key.startsWith("Arrow")) return;
+                  e.preventDefault();
+                  const d = e.shiftKey ? 30 : 10;
+                  if (narrow) {
+                    reorder(widget.id, e.key === "ArrowUp" ? -1 : 1);
+                    return;
+                  }
+                  update(
+                    widget.id,
+                    index,
+                    bounded({
+                      ...w,
+                      x:
+                        w.x +
+                        (e.key === "ArrowLeft"
+                          ? -d
+                          : e.key === "ArrowRight"
+                            ? d
+                            : 0),
+                      y:
+                        w.y +
+                        (e.key === "ArrowUp"
+                          ? -d
+                          : e.key === "ArrowDown"
+                            ? d
+                            : 0),
+                    }),
+                  );
+                }}
+              >
+                <span className="oi-window-title">
+                  <widget.icon size={14} aria-hidden="true" />
+                  {widget.title}
+                </span>
+                <div className="oi-window-controls">
+                  <button
+                    aria-label={`Minimize ${widget.title}`}
+                    title="Minimize"
+                    onClick={() =>
+                      update(widget.id, index, { minimized: true })
+                    }
+                  >
+                    <Minus size={15} />
+                  </button>
+                  <button
+                    aria-label={`${w.expanded ? "Restore" : "Maximize"} ${widget.title}`}
+                    title={w.expanded ? "Restore" : "Maximize"}
+                    onClick={() => {
+                      topZ.current = Math.max(
+                        topZ.current,
+                        ...Object.values(states).map((state) => state.z),
+                      );
+                      update(widget.id, index, {
+                        expanded: !w.expanded,
+                        z: ++topZ.current,
+                      });
+                    }}
+                  >
+                    {w.expanded ? (
+                      <Minimize2 size={14} />
+                    ) : (
+                      <Maximize2 size={14} />
+                    )}
+                  </button>
+                  <button
+                    aria-label={`Close ${widget.title}`}
+                    title="Close"
+                    onClick={() =>
+                      update(widget.id, index, {
+                        closed: true,
+                        minimized: false,
+                      })
+                    }
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+              <div className="oi-window-body">
+                {widget.render({
+                  mode,
+                  availableWidth: w.expanded
+                    ? canvasWidth - 20
+                    : bounded(w).width,
+                  availableHeight: w.expanded
+                    ? Math.min(850, window.innerHeight - 220)
+                    : w.height,
+                  workspace: space,
+                })}
+              </div>
+              {!narrow && !w.expanded && (
+                <div
+                  className="oi-resize"
+                  role="slider"
+                  tabIndex={0}
+                  aria-label={`Resize ${widget.title}`}
+                  aria-valuemin={170}
+                  aria-valuemax={950}
+                  aria-valuenow={w.height}
+                  onPointerDown={(e) => start(e, widget.id, index, "resize")}
+                  onPointerMove={(e) => moving(e, index)}
+                  onPointerUp={() => (drag.current = null)}
+                  onPointerCancel={() => (drag.current = null)}
+                  onKeyDown={(e) => {
+                    const amount = e.shiftKey ? 40 : 10;
+                    if (
+                      e.key === "ArrowRight" ||
+                      e.key === "ArrowLeft" ||
+                      e.key === "ArrowUp" ||
+                      e.key === "ArrowDown"
+                    ) {
+                      e.preventDefault();
+                      update(
+                        widget.id,
+                        index,
+                        bounded({
+                          ...w,
+                          width:
+                            w.width +
+                            (e.key === "ArrowRight"
+                              ? amount
+                              : e.key === "ArrowLeft"
+                                ? -amount
+                                : 0),
+                          height:
+                            w.height +
+                            (e.key === "ArrowDown"
+                              ? amount
+                              : e.key === "ArrowUp"
+                                ? -amount
+                                : 0),
+                        }),
+                      );
+                    }
+                  }}
+                />
+              )}
+            </section>
+          );
+        })}
+      </div>
+      {widgets.some(
+        (widget, index) =>
+          windowState(widget.id, index).minimized &&
+          !windowState(widget.id, index).closed,
+      ) && (
+        <div className="oi-dock" aria-label="Minimized widgets">
+          {widgets
+            .filter(
+              (widget, index) =>
+                windowState(widget.id, index).minimized &&
+                !windowState(widget.id, index).closed,
+            )
+            .map((widget) => (
+              <button
+                key={widget.id}
+                onClick={() =>
+                  update(widget.id, widgets.indexOf(widget), {
+                    minimized: false,
+                    z: ++topZ.current,
+                  })
+                }
+              >
+                {widget.title} <Maximize2 size={12} />
+              </button>
+            ))}
+        </div>
+      )}
+      {showWidgets && (
+        <div
+          className="oi-widget-panel"
+          role="dialog"
+          aria-label="Manage widgets"
+        >
+          <div className="oi-widget-panel-head">
+            <strong>Widgets</strong>
+            <button
+              aria-label="Close widgets"
+              onClick={() => setShowWidgets(false)}
+            >
+              <X size={16} />
+            </button>
+          </div>
+          {widgets.map((widget, index) => {
+            const w = windowState(widget.id, index);
+            return (
+              <div className="oi-widget-entry" key={widget.id}>
+                <span>{widget.title}</span>
+                <button
+                  onClick={() =>
+                    update(widget.id, index, {
+                      closed: !w.closed,
+                      minimized: false,
+                    })
+                  }
+                >
+                  {w.closed ? "Show" : "Hide"}
+                </button>
+                <button
+                  aria-label={`Move ${widget.title} up`}
+                  onClick={() => reorder(widget.id, -1)}
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  aria-label={`Move ${widget.title} down`}
+                  onClick={() => reorder(widget.id, 1)}
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
+            );
+          })}
+          <button className="oi-reset" onClick={() => setWindows(() => ({}))}>
+            <RotateCcw size={14} /> Reset {space} layout
+          </button>
+        </div>
+      )}
+      {showScenes && (
+        <ScenePicker
+          current={saved.scene}
+          onSelect={(scene) => setSaved((prev) => ({ ...prev, scene }))}
+          onClose={() => setShowScenes(false)}
+        />
+      )}
+      <span className="oi-sr-only">{dateLabel}</span>
     </div>
-    {widgets.some((widget,index)=>windowState(widget.id,index).minimized&&!windowState(widget.id,index).closed) && <div className="oi-dock" aria-label="Minimized widgets">{widgets.filter((widget,index)=>windowState(widget.id,index).minimized&&!windowState(widget.id,index).closed).map(widget => <button key={widget.id} onClick={()=>update(widget.id,widgets.indexOf(widget),{minimized:false,z:++topZ.current})}>{widget.title} <Maximize2 size={12}/></button>)}</div>}
-    {showWidgets && <div className="oi-widget-panel" role="dialog" aria-label="Manage widgets"><div className="oi-widget-panel-head"><strong>Widgets</strong><button aria-label="Close widgets" onClick={()=>setShowWidgets(false)}><X size={16}/></button></div>{widgets.map((widget,index)=>{const w=windowState(widget.id,index);return <div className="oi-widget-entry" key={widget.id}><span>{widget.title}</span><button onClick={()=>update(widget.id,index,{closed:!w.closed,minimized:false})}>{w.closed?"Show":"Hide"}</button><button aria-label={`Move ${widget.title} up`} onClick={()=>reorder(widget.id,-1)}><ArrowUp size={14}/></button><button aria-label={`Move ${widget.title} down`} onClick={()=>reorder(widget.id,1)}><ArrowDown size={14}/></button></div>;})}<button className="oi-reset" onClick={()=>setWindows(()=>({}))}><RotateCcw size={14}/> Reset {space} layout</button></div>}
-    {showScenes && <ScenePicker current={saved.scene} onSelect={scene=>setSaved(prev=>({...prev,scene}))} onClose={()=>setShowScenes(false)}/>}
-    <span className="oi-sr-only">{dateLabel}</span>
-  </div>;
+  );
 }

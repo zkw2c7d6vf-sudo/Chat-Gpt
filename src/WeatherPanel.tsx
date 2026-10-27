@@ -138,10 +138,14 @@ export default function WeatherPanel({
   settingsOnly = false,
   forecastDays = 7,
   onTemperature,
+  interactive = false,
+  showCurrent = false,
 }: {
   onWeather?: (summary: string) => void;
   settingsOnly?: boolean;
   forecastDays?: number;
+  interactive?: boolean;
+  showCurrent?: boolean;
   onTemperature?: (value: {
     temperature: number;
     unit: Unit;
@@ -161,6 +165,18 @@ export default function WeatherPanel({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [searched, setSearched] = useState(false);
+  useEffect(() => {
+    const update = () => {
+      setLocation(savedLocation());
+      setUnit(savedUnit());
+    };
+    window.addEventListener("orbit:weather-preferences", update);
+    window.addEventListener("storage", update);
+    return () => {
+      window.removeEventListener("orbit:weather-preferences", update);
+      window.removeEventListener("storage", update);
+    };
+  }, []);
   const [searchController, setSearchController] =
     useState<AbortController | null>(null);
   const onWeatherRef = useRef(onWeather);
@@ -279,6 +295,7 @@ export default function WeatherPanel({
     setQuery("");
     try {
       localStorage.setItem("orbit-weather-location", JSON.stringify(next));
+      window.dispatchEvent(new Event("orbit:weather-preferences"));
     } catch {
       /* The weather panel still works without persistence. */
     }
@@ -288,6 +305,7 @@ export default function WeatherPanel({
     setRetry(0);
     try {
       localStorage.setItem("orbit-weather-unit", next);
+      window.dispatchEvent(new Event("orbit:weather-preferences"));
     } catch {
       /* Keep the setting for this session. */
     }
@@ -302,7 +320,7 @@ export default function WeatherPanel({
           <CloudSun size={17} />
           Weather
         </h2>
-        {settingsOnly && (
+        {(settingsOnly || interactive) && (
           <div className="weather-unit-toggle" aria-label="Temperature units">
             <button
               type="button"
@@ -323,8 +341,10 @@ export default function WeatherPanel({
           </div>
         )}
       </div>
-      {settingsOnly && <p>Forecast location · {location.name}</p>}
-      {settingsOnly && (
+      {(settingsOnly || interactive) && (
+        <p>Forecast location · {location.name}</p>
+      )}
+      {(settingsOnly || interactive) && (
         <button
           type="button"
           className="weather-location"
@@ -340,7 +360,7 @@ export default function WeatherPanel({
           <ChevronDown size={13} />
         </button>
       )}
-      {settingsOnly && editing && (
+      {(settingsOnly || interactive) && editing && (
         <div className="weather-location-picker">
           <form onSubmit={search}>
             <Search size={15} />
@@ -422,23 +442,63 @@ export default function WeatherPanel({
         <p>Loading weather preferences…</p>
       ) : settingsOnly ? null : data ? (
         <>
-          <div className="weather-forecast" aria-label={forecastDays === 7 ? "Seven-day forecast" : `${forecastDays}-day forecast`}>
-            {data.daily.slice(0, Math.max(1, Math.min(7, forecastDays))).map((day, i) => (
-              <div key={day.date}>
-                <span>
-                  {i === 0
-                    ? "Today"
-                    : new Date(`${day.date}T12:00:00`).toLocaleDateString(
-                        "en-US",
-                        { weekday: "short" },
-                      )}
-                </span>
-                <WeatherIcon code={day.weatherCode} size={19} />
-                <strong>
-                  {Math.round(day.high)}°<small>{Math.round(day.low)}°</small>
-                </strong>
-              </div>
-            ))}
+          {showCurrent && (
+            <div className="oi-current-weather">
+              <WeatherIcon code={data.current.weatherCode} size={36} />
+              <strong>
+                {Math.round(data.current.temperature)}°
+                <small>{unit === "fahrenheit" ? "F" : "C"}</small>
+              </strong>
+              <span>
+                {location.name}
+                <small>{weatherDescription(data.current.weatherCode)}</small>
+              </span>
+            </div>
+          )}
+          {interactive && (
+            <div className="oi-weather-details">
+              <span>Feels like {Math.round(data.current.feelsLike)}°</span>
+              <span>Humidity {data.current.humidity}%</span>
+              <span>
+                Wind {data.current.windSpeed}{" "}
+                {unit === "fahrenheit" ? "mph" : "km/h"}
+              </span>
+              <button onClick={() => setRetry((value) => value + 1)}>
+                Refresh weather
+              </button>
+            </div>
+          )}
+          <div
+            className="weather-forecast"
+            aria-label={
+              forecastDays === 7
+                ? "Seven-day forecast"
+                : `${forecastDays}-day forecast`
+            }
+          >
+            {data.daily
+              .slice(0, Math.max(1, Math.min(7, forecastDays)))
+              .map((day, i) => (
+                <div key={day.date}>
+                  <span>
+                    {i === 0
+                      ? "Today"
+                      : new Date(`${day.date}T12:00:00`).toLocaleDateString(
+                          "en-US",
+                          { weekday: "short" },
+                        )}
+                  </span>
+                  <WeatherIcon code={day.weatherCode} size={19} />
+                  <strong>
+                    {Math.round(day.high)}°<small>{Math.round(day.low)}°</small>
+                  </strong>
+                  {interactive && (
+                    <small className="oi-precipitation">
+                      {day.precipitationChance ?? "—"}% rain
+                    </small>
+                  )}
+                </div>
+              ))}
           </div>
         </>
       ) : loading ? (

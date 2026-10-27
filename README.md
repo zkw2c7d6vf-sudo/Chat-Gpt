@@ -1,9 +1,28 @@
-# Orbit v4.4
+# Orbit 4.5
 
-> **Codex continuation:** If resuming Orbit from an earlier session, first read [CODEX_START_HERE.md](CODEX_START_HERE.md), [ORBIT_STATUS.md](ORBIT_STATUS.md), [ORBIT_NEXT_TASK.md](ORBIT_NEXT_TASK.md) and the full conversation/expansion specifications linked there. The immersive Home redesign is in [draft PR #4](https://github.com/zkw2c7d6vf-sudo/Chat-Gpt/pull/4), not automatically deployed. Dynamic richer expansion for all eleven widgets remains an active requirement.
+Orbit is Joe’s local personal dashboard. Version 4.5 combines immersive Home, a weekly Planner, Education Center, File Studio, media, shopping, finance, and the existing provider connections.
 
+## Install 4.5 without replacing your current copy
 
-A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
+1. Export a dashboard backup from your current Orbit’s Profile & settings.
+2. Stop the old server with **Control + C**. Extract this download into a **separate folder** and keep the old folder intact.
+3. Privately copy your existing **`.env`** and **`.orbit`** folder into the new folder. Keep a custom `DASHBOARD_DATA_DIR` unchanged if you use one. Finder’s **Command + Shift + .** shows hidden files. Do not copy `node_modules`.
+4. Open Terminal in the new folder and run the commands below. Continue using **the same browser and `http://127.0.0.1:5173`** to keep origin-scoped notes, tasks, media, and sessions.
+
+Your Mac is not updated automatically by a GitHub push. This release never replaces an existing installation for you.
+
+## What is new in 4.5
+
+- **Immersive Home:** eleven directly movable/resizable windows, minimize/dock, close/reopen, maximize/restore, keyboard controls, saved Today/Study/Focus/Unwind layouts, and searchable backgrounds. Every widget reveals additional data or working controls when expanded. `?classic-home=1` preserves the classic layout.
+- **Education Center:** create, edit, search, complete, reopen and remove college/teaching responsibilities with course, type, date, notes and resource link. Deadlines appear in Home’s Up next and the weekly Planner. Records remain in this browser and are excluded from AI context.
+- **Weekly Planner:** calendar events, dated tasks, education deadlines and an unscheduled task list. Drag local tasks onto a day or use the date inputs. Events remain read-only.
+- **Tasks:** edit titles, due dates and priority, filter open/due/completed entries, and undo deletion. Home compact view shows three open priorities.
+- **Focus:** persistent deadlines across navigation/reload, intentions, completed-session history, genuine volume control, and shared ambient audio. After a reload, resume sound explicitly; the timer continues without autoplay.
+- **File Studio:** local PNG/JPEG/WebP conversion, resizing and quality controls; JSON formatting/minification and CSV ↔ JSON. Preview and download outputs without uploading them. PDF, Office and video conversion are outside this build.
+- **Shopping Scout:** save live eBay listings into the comparison board, filter by USD delivered budget, sort, and reopen saved searches. Unknown shipping is labeled and excluded from delivered-price comparisons. Existing manual retailer comparisons still work.
+- **Backups:** Education Center, focus preferences/history, saved YouTube IDs, finance, shopping and Home layout are included. Tokens, private calendar URLs, media bytes and private background bytes remain excluded. Running timer deadlines and temporary File Studio inputs are not portable backup data.
+
+Release details and the tested widget matrix: [4.5 handoff](docs/v4.5-review.md). Start future coding work with [CODEX_START_HERE.md](CODEX_START_HERE.md) and [ORBIT_STATUS.md](ORBIT_STATUS.md).
 
 ## Start on your Mac
 
@@ -27,7 +46,7 @@ Shopping Scout now saves searches and lets you save actual listings from Amazon,
 Orbit 4.1 refines the dashboard around four practical surfaces:
 
 - Focus offers 5, 10, 25, 50, or custom-minute sessions with browser-generated rain, roof, window, storm, snow, and hail soundscapes. Audio only starts after the user starts a session.
-- Media opens with popular TVMaze shows, keeps cast and IMDb exploration, and places the YouTube player and a grid of official streaming-service links in the lower player area.
+- Media opens with TVMaze catalog picks, keeps cast and IMDb exploration, and places the YouTube player and a grid of official streaming-service links in the lower player area.
 - Shopping Scout requests live product cards through an optional private eBay Browse API connection. Without those credentials it shows a clear setup state and keeps saved searches, retailer links, and manual delivered-price comparisons available.
 - Profile and settings are consolidated into the wide page opened by the bottom-left Joe avatar. The duplicate Connections sidebar destination is removed.
 

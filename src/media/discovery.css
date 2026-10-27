@@ -448,3 +448,15 @@
     min-width: 0;
   }
 }
+
+.streaming-local-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  font-family: "Manrope Variable", sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}

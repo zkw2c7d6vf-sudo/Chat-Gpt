@@ -147,11 +147,33 @@ export default function MediaDiscovery() {
       setSelected(data);
       setRatings(null);
       if (data.show.imdb) {
-        const ratingResponse = await fetch(
-          `/api/media/ratings?imdb=${encodeURIComponent(data.show.imdb.split("/").filter(Boolean).pop() || "")}`,
-        );
-        setRatings(await ratingResponse.json());
-      }
+        try {
+          const ratingResponse = await fetch(
+            `/api/media/ratings?imdb=${encodeURIComponent(data.show.imdb.split("/").filter(Boolean).pop() || "")}`,
+          );
+          if (!ratingResponse.ok)
+            throw new Error("Ratings are unavailable right now.");
+          const result: Ratings = await ratingResponse.json();
+          setRatings(
+            result.available && !result.ratings?.length
+              ? {
+                  available: false,
+                  reason: "No published ratings were returned.",
+                }
+              : result,
+          );
+        } catch {
+          setRatings({
+            available: false,
+            reason:
+              "Ratings are unavailable right now. The show and cast are still available.",
+          });
+        }
+      } else
+        setRatings({
+          available: false,
+          reason: "No IMDb rating reference is available for this show.",
+        });
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "The show could not be opened.",
@@ -198,8 +220,8 @@ export default function MediaDiscovery() {
         <div className="discovery-catalog">
           <div className="popular-heading">
             <div>
-              <span className="media-eyebrow">POPULAR NOW</span>
-              <strong>Popular on TVMaze</strong>
+              <span className="media-eyebrow">CATALOG PICKS</span>
+              <strong>Browse TVMaze shows</strong>
             </div>
             {popularError && <small>{popularError}</small>}
           </div>
@@ -420,11 +442,24 @@ export default function MediaDiscovery() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <img
-                    src={`https://cdn.simpleicons.org/${icon}/${color}`}
-                    alt=""
-                    loading="lazy"
-                  />
+                  <span
+                    className="streaming-local-icon"
+                    data-brand={icon}
+                    style={{ color: `#${color}` }}
+                    aria-hidden="true"
+                  >
+                    {name === "YouTube" ? (
+                      <Play size={21} />
+                    ) : name === "Disney+" ? (
+                      "D+"
+                    ) : name === "Prime Video" ? (
+                      "P"
+                    ) : name === "Apple TV+" ? (
+                      "tv+"
+                    ) : (
+                      name.slice(0, 1)
+                    )}
+                  </span>
                   <span>{name}</span>
                   <ExternalLink size={11} />
                 </a>

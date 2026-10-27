@@ -24,13 +24,14 @@ npm test
 npm run dev
 # In a second terminal:
 npm run test:home
+npm run test:v45
 npm run test:e2e
 npm run test:v3
 npm run test:v31
 npm run test:v4
 ```
 
-**Environment limitation:** dependency installation and executable browser tests were unavailable in the authoring container because its external npm registry could not be reached; these tests and build must be run in the actual Orbit environment before merging. Code was checked by source inspection and TypeScript syntactic parsing, but provider connections were **not** tested.
+**4.5 validation update:** The managed environment now supports dependency installation and browser execution. Production build, 73 unit/API checks and all 72 Home/module/historical browser checks passed locally. `npm run test:v45` covers every widget’s expanded content and the new modules. Public Open-Meteo and TVMaze smoke requests succeeded. Private Mac/account validation remains separate; see `v4.5-review.md`.
 
 ## Background privacy and licensing
 Opening photo search makes a direct request from the browser to Wikimedia Commons. Selected online images are loaded from Wikimedia hosts; they are **not** bundled in Orbit or hosted by its server. Creators may have attribution/share-alike requirements depending on each image. Do not republish them without checking the specific file license. Built-in scenes function offline. User-supplied images are kept locally and are not sent to Wikimedia.

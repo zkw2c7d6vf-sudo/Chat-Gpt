@@ -1,6 +1,17 @@
 # Orbit development changelog
 
+## 2026-10-27 — Orbit 4.5
+
+- Completed meaningful expanded content for every Home widget and the shared typed renderer.
+- Fixed saved geometry bounds, z-order, window stacking, mobile content, weather clipping and background dialog keyboard focus.
+- Added Education Center, a combined weekly Planner, task editing/filtering/undo, persistent Focus/history/shared ambient volume and local File Studio.
+- Added live eBay snapshot comparisons, budget/sort, missing-shipping distinction, bounded catalog cache and local streaming-service marks.
+- Expanded validated backups without including credentials, private image bytes or local media files.
+- Verified production build, 73 unit/API tests and 72 browser checks; live public weather/catalog requests succeeded. Private Mac/account checks remain user acceptance work.
+- Kept the classic Home fallback and all historical release branches; no public deployment or main overwrite.
+
 ## 2026-10-27 — Immersive Home feature branch (draft)
+
 - Introduced a LifeAt-inspired, but Orbit-branded, scene-backed window workspace while retaining the original sidebar logo and dynamic time-based greeting.
 - Added movable/resizable/minimizable/reopenable widget surfaces and Today / Study / Focus / Unwind layout persistence.
 - Added search and categories for backgrounds (36 local presets plus external Wikimedia photo search); local image choice supported.

@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -41,6 +41,8 @@ jobs:
           exit 1
       - name: Immersive Home E2E
         run: npm run test:home
+      - name: Orbit 4.5 all-widget and module acceptance
+        run: npm run test:v45
       - name: V2 regression
         run: npm run test:e2e
       - name: V3 regression

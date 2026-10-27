@@ -86,23 +86,30 @@ export function createShoppingService({
         configured: true,
         provider: "eBay",
         query,
-        items: items
-          .slice(0, 24)
-          .map((item) => ({
-            id: String(item.itemId || crypto.randomUUID()),
-            title: String(item.title || "Untitled listing"),
-            image:
-              item.image?.imageUrl ||
-              item.thumbnailImages?.[0]?.imageUrl ||
-              null,
-            url: item.itemWebUrl || null,
-            price: Number(item.price?.value) || null,
-            currency: item.price?.currency || "USD",
-            shipping:
-              Number(item.shippingOptions?.[0]?.shippingCost?.value) || 0,
-            condition: item.condition || null,
-            seller: item.seller?.username || null,
-          })),
+        items: items.slice(0, 24).map((item) => ({
+          id: String(item.itemId || crypto.randomUUID()),
+          title: String(item.title || "Untitled listing"),
+          image:
+            item.image?.imageUrl || item.thumbnailImages?.[0]?.imageUrl || null,
+          url: item.itemWebUrl || null,
+          price:
+            item.price?.value != null &&
+            Number.isFinite(Number(item.price.value)) &&
+            Number(item.price.value) >= 0
+              ? Number(item.price.value)
+              : null,
+          currency: item.price?.currency || "USD",
+          shipping:
+            item.shippingOptions?.[0]?.shippingCost?.value != null &&
+            Number.isFinite(
+              Number(item.shippingOptions[0].shippingCost.value),
+            ) &&
+            Number(item.shippingOptions[0].shippingCost.value) >= 0
+              ? Number(item.shippingOptions[0].shippingCost.value)
+              : null,
+          condition: item.condition || null,
+          seller: item.seller?.username || null,
+        })),
       };
     },
   };

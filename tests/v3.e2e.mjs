@@ -211,12 +211,16 @@ async function capture(type, title, extra) {
     .waitFor({ state: "hidden" });
 }
 try {
-  await page.goto(`${base.replace(/\/$/, "")}/?classic-home=1`, { waitUntil: "networkidle" });
+  await page.goto(`${base.replace(/\/$/, "")}/?classic-home=1`, {
+    waitUntil: "networkidle",
+  });
   await check(
     "media center is a genuine side tab with empty movies, TV and photo slots",
     async () => {
       await nav("Media Center");
-      await visible(page.getByRole("heading", { name: "Library" }));
+      await visible(
+        page.getByRole("heading", { name: "Library", exact: true }),
+      );
       for (const name of ["Movies", "TV shows", "Photos"]) {
         await page
           .getByRole("button", { name: new RegExp(`^${name}`) })

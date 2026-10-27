@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "appliesTo": "Orbit Home all current and future windows",
-  "implementationStatus": "specification; not proof of expanded views in runtime",
+  "implementationStatus": "Implemented and covered by tests/v45.e2e.mjs in Orbit 4.5; private provider/device verification remains separate.",
   "notes": "Any new widget must be added to this manifest before release. Passing manifest coverage does not prove functionality; Playwright content-delta tests are required.",
   "widgets": [
     {
@@ -110,7 +110,7 @@
     },
     {
       "id": "weather",
-      "title": "Weather · 5 days",
+      "title": "Weather \u00b7 5 days",
       "dataSource": "weather",
       "compact": "current conditions and five-day forecast",
       "expanded": "seven-day forecast, precipitation, location/unit controls, retry and attribution",
