@@ -1,6 +1,7 @@
 import { newId } from "./id";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { safeHttps } from "./local";
+import { downloadCsv } from "./exports";
+import { safeHttps, writeLocal } from "./local";
 import type { FormEvent } from "react";
 import { ExternalLink, Plus, Search, Tag, Trash2, Trophy } from "lucide-react";
 import "./shopping.css";
@@ -121,15 +122,35 @@ export default function ShoppingScout() {
   const [liveQuery, setLiveQuery] = useState("popular");
   const [liveSort, setLiveSort] = useState("relevance");
   const [budget, setBudget] = useState("");
+  const [boardQuery, setBoardQuery] = useState("");
+  const [removed, setRemoved] = useState<{
+    search?: SavedSearch;
+    offers: Offer[];
+  } | null>(null);
   const requestVersion = useRef(0);
-  useEffect(
-    () => localStorage.setItem(searchesKey, JSON.stringify(saved)),
-    [saved],
-  );
-  useEffect(
-    () => localStorage.setItem(offersKey, JSON.stringify(savedOffers)),
-    [savedOffers],
-  );
+  const [storageError, setStorageError] = useState("");
+  const persistedSearches = useRef(saved);
+  const persistedOffers = useRef(savedOffers);
+  const persist = () => {
+    try {
+      if (persistedSearches.current !== saved) {
+        if (!writeLocal(searchesKey, saved)) throw new Error("searches");
+        persistedSearches.current = saved;
+      }
+      if (persistedOffers.current !== savedOffers) {
+        if (!writeLocal(offersKey, savedOffers)) throw new Error("comparisons");
+        persistedOffers.current = savedOffers;
+      }
+      setStorageError("");
+    } catch {
+      setStorageError(
+        "Shopping changes could not be saved. Keep this tab open and retry after making browser storage available.",
+      );
+    }
+  };
+  useEffect(() => {
+    persist();
+  }, [saved, savedOffers]);
   const clean = query.trim().slice(0, 120);
   const loadLive = async (term: string) => {
     const version = ++requestVersion.current;
@@ -232,6 +253,7 @@ export default function ShoppingScout() {
     const itemPrice = Number(price),
       itemShipping = Number(shipping || 0);
     if (
+      !price.trim() ||
       !Number.isFinite(itemPrice) ||
       itemPrice < 0 ||
       itemPrice > 1e9 ||
@@ -463,6 +485,12 @@ export default function ShoppingScout() {
           </small>
         )}
       </section>
+      {storageError && (
+        <div className="module-notice" role="alert">
+          {storageError}
+          <button onClick={persist}>Retry saving shopping</button>
+        </div>
+      )}
       <form onSubmit={addSearch} className="shopping-search">
         <Search size={18} />
         <input
@@ -493,194 +521,286 @@ export default function ShoppingScout() {
           ))}
         </div>
       )}
+      {removed && (
+        <div className="module-notice" role="status">
+          Comparison removed.
+          <button
+            onClick={() => {
+              if (
+                (removed.search && saved.length >= 12) ||
+                savedOffers.length + removed.offers.length > 200
+              ) {
+                setLiveMessage(
+                  "Make room on the comparison board before restoring.",
+                );
+                return;
+              }
+              if (removed.search)
+                setSaved((current) =>
+                  current.some((item) => item.id === removed.search!.id)
+                    ? current
+                    : [removed.search!, ...current],
+                );
+              setSavedOffers((current) => [
+                ...current,
+                ...removed.offers.filter(
+                  (offer) => !current.some((item) => item.id === offer.id),
+                ),
+              ]);
+              setRemoved(null);
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
+      {feed.length > 0 && (
+        <div className="module-filters">
+          <input
+            type="search"
+            aria-label="Search saved comparisons"
+            placeholder="Find a saved comparison"
+            value={boardQuery}
+            onChange={(event) => setBoardQuery(event.target.value)}
+          />
+          <button
+            disabled={!savedOffers.length}
+            onClick={() =>
+              downloadCsv("orbit-shopping-comparisons.csv", [
+                [
+                  "Search",
+                  "Store",
+                  "Item price (USD)",
+                  "Shipping (USD)",
+                  "Total (USD)",
+                  "Note",
+                  "Link",
+                ],
+                ...feed.flatMap((item) =>
+                  item.offers.map((offer) => [
+                    item.query,
+                    offer.store,
+                    offer.price,
+                    offer.shipping,
+                    total(offer),
+                    offer.note,
+                    offer.url,
+                  ]),
+                ),
+              ])
+            }
+          >
+            Export comparisons CSV
+          </button>
+        </div>
+      )}
+      {feed.length > 0 &&
+        !feed.some((item) =>
+          item.query.toLowerCase().includes(boardQuery.trim().toLowerCase()),
+        ) && <p className="module-notice">No matching saved comparisons.</p>}
       {feed.length ? (
         <div className="shopping-saved">
-          {feed.map((item) => {
-            const compared = [...item.offers].sort(
-              (a, b) => total(a) - total(b),
-            );
-            return (
-              <article key={item.id}>
-                <div className="shopping-query-row">
-                  <strong>{item.query}</strong>
-                  <button
-                    className="browse-saved-search"
-                    aria-label={`Browse live listings for ${item.query}`}
-                    onClick={() => void loadLive(item.query)}
-                  >
-                    Browse live
-                  </button>
-                  <button
-                    aria-label={`Remove ${item.query}`}
-                    onClick={() => {
-                      setSaved((current) =>
-                        current.filter((x) => x.id !== item.id),
-                      );
-                      setSavedOffers((current) =>
-                        current.filter((x) => x.searchId !== item.id),
-                      );
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                <div
-                  className="retailer-links"
-                  aria-label={`Search stores for ${item.query}`}
-                >
-                  {retailers.map(([name, base]) => (
-                    <a
-                      key={name}
-                      href={`${base}${encodeURIComponent(item.query)}`}
-                      target="_blank"
-                      rel="noreferrer"
+          {feed
+            .filter((item) =>
+              item.query
+                .toLowerCase()
+                .includes(boardQuery.trim().toLowerCase()),
+            )
+            .map((item) => {
+              const compared = [...item.offers].sort(
+                (a, b) => total(a) - total(b),
+              );
+              return (
+                <article key={item.id}>
+                  <div className="shopping-query-row">
+                    <strong>{item.query}</strong>
+                    <button
+                      className="browse-saved-search"
+                      aria-label={`Browse live listings for ${item.query}`}
+                      onClick={() => void loadLive(item.query)}
                     >
-                      {name} <ExternalLink size={11} />
-                    </a>
-                  ))}
-                </div>
-                {compared.length ? (
-                  <ol
-                    className="offer-list"
-                    aria-label={`Saved offers for ${item.query}`}
+                      Browse live
+                    </button>
+                    <button
+                      aria-label={`Remove ${item.query}`}
+                      onClick={() => {
+                        setRemoved({
+                          search: saved.find((search) => search.id === item.id),
+                          offers: item.offers,
+                        });
+                        if (addingFor === item.id) clearOfferForm();
+                        setSaved((current) =>
+                          current.filter((x) => x.id !== item.id),
+                        );
+                        setSavedOffers((current) =>
+                          current.filter((x) => x.searchId !== item.id),
+                        );
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div
+                    className="retailer-links"
+                    aria-label={`Search stores for ${item.query}`}
                   >
-                    {compared.map((offer, index) => (
-                      <li
-                        key={offer.id}
-                        className={index === 0 ? "best-offer" : ""}
+                    {retailers.map(([name, base]) => (
+                      <a
+                        key={name}
+                        href={`${base}${encodeURIComponent(item.query)}`}
+                        target="_blank"
+                        rel="noreferrer"
                       >
-                        {offer.image && (
-                          <img
-                            className="offer-thumb"
-                            src={offer.image}
-                            alt=""
-                          />
-                        )}
-                        <span>
-                          {index === 0 ? (
-                            <Trophy size={13} aria-label="Lowest saved total" />
-                          ) : (
-                            <Tag size={13} />
-                          )}{" "}
-                          {offer.store}
-                        </span>
-                        <strong>${total(offer).toFixed(2)}</strong>
-                        {offer.shipping > 0 && (
-                          <small>
-                            ${offer.price.toFixed(2)} + $
-                            {offer.shipping.toFixed(2)} shipping
-                          </small>
-                        )}
-                        {offer.note && <small>{offer.note}</small>}
-                        <div>
-                          {offer.url && (
-                            <a
-                              href={offer.url}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Listing <ExternalLink size={11} />
-                            </a>
-                          )}
-                          <button
-                            aria-label={`Remove ${offer.store} offer for ${item.query}`}
-                            onClick={() =>
-                              setSavedOffers((current) =>
-                                current.filter((x) => x.id !== offer.id),
-                              )
-                            }
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </li>
+                        {name} <ExternalLink size={11} />
+                      </a>
                     ))}
-                  </ol>
-                ) : (
-                  <div className="shopping-empty">No listings saved yet.</div>
-                )}
-                {addingFor === item.id ? (
-                  <form className="offer-form" onSubmit={addOffer}>
-                    <label>
-                      Store
-                      <select
-                        value={store}
-                        onChange={(event) => setStore(event.target.value)}
-                      >
-                        {retailers.map(([name]) => (
-                          <option key={name}>{name}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Item price
-                      <input
-                        aria-label="Item price"
-                        inputMode="decimal"
-                        value={price}
-                        onChange={(event) => setPrice(event.target.value)}
-                        placeholder="0.00"
-                        required
-                      />
-                    </label>
-                    <label>
-                      Shipping
-                      <input
-                        aria-label="Shipping cost"
-                        inputMode="decimal"
-                        value={shipping}
-                        onChange={(event) => setShipping(event.target.value)}
-                      />
-                    </label>
-                    <label className="offer-url">
-                      Listing link (optional)
-                      <input
-                        aria-label="Listing link"
-                        value={url}
-                        onChange={(event) => setUrl(event.target.value)}
-                        placeholder="https://…"
-                      />
-                    </label>
-                    <label className="offer-url">
-                      Product image URL (optional)
-                      <input
-                        aria-label="Product image URL"
-                        value={image}
-                        onChange={(event) => setImage(event.target.value)}
-                        placeholder="https://…/image.jpg"
-                      />
-                    </label>
-                    <label className="offer-url">
-                      Note (optional)
-                      <input
-                        aria-label="Listing note"
-                        value={note}
-                        onChange={(event) => setNote(event.target.value)}
-                        maxLength={140}
-                      />
-                    </label>
-                    {formError && <p role="alert">{formError}</p>}
-                    <div>
-                      <button type="submit">Save offer</button>
-                      <button type="button" onClick={clearOfferForm}>
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <button
-                    className="add-offer"
-                    onClick={() => {
-                      clearOfferForm();
-                      setAddingFor(item.id);
-                    }}
-                  >
-                    Compare a listing <Plus size={13} />
-                  </button>
-                )}
-              </article>
-            );
-          })}
+                  </div>
+                  {compared.length ? (
+                    <ol
+                      className="offer-list"
+                      aria-label={`Saved offers for ${item.query}`}
+                    >
+                      {compared.map((offer, index) => (
+                        <li
+                          key={offer.id}
+                          className={index === 0 ? "best-offer" : ""}
+                        >
+                          {offer.image && (
+                            <img
+                              className="offer-thumb"
+                              src={offer.image}
+                              alt=""
+                            />
+                          )}
+                          <span>
+                            {index === 0 ? (
+                              <Trophy
+                                size={13}
+                                aria-label="Lowest saved total"
+                              />
+                            ) : (
+                              <Tag size={13} />
+                            )}{" "}
+                            {offer.store}
+                          </span>
+                          <strong>${total(offer).toFixed(2)}</strong>
+                          {offer.shipping > 0 && (
+                            <small>
+                              ${offer.price.toFixed(2)} + $
+                              {offer.shipping.toFixed(2)} shipping
+                            </small>
+                          )}
+                          {offer.note && <small>{offer.note}</small>}
+                          <div>
+                            {offer.url && (
+                              <a
+                                href={offer.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Listing <ExternalLink size={11} />
+                              </a>
+                            )}
+                            <button
+                              aria-label={`Remove ${offer.store} offer for ${item.query}`}
+                              onClick={() => {
+                                setRemoved({ offers: [offer] });
+                                setSavedOffers((current) =>
+                                  current.filter((x) => x.id !== offer.id),
+                                );
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <div className="shopping-empty">No listings saved yet.</div>
+                  )}
+                  {addingFor === item.id ? (
+                    <form className="offer-form" onSubmit={addOffer}>
+                      <label>
+                        Store
+                        <select
+                          value={store}
+                          onChange={(event) => setStore(event.target.value)}
+                        >
+                          {retailers.map(([name]) => (
+                            <option key={name}>{name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Item price
+                        <input
+                          aria-label="Item price"
+                          inputMode="decimal"
+                          value={price}
+                          onChange={(event) => setPrice(event.target.value)}
+                          placeholder="0.00"
+                          required
+                        />
+                      </label>
+                      <label>
+                        Shipping
+                        <input
+                          aria-label="Shipping cost"
+                          inputMode="decimal"
+                          value={shipping}
+                          onChange={(event) => setShipping(event.target.value)}
+                        />
+                      </label>
+                      <label className="offer-url">
+                        Listing link (optional)
+                        <input
+                          aria-label="Listing link"
+                          value={url}
+                          onChange={(event) => setUrl(event.target.value)}
+                          placeholder="https://…"
+                        />
+                      </label>
+                      <label className="offer-url">
+                        Product image URL (optional)
+                        <input
+                          aria-label="Product image URL"
+                          value={image}
+                          onChange={(event) => setImage(event.target.value)}
+                          placeholder="https://…/image.jpg"
+                        />
+                      </label>
+                      <label className="offer-url">
+                        Note (optional)
+                        <input
+                          aria-label="Listing note"
+                          value={note}
+                          onChange={(event) => setNote(event.target.value)}
+                          maxLength={140}
+                        />
+                      </label>
+                      {formError && <p role="alert">{formError}</p>}
+                      <div>
+                        <button type="submit">Save offer</button>
+                        <button type="button" onClick={clearOfferForm}>
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button
+                      className="add-offer"
+                      onClick={() => {
+                        clearOfferForm();
+                        setAddingFor(item.id);
+                      }}
+                    >
+                      Compare a listing <Plus size={13} />
+                    </button>
+                  )}
+                </article>
+              );
+            })}
         </div>
       ) : (
         <div className="shopping-empty">

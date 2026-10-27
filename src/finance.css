@@ -104,3 +104,39 @@
     width: 100px;
   }
 }
+.finance-list article {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+.finance-list strong {
+  overflow-wrap: anywhere;
+}
+.finance-panel .module-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.finance-panel .module-stats strong {
+  font-size: clamp(16px, 2.5vw, 25px);
+  overflow-wrap: anywhere;
+}
+.finance-panel form {
+  flex-wrap: wrap;
+}
+.finance-panel form input {
+  max-width: 100%;
+}
+.finance-panel form input[type="number"] {
+  width: 115px;
+}
+@media (max-width: 600px) {
+  .finance-panel .module-stats {
+    gap: 6px;
+  }
+  .finance-panel .module-stats > div {
+    padding: 10px 7px;
+  }
+  .finance-panel .module-stats strong {
+    font-size: 15px;
+  }
+  .finance-panel .module-stats span {
+    font-size: 10px;
+  }
+}

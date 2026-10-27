@@ -536,6 +536,11 @@ export default function ImmersiveHome({
   const [saved, setSaved] = useState<HomeState>(readState);
   const [showScenes, setShowScenes] = useState(false);
   const [showWidgets, setShowWidgets] = useState(false);
+  const [widgetQuery, setWidgetQuery] = useState("");
+  const [layoutUndo, setLayoutUndo] = useState<{
+    space: string;
+    windows: Record<string, WindowState>;
+  } | null>(null);
   const [canvasWidth, setCanvasWidth] = useState(1150);
   const [narrow, setNarrow] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -1130,8 +1135,22 @@ export default function ImmersiveHome({
               <X size={16} />
             </button>
           </div>
+          <input
+            className="oi-widget-search"
+            type="search"
+            aria-label="Search widgets"
+            placeholder="Find a widget"
+            value={widgetQuery}
+            onChange={(event) => setWidgetQuery(event.target.value)}
+          />
           {widgets.map((widget, index) => {
             const w = windowState(widget.id, index);
+            if (
+              !widget.title
+                .toLowerCase()
+                .includes(widgetQuery.trim().toLowerCase())
+            )
+              return null;
             return (
               <div className="oi-widget-entry" key={widget.id}>
                 <span>{widget.title}</span>
@@ -1160,7 +1179,49 @@ export default function ImmersiveHome({
               </div>
             );
           })}
-          <button className="oi-reset" onClick={() => setWindows(() => ({}))}>
+          {!widgets.some((widget) =>
+            widget.title
+              .toLowerCase()
+              .includes(widgetQuery.trim().toLowerCase()),
+          ) && <p>No matching widgets.</p>}
+          <button
+            className="oi-reset"
+            onClick={() => {
+              setLayoutUndo({ space, windows: states });
+              setWindows(() =>
+                Object.fromEntries(
+                  widgets.map((widget, index) => [
+                    widget.id,
+                    {
+                      ...windowState(widget.id, index),
+                      closed: true,
+                      minimized: false,
+                    },
+                  ]),
+                ),
+              );
+            }}
+          >
+            Hide all panels
+          </button>
+          {layoutUndo?.space === space && (
+            <button
+              className="oi-reset"
+              onClick={() => {
+                setWindows(() => layoutUndo.windows);
+                setLayoutUndo(null);
+              }}
+            >
+              Undo layout change
+            </button>
+          )}
+          <button
+            className="oi-reset"
+            onClick={() => {
+              setLayoutUndo({ space, windows: states });
+              setWindows(() => ({}));
+            }}
+          >
             <RotateCcw size={14} /> Reset {space} layout
           </button>
         </div>

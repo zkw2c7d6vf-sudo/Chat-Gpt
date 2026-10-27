@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { newId } from "./id";
 import { localDay } from "./local";
+import { downloadCsv } from "./exports";
 import type { EducationRecord } from "./education";
 import { validEducationRecord } from "./education";
 import "./modules.css";
@@ -25,6 +26,7 @@ export default function EducationCenter({
 }) {
   const [filter, setFilter] = useState("open"),
     [query, setQuery] = useState("");
+  const [course, setCourse] = useState("");
   const [draft, setDraft] = useState<EducationRecord | null>(null),
     [error, setError] = useState("");
   const [removed, setRemoved] = useState<EducationRecord | null>(null);
@@ -38,10 +40,15 @@ export default function EducationCenter({
             ? record.status !== "done"
             : filter === "done"
               ? record.status === "done"
-              : record.domain === filter)) &&
+              : filter === "overdue"
+                ? record.status !== "done" &&
+                  Boolean(record.dueDate) &&
+                  record.dueDate < day
+                : record.domain === filter)) &&
+        (!course || record.course === course) &&
         `${record.title} ${record.course} ${record.notes}`
           .toLowerCase()
-          .includes(query.toLowerCase()),
+          .includes(query.trim().toLowerCase()),
     )
     .sort(
       (a, b) =>
@@ -131,7 +138,49 @@ export default function EducationCenter({
           <option value="college">College</option>
           <option value="teaching">Teaching</option>
           <option value="done">Completed</option>
+          <option value="overdue">Overdue</option>
         </select>
+        <select
+          aria-label="Filter by course"
+          value={course}
+          onChange={(event) => setCourse(event.target.value)}
+        >
+          <option value="">All courses</option>
+          {[...new Set(records.map((record) => record.course).filter(Boolean))]
+            .sort()
+            .map((name) => (
+              <option key={name}>{name}</option>
+            ))}
+        </select>
+        <button
+          disabled={!visible.length}
+          onClick={() =>
+            downloadCsv("orbit-education.csv", [
+              [
+                "Title",
+                "Course",
+                "Area",
+                "Type",
+                "Due date",
+                "Status",
+                "Notes",
+                "Resource",
+              ],
+              ...visible.map((r) => [
+                r.title,
+                r.course,
+                r.domain,
+                r.kind,
+                r.dueDate,
+                r.status,
+                r.notes,
+                r.url,
+              ]),
+            ])
+          }
+        >
+          Export CSV
+        </button>
       </div>
       {!visible.length ? (
         <div className="module-empty">
@@ -220,6 +269,21 @@ export default function EducationCenter({
                 >
                   <Pencil size={14} />
                   Edit
+                </button>
+                <button
+                  aria-label={`Duplicate education ${record.title}`}
+                  onClick={() => {
+                    setError("");
+                    setDraft({
+                      ...record,
+                      id: newId(),
+                      title: `${record.title.slice(0, 190)} (copy)`,
+                      status: "planned",
+                      createdAt: new Date().toISOString(),
+                    });
+                  }}
+                >
+                  Duplicate
                 </button>
                 {record.url && (
                   <a href={record.url} target="_blank" rel="noreferrer">

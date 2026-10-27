@@ -158,6 +158,7 @@ export default function WeatherPanel({
   const [data, setData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedForecast, setSelectedForecast] = useState("");
   const [retry, setRetry] = useState(0);
   const [editing, setEditing] = useState(false);
   const [query, setQuery] = useState("");
@@ -188,6 +189,7 @@ export default function WeatherPanel({
     const key = `${location.latitude},${location.longitude},${unit}`;
     const cached = weatherCache.get(key);
     setData(cached?.data || null);
+    setSelectedForecast("");
     onWeatherRef.current?.("");
     setError("");
     const update = async () => {
@@ -479,7 +481,26 @@ export default function WeatherPanel({
             {data.daily
               .slice(0, Math.max(1, Math.min(7, forecastDays)))
               .map((day, i) => (
-                <div key={day.date}>
+                <div
+                  key={day.date}
+                  className={
+                    selectedForecast === day.date ? "forecast-selected" : ""
+                  }
+                >
+                  {interactive && (
+                    <button
+                      className="forecast-day-select"
+                      aria-label={`Forecast details for ${day.date}`}
+                      aria-pressed={selectedForecast === day.date}
+                      onClick={() =>
+                        setSelectedForecast((current) =>
+                          current === day.date ? "" : day.date,
+                        )
+                      }
+                    >
+                      Details
+                    </button>
+                  )}
                   <span>
                     {i === 0
                       ? "Today"
@@ -494,12 +515,45 @@ export default function WeatherPanel({
                   </strong>
                   {interactive && (
                     <small className="oi-precipitation">
-                      {day.precipitationChance ?? "—"}% rain
+                      {day.precipitationChance == null
+                        ? "—"
+                        : `${day.precipitationChance}%`}{" "}
+                      precip.
                     </small>
                   )}
                 </div>
               ))}
           </div>
+          {interactive &&
+            data.daily
+              .filter((day) => day.date === selectedForecast)
+              .map((day) => (
+                <div className="forecast-detail" role="status" key={day.date}>
+                  <strong>
+                    {new Date(`${day.date}T12:00:00`).toLocaleDateString(
+                      undefined,
+                      { weekday: "long", month: "short", day: "numeric" },
+                    )}{" "}
+                    · {weatherDescription(day.weatherCode)}
+                  </strong>
+                  <span>
+                    High {Math.round(day.high)}° · Low {Math.round(day.low)}° ·{" "}
+                    {day.precipitationChance == null
+                      ? "Precipitation probability unavailable"
+                      : `${day.precipitationChance}% chance of precipitation`}
+                  </span>
+                </div>
+              ))}
+          {interactive && (
+            <p className="module-privacy weather-updated">
+              Updated{" "}
+              {new Date(data.updatedAt).toLocaleTimeString(undefined, {
+                hour: "numeric",
+                minute: "2-digit",
+              })}{" "}
+              · {data.attribution || "Open-Meteo"}
+            </p>
+          )}
         </>
       ) : loading ? (
         <div className="weather-loading" role="status">

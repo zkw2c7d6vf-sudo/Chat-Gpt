@@ -4,7 +4,12 @@ on:
   pull_request:
     branches:
       - orbit-v4.4
+      - orbit-v4.5.2
   workflow_dispatch:
+
+concurrency:
+  group: orbit-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -26,9 +31,14 @@ jobs:
       - name: Unit and server tests
         run: npm test
       - name: Install Chromium
+        timeout-minutes: 10
         run: npx playwright install --with-deps chromium
       - name: Install media test dependency
-        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -qq
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y ffmpeg
+          fi
       - name: Start Orbit dev server
         run: |
           npm run dev > /tmp/orbit-dev.log 2>&1 &
@@ -47,6 +57,10 @@ jobs:
         run: npm run test:interaction
       - name: Orbit 4.5 all-widget and module acceptance
         run: npm run test:v45
+      - name: Orbit 4.6 module workflows
+        run: npm run test:v46
+      - name: Shopping storage recovery
+        run: npm run test:shopping-storage
       - name: V2 regression
         run: npm run test:e2e
       - name: V3 regression

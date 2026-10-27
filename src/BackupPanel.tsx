@@ -18,6 +18,7 @@ import {
   previewBackup,
 } from "./backup";
 import "./backup.css";
+import { readLocal, writeLocal } from "./local";
 
 export default function BackupPanel() {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -25,6 +26,20 @@ export default function BackupPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [lastExport, setLastExport] = useState(() =>
+    readLocal<string>("orbit-last-backup-at", ""),
+  );
+  const [inventory] = useState(() => {
+    try {
+      const backup = createBackup(localStorage);
+      return {
+        summary: previewBackup(backup),
+        bytes: new Blob([JSON.stringify(backup)]).size,
+      };
+    } catch {
+      return null;
+    }
+  });
   const summary = pending ? previewBackup(pending) : null;
   const exportData = () => {
     setError("");
@@ -43,6 +58,9 @@ export default function BackupPanel() {
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const timestamp = new Date().toISOString();
+      if (writeLocal("orbit-last-backup-at", timestamp))
+        setLastExport(timestamp);
       setSuccess("Backup prepared for download. Store it somewhere private.");
     } catch (cause) {
       setError(
@@ -99,7 +117,7 @@ export default function BackupPanel() {
           <FolderLock size={20} />
         </span>
         <div>
-          <h3>A little peace of mind.</h3>
+          <h3>Dashboard backup</h3>
           <p>
             Back up your tasks, life goals, notes, conversations, and
             preferences, Education Center records, and focus history.
@@ -112,6 +130,22 @@ export default function BackupPanel() {
           Downloads contain your private dashboard text. Account credentials,
           calendar links, delivery tracking links, and media-library files or
           metadata are excluded.
+        </p>
+      </div>
+      <div className="backup-inventory" aria-label="Backup inventory">
+        {inventory && (
+          <p>
+            {inventory.summary.taskCount} tasks ·{" "}
+            {inventory.summary.educationCount} education records ·{" "}
+            {inventory.summary.focusCount} focus sessions ·{" "}
+            {(inventory.bytes / 1024).toFixed(1)} KiB portable data
+          </p>
+        )}
+        <p>
+          {lastExport && Number.isFinite(Date.parse(lastExport))
+            ? `Last export prepared: ${new Date(lastExport).toLocaleString()}`
+            : "No export recorded in this browser."}{" "}
+          Keep the downloaded file to complete your backup.
         </p>
       </div>
       <div className="backup-actions">

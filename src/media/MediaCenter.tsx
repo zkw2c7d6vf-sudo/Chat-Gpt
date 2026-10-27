@@ -168,7 +168,7 @@ export function MediaCenter({
   const [category, setCategory] = useState<MediaKind>("movies");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<
-    "all" | "favorites" | "unwatched" | "continue"
+    "all" | "favorites" | "unwatched" | "continue" | "watched"
   >("all");
   const [sort, setSort] = useState("recent");
   const [tab, setTab] = useState<"library" | "tonight">("library");
@@ -225,6 +225,7 @@ export function MediaCenter({
       );
     if (filter === "favorites") result = result.filter((i) => i.favorite);
     if (filter === "unwatched") result = result.filter((i) => !i.watched);
+    if (filter === "watched") result = result.filter((i) => i.watched);
     if (filter === "continue")
       result = result.filter(
         (i) => i.progress > 2 && !i.watched && i.kind !== "photos",
@@ -232,7 +233,11 @@ export function MediaCenter({
     return result.sort(
       sort === "title"
         ? (a, b) => a.title.localeCompare(b.title)
-        : (a, b) => b.addedAt - a.addedAt,
+        : sort === "size"
+          ? (a, b) => b.size - a.size
+          : sort === "duration"
+            ? (a, b) => (b.duration || 0) - (a.duration || 0)
+            : (a, b) => b.addedAt - a.addedAt,
     );
   }, [items, category, query, filter, sort, collection]);
   const totalSize = items.reduce((sum, item) => sum + item.size, 0);
@@ -510,6 +515,7 @@ export function MediaCenter({
                     {category !== "photos" && (
                       <>
                         <option value="unwatched">Not watched</option>
+                        <option value="watched">Watched</option>
                         <option value="continue">Continue watching</option>
                       </>
                     )}
@@ -523,10 +529,33 @@ export function MediaCenter({
                   >
                     <option value="recent">Recently added</option>
                     <option value="title">Title A–Z</option>
+                    <option value="size">Largest files</option>
+                    {category !== "photos" && (
+                      <option value="duration">Longest duration</option>
+                    )}
                   </select>
                   <ChevronDown size={12} />
                 </label>
               </div>
+            </div>
+          )}
+          {!playerTab && (
+            <div className="module-filters media-result-count">
+              <span role="status">
+                {filtered.length} matching{" "}
+                {category === "photos" ? "photos" : "videos"}
+              </span>
+              {(query || filter !== "all" || collection) && (
+                <button
+                  onClick={() => {
+                    setQuery("");
+                    setFilter("all");
+                    setCollection("");
+                  }}
+                >
+                  Clear library filters
+                </button>
+              )}
             </div>
           )}
           {!playerTab && (category === "tv" || category === "photos") && (

@@ -1,12 +1,14 @@
-# Orbit 4.5.2
+# Orbit 4.6
+
+4.6 completes existing module workflows and recovers a reproduced Shopping storage crash. See [the functional review and verification limits](docs/v4.6-review.md). Current development: `feat/orbit-v4.6`; historical `main` is not this build.
 
 4.5.2 removes per-move layout saves and panel rerenders from dragging, reduces the dock to daily Home tools plus Backgrounds, and adds a visible search field on every screen size. [Interaction details](docs/home-performance-review.md).
 
 Home has been rebuilt around the supplied scene-first reference: a full-screen navy landscape, compact icon rail, three initial panels and an on-demand tool dock. [View the screenshots and design changes](docs/home-rebuild-review.md). Earlier layouts remain stored separately.
 
-Orbit is Joe’s local personal dashboard. Version 4.5 combines immersive Home, a weekly Planner, Education Center, File Studio, media, shopping, finance, and the existing provider connections.
+Orbit is Joe’s local personal dashboard. Version 4.6 combines immersive Home, a weekly Planner, Education Center, File Studio, media, shopping, finance, and the existing provider connections.
 
-## Install 4.5 without replacing your current copy
+## Install 4.6 without replacing your current copy
 
 1. Export a dashboard backup from your current Orbit’s Profile & settings.
 2. Stop the old server with **Control + C**. Extract this download into a **separate folder** and keep the old folder intact.
@@ -15,7 +17,7 @@ Orbit is Joe’s local personal dashboard. Version 4.5 combines immersive Home, 
 
 Your Mac is not updated automatically by a GitHub push. This release never replaces an existing installation for you.
 
-## What is new in 4.5
+## Included workflows
 
 - **Immersive Home:** eleven directly movable/resizable windows, minimize/dock, close/reopen, maximize/restore, keyboard controls, saved Today/Study/Focus/Unwind layouts, and searchable backgrounds. Every widget reveals additional data or working controls when expanded. `?classic-home=1` preserves the classic layout.
 - **Education Center:** create, edit, search, complete, reopen and remove college/teaching responsibilities with course, type, date, notes and resource link. Deadlines appear in Home’s Up next and the weekly Planner. Records remain in this browser and are excluded from AI context.
@@ -26,7 +28,7 @@ Your Mac is not updated automatically by a GitHub push. This release never repla
 - **Shopping Scout:** save live eBay listings into the comparison board, filter by USD delivered budget, sort, and reopen saved searches. Unknown shipping is labeled and excluded from delivered-price comparisons. Existing manual retailer comparisons still work.
 - **Backups:** Education Center, focus preferences/history, saved YouTube IDs, finance, shopping and Home layout are included. Tokens, private calendar URLs, media bytes and private background bytes remain excluded. Running timer deadlines and temporary File Studio inputs are not portable backup data.
 
-Release details and the tested widget matrix: [4.5 handoff](docs/v4.5-review.md). Start future coding work with [CODEX_START_HERE.md](CODEX_START_HERE.md) and [ORBIT_STATUS.md](ORBIT_STATUS.md).
+Current completion status: [4.6 review](docs/v4.6-review.md). Original expanded-widget matrix: [4.5 review](docs/v4.5-review.md). Start future coding work with [CODEX_START_HERE.md](CODEX_START_HERE.md) and [ORBIT_STATUS.md](ORBIT_STATUS.md).
 
 ## Start on your Mac
 

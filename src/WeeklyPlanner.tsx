@@ -8,6 +8,7 @@ import {
 import type { CalendarEvent, Task } from "./data";
 import { eventOnDay, shortTime } from "./data";
 import type { EducationRecord } from "./education";
+import { useState } from "react";
 import { localDay } from "./local";
 import "./modules.css";
 export default function WeeklyPlanner({
@@ -29,6 +30,17 @@ export default function WeeklyPlanner({
   onEvent: (event: CalendarEvent) => void;
   onEducation: () => void;
 }) {
+  const [query, setQuery] = useState("");
+  const [source, setSource] = useState("all");
+  const matches = (title: string) =>
+    title.toLowerCase().includes(query.trim().toLowerCase());
+  const overdue = tasks.filter(
+    (task) =>
+      !task.done &&
+      task.dueDate &&
+      task.dueDate < localDay() &&
+      matches(task.title),
+  );
   const monday = new Date(date);
   monday.setHours(0, 0, 0, 0);
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
@@ -79,14 +91,78 @@ export default function WeeklyPlanner({
           </button>
         </div>
       </header>
+      <div className="module-filters">
+        <input
+          type="search"
+          aria-label="Search planner"
+          placeholder="Search this week"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <select
+          aria-label="Planner source"
+          value={source}
+          onChange={(event) => setSource(event.target.value)}
+        >
+          <option value="all">All sources</option>
+          <option value="calendar">Calendar</option>
+          <option value="tasks">Tasks</option>
+          <option value="education">Education</option>
+        </select>
+        {(query || source !== "all") && (
+          <button
+            onClick={() => {
+              setQuery("");
+              setSource("all");
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+      {overdue.length > 0 && (source === "all" || source === "tasks") && (
+        <details className="planner-unscheduled">
+          <summary>Overdue tasks · {overdue.length}</summary>
+          <div>
+            {overdue.map((task) => (
+              <label key={task.id}>
+                <span>
+                  {task.title}
+                  <small className="overdue"> · Due {task.dueDate}</small>
+                </span>
+                <button
+                  aria-label={`Move ${task.title} to today`}
+                  onClick={() => onTask(task.id, { dueDate: localDay() })}
+                >
+                  Move to today
+                </button>
+              </label>
+            ))}
+          </div>
+        </details>
+      )}
       <div className="planner-week">
         {days.map((day) => {
           const key = localDay(day);
-          const dated = tasks.filter((task) => task.dueDate === key);
-          const academic = education.filter(
-            (record) => record.dueDate === key && record.status !== "done",
+          const dated = tasks.filter(
+            (task) =>
+              task.dueDate === key &&
+              matches(task.title) &&
+              (source === "all" || source === "tasks"),
           );
-          const scheduled = events.filter((event) => eventOnDay(event, day));
+          const academic = education.filter(
+            (record) =>
+              record.dueDate === key &&
+              record.status !== "done" &&
+              matches(`${record.title} ${record.course}`) &&
+              (source === "all" || source === "education"),
+          );
+          const scheduled = events.filter(
+            (event) =>
+              eventOnDay(event, day) &&
+              matches(event.title) &&
+              (source === "all" || source === "calendar"),
+          );
           return (
             <section
               className={`planner-day ${key === localDay() ? "today" : ""}`}
@@ -137,7 +213,7 @@ export default function WeeklyPlanner({
                   key={task.id}
                 >
                   <button
-                    aria-label={`Complete planner task ${task.title}`}
+                    aria-label={`${task.done ? "Reopen" : "Complete"} planner task ${task.title}`}
                     onClick={() => onTask(task.id, { done: !task.done })}
                   >
                     <Check size={12} />
@@ -175,11 +251,25 @@ export default function WeeklyPlanner({
       <details className="planner-unscheduled" open>
         <summary>
           Unscheduled tasks ·{" "}
-          {tasks.filter((task) => !task.dueDate && !task.done).length}
+          {
+            tasks.filter(
+              (task) =>
+                !task.dueDate &&
+                !task.done &&
+                matches(task.title) &&
+                (source === "all" || source === "tasks"),
+            ).length
+          }
         </summary>
         <div>
           {tasks
-            .filter((task) => !task.dueDate && !task.done)
+            .filter(
+              (task) =>
+                !task.dueDate &&
+                !task.done &&
+                matches(task.title) &&
+                (source === "all" || source === "tasks"),
+            )
             .map((task) => (
               <label
                 key={task.id}
