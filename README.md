@@ -1,5 +1,8 @@
 # Orbit v4.4
 
+> **Codex continuation:** If resuming Orbit from an earlier session, first read [CODEX_START_HERE.md](CODEX_START_HERE.md), [ORBIT_STATUS.md](ORBIT_STATUS.md), [ORBIT_NEXT_TASK.md](ORBIT_NEXT_TASK.md) and the full conversation/expansion specifications linked there. The immersive Home redesign is in [draft PR #4](https://github.com/zkw2c7d6vf-sudo/Chat-Gpt/pull/4), not automatically deployed. Dynamic richer expansion for all eleven widgets remains an active requirement.
+
+
 A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
 ## Start on your Mac
