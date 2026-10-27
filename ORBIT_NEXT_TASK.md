@@ -1,12 +1,15 @@
-# Orbit next task after 4.5.1
+# Orbit next task — functional completion after 4.5.2 (2026-10-27)
 
-Review the rebuilt Home against the user’s supplied screenshot: scene-first, sparse contextual panels and a dock. See `docs/home-rebuild-review.md`. Do not restore the eleven-open-window default.
+**Start at `CODEX_START_HERE.md`.** Use `orbit-v4.5.2` as release baseline, NOT historical `main`.
 
-The immersive Home expansion, Education Center, weekly Planner and supported File Studio tools are implemented. Read `docs/v4.5-review.md` and `ORBIT_STATUS.md` before changing code. The original product requirements remain in the catch-up and dynamic-widget contract documents.
+Priority 0: Verify and resolve the reported Shopping Scout crash on “Add something you want to find.” Draft PR #5 (`fix/orbit-v452-shopping-storage-safety-20261027`) catches localStorage write exceptions, but its root-cause coverage has not been established. Reproduce and test; don't claim fixed without evidence.
 
-1. Test the 4.5 download from a separate Mac folder using the existing private configuration and same browser origin.
-2. Verify actual Spotify device playback, Google/ICS calendar, Gmail and Drive consent, optional eBay credentials, microphone/browser support and original local media on the Mac.
-3. Review PR #4 and latest CI. Preserve classic Home and old branches. Do not replace `main` or merge unverified changes.
-4. Address concrete user feedback with targeted regression tests. All future widgets must specify and implement meaningful compact/expanded behavior.
+Priority 1: Inventory and functionally exercise every shipped category. Test read/write persistence, navigation, keyboard/mobile use, malformed inputs, offline failures and connection limitations. Update a per-module PASS/FAIL/BLOCKED matrix with exact test evidence.
 
-Jellyfin, LMS integration, PDF/Office/video conversion, banks and delivery-provider connections require separate scoped work. Do not invent access or copy student records into AI context.
+Priority 2: Confirm whether focus label overlap, crowded weather high/low, unnecessary Tasks “Private,” and Approval & Activity panel still occur in the 4.5.2 UI. Fix only reproducible current problems.
+
+Priority 3: Run build, unit/API and all historical/new E2E scripts detailed in `CODEX_START_HERE.md`. Confirm current CI and report counts for this HEAD, not reused historical totals. Device-authenticated Spotify, ICS/Google, mail/Drive, eBay, microphone and real media require local acceptance.
+
+Priority 4: Open a safe PR for verified fixes, update handoff documents, and report build/deployment separately. Keep scene-first Home, saved layout compatibility, backup and classic-home fallback intact.
+
+**Repo organization:** Old branches are historical safety snapshots and MUST NOT be deleted without unique-commit comparison. Do not rewrite the V2 default `main` or claim its contents are current. Do not overwrite Mac private configuration.
