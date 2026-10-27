@@ -136,10 +136,12 @@ function WeatherIcon({
 export default function WeatherPanel({
   onWeather,
   settingsOnly = false,
+  forecastDays = 7,
   onTemperature,
 }: {
   onWeather?: (summary: string) => void;
   settingsOnly?: boolean;
+  forecastDays?: number;
   onTemperature?: (value: {
     temperature: number;
     unit: Unit;
@@ -420,8 +422,8 @@ export default function WeatherPanel({
         <p>Loading weather preferences…</p>
       ) : settingsOnly ? null : data ? (
         <>
-          <div className="weather-forecast" aria-label="Seven-day forecast">
-            {data.daily.slice(0, 7).map((day, i) => (
+          <div className="weather-forecast" aria-label={`${forecastDays}-day forecast`}>
+            {data.daily.slice(0, Math.max(1, Math.min(7, forecastDays))).map((day, i) => (
               <div key={day.date}>
                 <span>
                   {i === 0
