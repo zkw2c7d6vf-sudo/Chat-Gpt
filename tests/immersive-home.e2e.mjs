@@ -16,7 +16,7 @@ try {
     assert.equal(await page.getByRole("toolbar", { name: `Move ${title}` }).count(), 1, title);
   assert.equal(await page.getByText("Edit layout").count(), 0);
   await page.getByRole("button", { name: "Minimize Email" }).click();
-  assert.equal(await page.getByRole("button", { name: /Email.*Maximize/ }).count(), 1, "Minimized Email appears in dock");
+  assert.equal(await page.locator(".oi-dock button").filter({hasText:"Email"}).count(), 1, "Minimized Email appears in dock");
   await page.locator(".oi-dock button").filter({hasText:"Email"}).click();
   assert.equal(await page.getByRole("toolbar", { name: "Move Email" }).count(), 1);
   await page.getByRole("button", { name: "Close Continue watching" }).click();
