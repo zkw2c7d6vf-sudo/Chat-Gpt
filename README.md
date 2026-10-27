@@ -1,3 +1,7 @@
+> **Orbit repository navigation (2026-10-27):** GitHub's default `main` is the archived-in-place **V2 code**, NOT the latest Orbit build. For all new Codex work, open the [Orbit v4.5.2 source branch](https://github.com/zkw2c7d6vf-sudo/Chat-Gpt/tree/orbit-v4.5.2) and read [CODEX_START_HERE.md](https://github.com/zkw2c7d6vf-sudo/Chat-Gpt/blob/orbit-v4.5.2/CODEX_START_HERE.md). PR #4 covers the current Home; draft PR #5 proposes unverified Shopping Scout storage hardening. Preserve history; do not develop new features from V2 main by mistake.
+
+---
+
 # Orbit V2
 
 A personal command center that puts your day first: calendar, important mail, Spotify, weather, tasks, and a central assistant. Built with React, TypeScript, Vite, and a small Node.js API.
