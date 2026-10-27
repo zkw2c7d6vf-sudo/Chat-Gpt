@@ -837,3 +837,29 @@
     height: 245px !important;
   }
 }
+.scene-home .oi-widget-search {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid #8096b63d;
+  border-radius: 8px;
+  color: #e1eafa;
+  background: #0b1728;
+}
+.scene-home .oi-widget-panel {
+  max-height: min(620px, 80dvh);
+  overflow-y: auto;
+}
+.scene-home .section-tools {
+  padding: 0;
+}
+.scene-home .module-filters {
+  gap: 7px;
+}
+.scene-home .module-filters input[type="search"] {
+  width: 100%;
+}
+.scene-home .forecast-detail {
+  flex: 0 0 auto;
+}

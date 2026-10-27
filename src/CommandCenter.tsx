@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   Clock3,
 } from "lucide-react";
+import { localDay, writeLocal } from "./local";
+import { downloadCsv } from "./exports";
 import type { Task } from "./data";
 import "./command.css";
 export type Proposal = { id: string; title: string; createdAt: string };
@@ -38,7 +40,8 @@ function read<T>(key: string, fallback: T): T {
   }
 }
 function save(key: string, value: unknown) {
-  localStorage.setItem(key, JSON.stringify(value));
+  if (!writeLocal(key, value))
+    throw new Error("Browser storage could not save changes.");
   window.dispatchEvent(new Event("orbit:command"));
 }
 function activity(title: string, status: string) {
@@ -288,7 +291,7 @@ export default function CommandCenter({
     const id = setInterval(() => setClock(Date.now()), 60000);
     return () => clearInterval(id);
   }, []);
-  const day = new Date(clock).toLocaleDateString("en-CA");
+  const day = localDay(new Date(clock));
   const responsibilities = entries
     .filter(
       (e) =>
@@ -299,10 +302,14 @@ export default function CommandCenter({
     ...responsibilities.map((e) => ({ id: e.id, title: e.title, due: e.due })),
     ...tasks
       .filter((t) => !t.done)
-      .map((t) => ({ id: t.id, title: t.title, due: "" })),
+      .map((t) => ({ id: t.id, title: t.title, due: t.dueDate || "" })),
   ];
   const priorities = [...candidates]
-    .sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)))
+    .sort(
+      (a, b) =>
+        Number(pins.includes(b.id)) - Number(pins.includes(a.id)) ||
+        (a.due || "9999").localeCompare(b.due || "9999"),
+    )
     .slice(0, 3);
   const update = (id: string, patch: Partial<Entry>) =>
     save(
@@ -321,6 +328,35 @@ export default function CommandCenter({
         <button className="primary-button" onClick={capture}>
           <Plus size={15} />
           Quick capture
+        </button>
+      </div>
+      <div className="module-filters">
+        <button
+          disabled={!entries.length}
+          onClick={() =>
+            downloadCsv("orbit-life-organizer.csv", [
+              [
+                "Title",
+                "Area",
+                "Due",
+                "Completed",
+                "Amount",
+                "Target",
+                "Last done",
+              ],
+              ...entries.map((entry) => [
+                entry.title,
+                entry.domain,
+                entry.due,
+                entry.completed ? "Yes" : "No",
+                entry.amount,
+                entry.target,
+                entry.lastDone || "",
+              ]),
+            ])
+          }
+        >
+          Export life organizer CSV
         </button>
       </div>
       <div className="command-grid">

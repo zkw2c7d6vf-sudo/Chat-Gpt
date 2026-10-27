@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowUpRight, Check, CheckCheck, Pencil, Plus, X } from "lucide-react";
 import type { Task } from "./data";
 import { localDay } from "./local";
+import { downloadCsv, downloadText } from "./exports";
 
 export default function TaskPanel({
   tasks,
@@ -25,6 +26,8 @@ export default function TaskPanel({
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<Task["priority"]>("normal");
   const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("priority");
   const [editing, setEditing] = useState<Task | null>(null);
   const [removed, setRemoved] = useState<Task | null>(null);
   const today = localDay();
@@ -34,6 +37,8 @@ export default function TaskPanel({
     .filter(
       (task) =>
         (!compact || !task.done) &&
+        (compact ||
+          task.title.toLowerCase().includes(query.trim().toLowerCase())) &&
         (compact ||
           filter === "all" ||
           (filter === "open"
@@ -45,7 +50,10 @@ export default function TaskPanel({
     .sort(
       (a, b) =>
         Number(a.done) - Number(b.done) ||
-        urgency[a.priority || "normal"] - urgency[b.priority || "normal"] ||
+        (sort === "date"
+          ? (a.dueDate || "9999").localeCompare(b.dueDate || "9999")
+          : urgency[a.priority || "normal"] -
+            urgency[b.priority || "normal"]) ||
         (a.dueDate || "9999").localeCompare(b.dueDate || "9999"),
     );
   const add = () => {
@@ -84,6 +92,37 @@ export default function TaskPanel({
         <>
           {!compact && (
             <div className="task-provenance">
+              <input
+                type="search"
+                aria-label="Search tasks"
+                placeholder="Search tasks"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <select
+                aria-label="Sort tasks"
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+              >
+                <option value="priority">Priority first</option>
+                <option value="date">Due date first</option>
+              </select>
+              <button
+                disabled={!visible.length}
+                onClick={() =>
+                  downloadCsv("orbit-tasks.csv", [
+                    ["Task", "Due date", "Priority", "Status"],
+                    ...visible.map((task) => [
+                      task.title,
+                      task.dueDate || "",
+                      task.priority || "normal",
+                      task.done ? "Completed" : "Open",
+                    ]),
+                  ])
+                }
+              >
+                Export CSV
+              </button>
               <select
                 aria-label="Filter tasks"
                 value={filter}
@@ -311,6 +350,13 @@ export default function TaskPanel({
         </>
       ) : (
         <div className="notes-area">
+          <button
+            className="text-button"
+            disabled={!notes}
+            onClick={() => downloadText("orbit-notes.txt", notes)}
+          >
+            Download notes
+          </button>
           <textarea
             aria-label="Private notes"
             placeholder="A thought, an idea, something to remember…"

@@ -7,6 +7,8 @@ import {
   Target,
   Volume2,
 } from "lucide-react";
+import { downloadCsv } from "./exports";
+import { localDay } from "./local";
 import type { FocusController, Soundscape } from "./focus";
 
 function soundEngine(kind: Exclude<Soundscape, "off">, volume: number) {
@@ -108,6 +110,13 @@ export default function FocusPanel({
     (total, item) => total + item.minutes,
     0,
   );
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - 6);
+  const weekMinutes = focus.history
+    .filter(
+      (item) => localDay(new Date(item.completedAt)) >= localDay(weekStart),
+    )
+    .reduce((total, item) => total + item.minutes, 0);
   return (
     <section
       className={`card focus-card ${focusing ? "focus-active" : ""}`}
@@ -298,12 +307,28 @@ export default function FocusPanel({
             <span>
               <strong>{focus.todayHistory.length}</strong> sessions
             </span>
-            <span>Saved locally</span>
+            <span>
+              <strong>{weekMinutes}</strong> min in 7 days
+            </span>
           </div>
           {focus.history.length > 0 && (
             <details className="focus-history">
               <summary>Recent sessions</summary>
-              {focus.history.slice(0, 5).map((item) => (
+              <button
+                onClick={() =>
+                  downloadCsv("orbit-focus-sessions.csv", [
+                    ["Completed", "Intention", "Minutes"],
+                    ...focus.history.map((item) => [
+                      item.completedAt,
+                      item.label,
+                      item.minutes,
+                    ]),
+                  ])
+                }
+              >
+                Export sessions CSV
+              </button>
+              {focus.history.slice(0, 20).map((item) => (
                 <div key={item.id}>
                   <span>
                     {item.label || "Focus session"}

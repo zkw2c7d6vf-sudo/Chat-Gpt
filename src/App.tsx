@@ -1,5 +1,12 @@
 import { newId } from "./id";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import {
   Clapperboard,
@@ -11,7 +18,6 @@ import {
   CalendarDays,
   Check,
   CheckCheck,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -32,6 +38,7 @@ import {
   Search,
   Settings2,
   SkipForward,
+  SkipBack,
   Sparkles,
   Star,
   Sun,
@@ -70,22 +77,23 @@ import FocusPanel, { FocusAudio } from "./FocusPanel";
 import { useFocus } from "./focus";
 import TaskPanel from "./TaskPanel";
 import { writeLocal } from "./local";
+import { downloadText } from "./exports";
 import WeatherPanel from "./WeatherPanel";
 import ImmersiveHome from "./ImmersiveHome";
 import CalendarConnect from "./CalendarConnect";
 
 import { useVoice } from "./useVoice";
 import { MediaCenter, MediaSummary } from "./media/MediaCenter";
-import ShoppingScout from "./ShoppingScout";
+const ShoppingScout = lazy(() => import("./ShoppingScout"));
 import BackupPanel from "./BackupPanel";
 import CommandCenter, { QuickCapture, proposeTasks } from "./CommandCenter";
-import EducationCenter from "./EducationCenter";
-import FileStudio from "./FileStudio";
+const EducationCenter = lazy(() => import("./EducationCenter"));
+const FileStudio = lazy(() => import("./FileStudio"));
 import WeeklyPlanner from "./WeeklyPlanner";
 import type { EducationRecord } from "./education";
 import { validEducationRecord, educationDeadlines } from "./education";
 import { GraduationCap, Wrench } from "lucide-react";
-import FinancePanel from "./FinancePanel";
+const FinancePanel = lazy(() => import("./FinancePanel"));
 
 type View =
   | "overview"
@@ -236,11 +244,13 @@ function IconButton({
   children,
   onClick,
   className = "",
+  disabled = false,
 }: {
   label: string;
   children: ReactNode;
   onClick?: () => void;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -248,6 +258,7 @@ function IconButton({
       className={`icon-button ${className}`}
       aria-label={label}
       title={label}
+      disabled={disabled}
       onClick={onClick}
     >
       {children}
@@ -379,6 +390,13 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [mailTab, setMailTab] = useState<"important" | "all">("important");
+  const [mailQuery, setMailQuery] = useState("");
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [fileQuery, setFileQuery] = useState("");
+  const [fileType, setFileType] = useState("all");
+  const [fileSort, setFileSort] = useState("recent");
+  const [playbackBusy, setPlaybackBusy] = useState(false);
+  const playbackLock = useRef(false);
   const [read, setRead] = useState<string[]>(() => stored("orbit-read", []));
   const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
   const [notes, setNotes] = useState(() => stored("orbit-notes", ""));
@@ -499,7 +517,7 @@ export default function App() {
     writeLocal("orbit-notes", notes);
   }, [notes]);
   useEffect(() => {
-    localStorage.setItem("orbit-read", JSON.stringify(read));
+    writeLocal("orbit-read", read);
   }, [read]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -602,6 +620,31 @@ export default function App() {
   }));
   const files = googleLive ? live?.files || [] : demoMode ? demoFiles : [];
   const track = live?.spotify || null;
+  const mailItems = (expanded: boolean) =>
+    (mailTab === "important" ? important : emails).filter(
+      (email) =>
+        !expanded ||
+        ((!unreadOnly || email.unread) &&
+          `${email.from} ${email.subject} ${email.snippet}`
+            .toLowerCase()
+            .includes(mailQuery.trim().toLowerCase())),
+    );
+  const fileItems = (expanded: boolean) =>
+    expanded
+      ? files
+          .filter(
+            (file) =>
+              (fileType === "all" || file.type === fileType) &&
+              `${file.name} ${file.owner}`
+                .toLowerCase()
+                .includes(fileQuery.trim().toLowerCase()),
+          )
+          .sort(
+            fileSort === "name"
+              ? (a, b) => a.name.localeCompare(b.name)
+              : (a, b) => Date.parse(b.modifiedAt) - Date.parse(a.modifiedAt),
+          )
+      : files;
   const todayEvents = events.filter((e) => eventOnDay(e, new Date()));
   const agenda = events.filter((e) => eventOnDay(e, selectedDate));
   const important = emails.filter((e) => e.important);
@@ -651,6 +694,9 @@ export default function App() {
       setModal("connections");
       return;
     }
+    if (playbackLock.current) return;
+    playbackLock.current = true;
+    setPlaybackBusy(true);
     try {
       const path =
         action === "toggle"
@@ -673,6 +719,9 @@ export default function App() {
       notify(
         e instanceof Error ? e.message : "Spotify couldn’t update playback.",
       );
+    } finally {
+      playbackLock.current = false;
+      setPlaybackBusy(false);
     }
   };
   const say = (text: string) => {
@@ -1028,8 +1077,42 @@ export default function App() {
           All mail<span>{emails.length}</span>
         </button>
       </div>
+      {expanded && (
+        <div className="module-filters section-tools">
+          <input
+            type="search"
+            aria-label="Search inbox"
+            placeholder="Search loaded messages"
+            value={mailQuery}
+            onChange={(event) => setMailQuery(event.target.value)}
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={unreadOnly}
+              onChange={(event) => setUnreadOnly(event.target.checked)}
+            />
+            Unread only
+          </label>
+          <button
+            disabled={!mailItems(true).some((email) => email.unread)}
+            onClick={() => {
+              setRead((current) => [
+                ...new Set([
+                  ...current,
+                  ...mailItems(true).map((email) => email.id),
+                ]),
+              ]);
+              notify("Matching messages marked read in Orbit only.");
+            }}
+          >
+            Mark matching read
+          </button>
+          <span role="status">{mailItems(true).length} loaded matches</span>
+        </div>
+      )}
       <div className="mail-list">
-        {(mailTab === "important" ? important : emails)
+        {mailItems(expanded)
           .slice(0, expanded ? 30 : 3)
           .map((email, i) => (
             <button
@@ -1056,20 +1139,24 @@ export default function App() {
               {email.unread && <i className="unread-dot" />}
             </button>
           ))}
-        {(mailTab === "important" ? important : emails).length === 0 && (
+        {mailItems(expanded).length === 0 && (
           <div className="empty-state">
             <CheckCheck size={28} />
             <strong>
               {mailError
                 ? "Inbox could not load"
-                : googleLive || demoMode
-                  ? "All caught up."
-                  : "Email not connected"}
+                : expanded && (mailQuery || unreadOnly)
+                  ? "No matching messages"
+                  : googleLive || demoMode
+                    ? "All caught up."
+                    : "Email not connected"}
             </strong>
             <p>
               {mailError ||
                 (googleLive || demoMode
-                  ? `No ${mailTab === "important" ? "important " : ""}emails to show.`
+                  ? expanded && (mailQuery || unreadOnly)
+                    ? "Try a different search or turn off Unread only."
+                    : `No ${mailTab === "important" ? "important " : ""}emails to show.`
                   : "Email isn’t connected. Open Gmail directly, or add optional Google access later.")}
             </p>
           </div>
@@ -1115,62 +1202,113 @@ export default function App() {
       >
         {!googleLive && demoMode && <SampleTag />}
       </CardHeader>
+      {expanded && (
+        <div className="module-filters section-tools">
+          <input
+            type="search"
+            aria-label="Search Drive files"
+            placeholder="Search loaded files"
+            value={fileQuery}
+            onChange={(event) => setFileQuery(event.target.value)}
+          />
+          <select
+            aria-label="Filter Drive files"
+            value={fileType}
+            onChange={(event) => setFileType(event.target.value)}
+          >
+            <option value="all">All types</option>
+            {[...new Set(files.map((file) => file.type))].sort().map((type) => (
+              <option key={type}>{type}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Sort Drive files"
+            value={fileSort}
+            onChange={(event) => setFileSort(event.target.value)}
+          >
+            <option value="recent">Recently modified</option>
+            <option value="name">Name A–Z</option>
+          </select>
+          <button onClick={() => void refresh()} disabled={loading}>
+            Refresh files
+          </button>
+        </div>
+      )}
       <div className="files-subhead">
         <span>RECENT IN DRIVE</span>
         <span>
-          Last opened <ChevronDown size={12} />
+          {expanded
+            ? `${fileItems(true).length} loaded matches`
+            : "Recently modified"}
         </span>
       </div>
       <div className={`file-grid ${expanded ? "expanded-files" : ""}`}>
-        {files.slice(0, expanded ? 30 : 4).map((file, i) => (
-          <button
-            key={file.id}
-            className={`file-tile tile-${file.type}`}
-            onClick={() => setDetail({ type: "file", item: file })}
-          >
-            <div className={`file-art art-${i % 4}`}>
-              {file.type === "folder" ? (
-                <Folder size={35} strokeWidth={1.2} />
-              ) : file.type === "spreadsheet" ? (
-                <Grid2X2 size={33} strokeWidth={1.3} />
-              ) : file.type === "presentation" ? (
-                <div className="mini-moodboard">
-                  <i />
-                  <i />
-                  <i />
-                </div>
-              ) : (
-                <div className="mini-doc">
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </div>
-              )}
-              <span className="file-art-more">
-                <MoreHorizontal size={16} />
-              </span>
-            </div>
-            <div className="file-name">
-              <span className={`file-type-icon ${file.type}`}>
+        {fileItems(expanded)
+          .slice(0, expanded ? 30 : 4)
+          .map((file, i) => (
+            <button
+              key={file.id}
+              className={`file-tile tile-${file.type}`}
+              onClick={() => setDetail({ type: "file", item: file })}
+            >
+              <div className={`file-art art-${i % 4}`}>
                 {file.type === "folder" ? (
-                  <Folder size={13} />
+                  <Folder size={35} strokeWidth={1.2} />
                 ) : file.type === "spreadsheet" ? (
-                  <Grid2X2 size={13} />
+                  <Grid2X2 size={33} strokeWidth={1.3} />
+                ) : file.type === "presentation" ? (
+                  <div className="mini-moodboard">
+                    <i />
+                    <i />
+                    <i />
+                  </div>
                 ) : (
-                  <FileText size={13} />
+                  <div className="mini-doc">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </div>
                 )}
-              </span>
-              <strong>{file.name}</strong>
-            </div>
-            <div className="file-meta">
-              {sameDay(new Date(file.modifiedAt), today) ? "Today" : "Recently"}
-              <span>·</span>
-              {file.owner || "You"}
-            </div>
-          </button>
-        ))}
+                <span className="file-art-more">
+                  <MoreHorizontal size={16} />
+                </span>
+              </div>
+              <div className="file-name">
+                <span className={`file-type-icon ${file.type}`}>
+                  {file.type === "folder" ? (
+                    <Folder size={13} />
+                  ) : file.type === "spreadsheet" ? (
+                    <Grid2X2 size={13} />
+                  ) : (
+                    <FileText size={13} />
+                  )}
+                </span>
+                <strong>{file.name}</strong>
+              </div>
+              <div className="file-meta">
+                {sameDay(new Date(file.modifiedAt), today)
+                  ? "Today"
+                  : new Date(file.modifiedAt).toLocaleDateString()}
+                <span>·</span>
+                {file.owner || "You"}
+              </div>
+            </button>
+          ))}
       </div>
+      {files.length > 0 && fileItems(expanded).length === 0 && (
+        <div className="empty-state">
+          <strong>No matching files</strong>
+          <button
+            onClick={() => {
+              setFileQuery("");
+              setFileType("all");
+            }}
+          >
+            Clear file filters
+          </button>
+        </div>
+      )}
       {files.length === 0 && (
         <div className="empty-state">
           <Folder size={28} />
@@ -1244,7 +1382,7 @@ export default function App() {
         <span
           style={{
             width: track
-              ? `${(track.progressMs / track.durationMs) * 100}%`
+              ? `${track.durationMs > 0 ? Math.max(0, Math.min(100, (track.progressMs / track.durationMs) * 100)) : 0}%`
               : "0%",
           }}
         />
@@ -1269,6 +1407,14 @@ export default function App() {
             <ExternalLink size={14} />
           </IconButton>
           <IconButton
+            label="Previous track"
+            disabled={playbackBusy}
+            onClick={() => void playback("previous")}
+          >
+            <SkipBack size={16} />
+          </IconButton>
+          <IconButton
+            disabled={playbackBusy}
             label={track?.isPlaying ? "Pause Spotify" : "Play Spotify"}
             className="play-button"
             onClick={() => void playback("toggle")}
@@ -1279,7 +1425,11 @@ export default function App() {
               <Play size={17} fill="currentColor" />
             )}
           </IconButton>
-          <IconButton label="Next track" onClick={() => void playback("next")}>
+          <IconButton
+            label="Next track"
+            disabled={playbackBusy}
+            onClick={() => void playback("next")}
+          >
             <SkipForward size={16} />
           </IconButton>
         </div>
@@ -1334,7 +1484,7 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 4.5</span>
+            orbit<span>PERSONAL / 4.6</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
@@ -1456,756 +1606,784 @@ export default function App() {
           </div>
         </header>
         <main>
-          {storageError && (
-            <div className="service-warning" role="alert">
-              Browser storage could not save your changes. Keep this page open
-              and export a dashboard backup from Profile & settings.
-            </div>
-          )}
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">
-                JOE’S DASHBOARD <span className="heading-separator">/</span>{" "}
-                {view === "overview"
-                  ? "OVERVIEW"
-                  : view === "media"
-                    ? "MEDIA CENTER"
-                    : view === "shopping"
-                      ? "SHOPPING SCOUT"
-                      : view.toUpperCase()}
+          <Suspense
+            fallback={
+              <div className="module-empty" role="status">
+                Loading section…
               </div>
-              <h1>
-                {view === "overview"
-                  ? `${greeting}, Joe.`
-                  : view === "calendar"
-                    ? "Your schedule."
-                    : view === "inbox"
-                      ? "Your inbox."
-                      : view === "education"
-                        ? "Education Center"
-                        : view === "studio"
-                          ? "File Studio"
-                          : view === "media"
-                            ? "Media Center."
-                            : view === "shopping"
-                              ? "Shopping Scout."
-                              : view === "finance"
-                                ? "Your finances."
-                                : "Your files."}
-                <span className="heading-dot">.</span>
-              </h1>
-            </div>
-            <div className="date-weather">
-              <div className="today-date">
-                <CalendarDays size={15} />
-                {dateLabel}
+            }
+          >
+            {storageError && (
+              <div className="service-warning" role="alert">
+                Browser storage could not save your changes. Keep this page open
+                and export a dashboard backup from Profile & settings.
               </div>
-              <time
-                className="local-clock"
-                dateTime={today.toISOString()}
-                aria-label={`${timeOfDay}, ${today.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}`}
-              >
-                <TimeOfDayIcon aria-hidden="true" />
-                {today.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </time>
-            </div>
-          </div>
-          {live?.errors?.length ? (
-            <div className="service-warning">
-              <Bell size={14} />
-              <span>
-                {live.errors[0].service}: {live.errors[0].message}
-              </span>
-              <button onClick={() => void refresh()}>Retry</button>
-            </div>
-          ) : null}
-          {view === "overview" ? (
-            new URLSearchParams(window.location.search).has("classic-home") ? (
-              <>
-                <div className="v2-status-strip">
-                  <span>
-                    <i className="live-dot" />
-                    TODAY
-                  </span>
-                  {calendarLive && (
-                    <span>{`${todayEvents.length} events today`}</span>
-                  )}
-                  <span>{tasks.length - done} open tasks</span>
-                  <button onClick={() => setModal("connections")}>
-                    Profile & settings <ArrowUpRight size={12} />
-                  </button>
+            )}
+            <div className="page-heading">
+              <div>
+                <div className="eyebrow">
+                  JOE’S DASHBOARD <span className="heading-separator">/</span>{" "}
+                  {view === "overview"
+                    ? "OVERVIEW"
+                    : view === "media"
+                      ? "MEDIA CENTER"
+                      : view === "shopping"
+                        ? "SHOPPING SCOUT"
+                        : view.toUpperCase()}
                 </div>
-                <section className="card daily-brief">
-                  <span className="eyebrow">YOUR DAY</span>
-                  <strong>
-                    {todayEvents.length
-                      ? `Next: ${todayEvents[0].title} · ${shortTime(todayEvents[0].start)}`
-                      : "No upcoming calendar events"}
-                  </strong>
-                  <span>{tasks.filter((t) => !t.done).length} open tasks</span>
-                  <span className="today-priorities">
-                    {tasks
-                      .filter((t) => !t.done)
-                      .sort(
-                        (a, b) =>
-                          ({ high: 0, normal: 1, low: 2 })[
-                            a.priority || "normal"
-                          ] -
-                          { high: 0, normal: 1, low: 2 }[
-                            b.priority || "normal"
-                          ],
-                      )
-                      .slice(0, 3)
-                      .map((task) => task.title)
-                      .join(" · ")}
-                  </span>
-                  {weatherTemp && (
-                    <strong className="today-temperature">
-                      {weatherTemp.temperature}°
-                      {weatherTemp.unit === "fahrenheit" ? "F" : "C"}
-                      <small>
-                        {weatherTemp.location} · {weatherTemp.description}
-                      </small>
-                    </strong>
-                  )}
-                </section>
-                <div className="v2-primary">
-                  <div className="essentials-column">
-                    {calendarPanel()}
-                    {inboxPanel()}
-                  </div>
-                  <div className="priorities-column">
-                    {tasksPanel()}
-                    {focusPanel()}
-                  </div>
-                  <div className="atmosphere-column">
-                    <WeatherPanel
-                      onWeather={setWeatherSummary}
-                      onTemperature={setWeatherTemp}
-                    />
-                    {musicPanel()}
-                  </div>
+                <h1>
+                  {view === "overview"
+                    ? `${greeting}, Joe.`
+                    : view === "calendar"
+                      ? "Your schedule."
+                      : view === "inbox"
+                        ? "Your inbox."
+                        : view === "education"
+                          ? "Education Center"
+                          : view === "studio"
+                            ? "File Studio"
+                            : view === "media"
+                              ? "Media Center."
+                              : view === "shopping"
+                                ? "Shopping Scout."
+                                : view === "finance"
+                                  ? "Your finances."
+                                  : "Your files."}
+                  <span className="heading-dot">.</span>
+                </h1>
+              </div>
+              <div className="date-weather">
+                <div className="today-date">
+                  <CalendarDays size={15} />
+                  {dateLabel}
                 </div>
-                <CommandCenter
-                  tasks={tasks}
-                  onAddTask={(title) =>
-                    setTasks((current) =>
-                      current.some(
-                        (t) => t.title.toLowerCase() === title.toLowerCase(),
-                      )
-                        ? current
-                        : [
-                            ...current,
-                            {
-                              id: newId(),
-                              title,
-                              done: false,
-                              source: "assistant",
-                            },
-                          ],
-                    )
-                  }
-                />
-                <div className="tonight-heading">
-                  After hours
-                  <span>MEDIA</span>
-                </div>
-                <div className="tonight-grid">
-                  <MediaSummary
-                    onOpen={(id) => {
-                      setMediaId(id);
-                      navigate("media");
-                    }}
-                  />
-                </div>
-                <ShoppingScout />
-                <div className="v2-files" id="bottom-widgets">
-                  {filesPanel()}
-                </div>
-              </>
-            ) : (
-              <ImmersiveHome
-                dateLabel={dateLabel}
-                greeting={greeting}
-                clock={today.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-                widgets={[
-                  {
-                    id: "upnext",
-                    title: "Up next",
-                    icon: CalendarDays,
-                    compact: "Next upcoming event",
-                    expanded: "Next seven days with dates and event details",
-                    render: ({ mode }) => {
-                      const academic: CalendarEvent[] = educationDeadlines(
-                        education,
-                      ).map((record) => ({
-                        id: `education-${record.id}`,
-                        title: record.title,
-                        start: record.dueDate,
-                        end: `${record.dueDate}T23:59:59`,
-                        allDay: true,
-                        location: record.course || record.domain,
-                      }));
-                      const next = upcomingEvents(
-                        [...events, ...academic],
-                        now,
-                      );
-                      return (
-                        <div className="oi-upnext">
-                          {loading ? (
-                            <p role="status">Loading schedule…</p>
-                          ) : next.length ? (
-                            next
-                              .slice(0, mode === "expanded" ? 30 : 1)
-                              .map((event) => (
-                                <button
-                                  key={event.id}
-                                  className="oi-upnext-event"
-                                  onClick={() =>
-                                    event.id.startsWith("education-")
-                                      ? navigate("education")
-                                      : setDetail({
-                                          type: "event",
-                                          item: event,
-                                        })
-                                  }
-                                >
-                                  <strong>{event.title}</strong>
-                                  <span>
-                                    {mode === "expanded" &&
-                                      `${eventDate(event.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · `}
-                                    {event.allDay
-                                      ? "All day"
-                                      : shortTime(event.start)}
-                                  </span>
-                                  {mode === "expanded" && event.location && (
-                                    <span>{event.location}</span>
-                                  )}
-                                </button>
-                              ))
-                          ) : (
-                            <p>
-                              {calendarError ||
-                                (calendarLive || demoMode
-                                  ? "No upcoming events in the next seven days"
-                                  : "Connect a calendar to see upcoming events")}
-                            </p>
-                          )}
-                          {mode === "expanded" && (
-                            <p>
-                              Schedule from{" "}
-                              {connections.calendar?.source === "ics"
-                                ? "your calendar feed"
-                                : googleLive
-                                  ? "Google Calendar"
-                                  : "the connected calendar"}
-                              . Calendar changes are read-only.
-                            </p>
-                          )}
-                          <button
-                            className="oi-inline-link"
-                            onClick={() => navigate("calendar")}
-                          >
-                            Open Planner <ArrowRight size={14} />
-                          </button>
-                        </div>
-                      );
+                <time
+                  className="local-clock"
+                  dateTime={today.toISOString()}
+                  aria-label={`${timeOfDay}, ${today.toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "numeric",
+                      minute: "2-digit",
                     },
-                    height: 190,
-                  },
-                  {
-                    id: "priorities",
-                    title: "Today's priorities",
-                    icon: CheckCheck,
-                    compact: "Three open tasks",
-                    expanded:
-                      "All tasks, filters, editing, due dates and priority",
-                    render: ({ mode }) => tasksPanel(mode === "compact"),
-                    height: 390,
-                  },
-                  {
-                    id: "focus",
-                    title: "Focus session",
-                    icon: Target,
-                    compact: "Timer and duration",
-                    expanded:
-                      "Intention, sound, volume, history and session totals",
-                    render: ({ mode }) => focusPanel(mode === "compact"),
-                    height: 330,
-                  },
-                  {
-                    id: "spotify",
-                    title: "Spotify",
-                    icon: AudioLines,
-                    compact: "Track, artist, playback",
-                    expanded:
-                      "Album, device, progress and full playback controls",
-                    render: ({ mode }) => (
-                      <>
-                        {spotifyError && <p role="alert">{spotifyError}</p>}
-                        {mode === "expanded" ? (
-                          <>
-                            {musicPanel()}
-                            {track && (
-                              <dl className="oi-metadata">
-                                <div>
-                                  <dt>Album</dt>
-                                  <dd>{track.album || "Not provided"}</dd>
-                                </div>
-                                <div>
-                                  <dt>Device</dt>
-                                  <dd>{track.device || "No active device"}</dd>
-                                </div>
-                              </dl>
-                            )}
-                            <button
-                              className="oi-inline-link"
-                              onClick={() => void refresh()}
-                            >
-                              Refresh Spotify
-                            </button>
-                          </>
-                        ) : (
-                          <div className="oi-spotify-compact">
-                            {track ? (
-                              <>
-                                <strong>{track.title}</strong>
-                                <span>{track.artist}</span>
-                                <button
-                                  className="primary-button"
-                                  onClick={() => void playback("toggle")}
-                                >
-                                  {track.isPlaying ? (
-                                    <Pause size={16} />
-                                  ) : (
-                                    <Play size={16} />
-                                  )}{" "}
-                                  {track.isPlaying
-                                    ? "Pause Spotify"
-                                    : "Play Spotify"}
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <p>
-                                  {connections.spotify.connected
-                                    ? "No active playback"
-                                    : "Spotify not connected"}
-                                </p>
-                                <button
-                                  className="oi-inline-link"
-                                  onClick={() => setModal("connections")}
-                                >
-                                  {connections.spotify.connected
-                                    ? "Spotify settings"
-                                    : "Connect Spotify"}
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    ),
-                    height: 260,
-                  },
-                  {
-                    id: "weather",
-                    title: "Weather · 5 days",
-                    icon: Sun,
-                    compact: "Conditions and five days",
-                    expanded:
-                      "Seven days, precipitation, city, units and refresh",
-                    render: ({ mode }) => (
+                  )}`}
+                >
+                  <TimeOfDayIcon aria-hidden="true" />
+                  {today.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </time>
+              </div>
+            </div>
+            {live?.errors?.length ? (
+              <div className="service-warning">
+                <Bell size={14} />
+                <span>
+                  {live.errors[0].service}: {live.errors[0].message}
+                </span>
+                <button onClick={() => void refresh()}>Retry</button>
+              </div>
+            ) : null}
+            {view === "overview" ? (
+              new URLSearchParams(window.location.search).has(
+                "classic-home",
+              ) ? (
+                <>
+                  <div className="v2-status-strip">
+                    <span>
+                      <i className="live-dot" />
+                      TODAY
+                    </span>
+                    {calendarLive && (
+                      <span>{`${todayEvents.length} events today`}</span>
+                    )}
+                    <span>{tasks.length - done} open tasks</span>
+                    <button onClick={() => setModal("connections")}>
+                      Profile & settings <ArrowUpRight size={12} />
+                    </button>
+                  </div>
+                  <section className="card daily-brief">
+                    <span className="eyebrow">YOUR DAY</span>
+                    <strong>
+                      {todayEvents.length
+                        ? `Next: ${todayEvents[0].title} · ${shortTime(todayEvents[0].start)}`
+                        : "No upcoming calendar events"}
+                    </strong>
+                    <span>
+                      {tasks.filter((t) => !t.done).length} open tasks
+                    </span>
+                    <span className="today-priorities">
+                      {tasks
+                        .filter((t) => !t.done)
+                        .sort(
+                          (a, b) =>
+                            ({ high: 0, normal: 1, low: 2 })[
+                              a.priority || "normal"
+                            ] -
+                            { high: 0, normal: 1, low: 2 }[
+                              b.priority || "normal"
+                            ],
+                        )
+                        .slice(0, 3)
+                        .map((task) => task.title)
+                        .join(" · ")}
+                    </span>
+                    {weatherTemp && (
+                      <strong className="today-temperature">
+                        {weatherTemp.temperature}°
+                        {weatherTemp.unit === "fahrenheit" ? "F" : "C"}
+                        <small>
+                          {weatherTemp.location} · {weatherTemp.description}
+                        </small>
+                      </strong>
+                    )}
+                  </section>
+                  <div className="v2-primary">
+                    <div className="essentials-column">
+                      {calendarPanel()}
+                      {inboxPanel()}
+                    </div>
+                    <div className="priorities-column">
+                      {tasksPanel()}
+                      {focusPanel()}
+                    </div>
+                    <div className="atmosphere-column">
                       <WeatherPanel
-                        forecastDays={mode === "expanded" ? 7 : 5}
-                        interactive={mode === "expanded"}
-                        showCurrent
                         onWeather={setWeatherSummary}
                         onTemperature={setWeatherTemp}
                       />
-                    ),
-                    height: 325,
-                  },
-                  {
-                    id: "email",
-                    title: "Email",
-                    icon: Mail,
-                    compact: "Three important messages",
-                    expanded:
-                      "Thirty messages, filters, previews, refresh and Inbox",
-                    render: ({ mode }) => (
-                      <>
-                        {inboxPanel(mode === "expanded")}
-                        {mode === "expanded" && (
-                          <>
-                            <p className="oi-detail-note">
-                              {emails.filter((email) => email.unread).length}{" "}
-                              unread in the loaded messages. Opening a message
-                              updates only Orbit’s read marker.
-                            </p>
-                            <button
-                              className="oi-inline-link"
-                              onClick={() => navigate("inbox")}
-                            >
-                              Open Inbox
-                            </button>
-                            <button
-                              className="oi-inline-link"
-                              onClick={() => void refresh()}
-                            >
-                              Refresh email
-                            </button>
-                          </>
-                        )}
-                      </>
-                    ),
-                    height: 360,
-                  },
-                  {
-                    id: "continue",
-                    title: "Continue watching",
-                    icon: Clapperboard,
-                    compact: "One resumable or queued video",
-                    expanded: "All resumable and queued videos with progress",
-                    render: ({ mode }) => (
-                      <MediaSummary
-                        expanded={mode === "expanded"}
-                        onOpen={(id) => {
-                          setMediaId(id);
-                          navigate("media");
-                        }}
-                      />
-                    ),
-                    height: 250,
-                  },
-                  {
-                    id: "notes",
-                    title: "Quick notes",
-                    icon: FileText,
-                    compact: "Short note editor",
-                    expanded: "Full note editor, character count and download",
-                    render: ({ mode }) => (
-                      <div className="oi-notes-editor">
-                        <textarea
-                          className="oi-notes"
-                          aria-label="Quick notes"
-                          placeholder="Notes"
-                          maxLength={500000}
-                          value={notes}
-                          onChange={(event) => setNotes(event.target.value)}
-                        />
-                        {mode === "expanded" && (
-                          <div className="oi-notes-tools">
-                            <span>
-                              {notes.length.toLocaleString()} / 500,000
-                              characters ·{" "}
-                              {notes.trim()
-                                ? notes.trim().split(/\s+/).length
-                                : 0}{" "}
-                              words
-                            </span>
-                            <button
-                              onClick={() => {
-                                const url = URL.createObjectURL(
-                                  new Blob([notes], { type: "text/plain" }),
-                                );
-                                const link = document.createElement("a");
-                                link.href = url;
-                                link.download = "orbit-notes.txt";
-                                link.click();
-                                setTimeout(
-                                  () => URL.revokeObjectURL(url),
-                                  1000,
-                                );
-                              }}
-                            >
-                              Download notes
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ),
-                    height: 265,
-                  },
-                  {
-                    id: "calendar",
-                    title: "Calendar",
-                    icon: CalendarDays,
-                    compact: "Seven dates and selected-day events",
-                    expanded: "Fourteen dates, multi-day agenda and navigation",
-                    render: ({ mode }) => (
-                      <>
-                        {calendarPanel(mode === "expanded")}
-                        {mode === "expanded" && (
-                          <>
-                            <h3 className="oi-section-heading">
-                              Upcoming days
-                            </h3>
-                            <div className="oi-upnext">
-                              {events
-                                .filter(
-                                  (event) =>
-                                    eventDate(event.end).getTime() > now,
-                                )
-                                .slice(0, 40)
+                      {musicPanel()}
+                    </div>
+                  </div>
+                  <CommandCenter
+                    tasks={tasks}
+                    onAddTask={(title) =>
+                      setTasks((current) =>
+                        current.some(
+                          (t) => t.title.toLowerCase() === title.toLowerCase(),
+                        )
+                          ? current
+                          : [
+                              ...current,
+                              {
+                                id: newId(),
+                                title,
+                                done: false,
+                                source: "assistant",
+                              },
+                            ],
+                      )
+                    }
+                  />
+                  <div className="tonight-heading">
+                    After hours
+                    <span>MEDIA</span>
+                  </div>
+                  <div className="tonight-grid">
+                    <MediaSummary
+                      onOpen={(id) => {
+                        setMediaId(id);
+                        navigate("media");
+                      }}
+                    />
+                  </div>
+                  <ShoppingScout />
+                  <div className="v2-files" id="bottom-widgets">
+                    {filesPanel()}
+                  </div>
+                </>
+              ) : (
+                <ImmersiveHome
+                  dateLabel={dateLabel}
+                  greeting={greeting}
+                  clock={today.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                  widgets={[
+                    {
+                      id: "upnext",
+                      title: "Up next",
+                      icon: CalendarDays,
+                      compact: "Next upcoming event",
+                      expanded: "Next seven days with dates and event details",
+                      render: ({ mode }) => {
+                        const academic: CalendarEvent[] = educationDeadlines(
+                          education,
+                        ).map((record) => ({
+                          id: `education-${record.id}`,
+                          title: record.title,
+                          start: record.dueDate,
+                          end: `${record.dueDate}T23:59:59`,
+                          allDay: true,
+                          location: record.course || record.domain,
+                        }));
+                        const next = upcomingEvents(
+                          [...events, ...academic],
+                          now,
+                        );
+                        return (
+                          <div className="oi-upnext">
+                            {loading ? (
+                              <p role="status">Loading schedule…</p>
+                            ) : next.length ? (
+                              next
+                                .slice(0, mode === "expanded" ? 30 : 1)
                                 .map((event) => (
                                   <button
-                                    className="oi-upnext-event"
                                     key={event.id}
+                                    className="oi-upnext-event"
                                     onClick={() =>
-                                      setDetail({ type: "event", item: event })
+                                      event.id.startsWith("education-")
+                                        ? navigate("education")
+                                        : setDetail({
+                                            type: "event",
+                                            item: event,
+                                          })
                                     }
                                   >
                                     <strong>{event.title}</strong>
                                     <span>
-                                      {eventDate(
-                                        event.start,
-                                      ).toLocaleDateString()}{" "}
-                                      ·{" "}
+                                      {mode === "expanded" &&
+                                        `${eventDate(event.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · `}
                                       {event.allDay
                                         ? "All day"
                                         : shortTime(event.start)}
                                     </span>
+                                    {mode === "expanded" && event.location && (
+                                      <span>{event.location}</span>
+                                    )}
                                   </button>
-                                ))}
-                            </div>
+                                ))
+                            ) : (
+                              <p>
+                                {calendarError ||
+                                  (calendarLive || demoMode
+                                    ? "No upcoming events in the next seven days"
+                                    : "Connect a calendar to see upcoming events")}
+                              </p>
+                            )}
+                            {mode === "expanded" && (
+                              <p>
+                                Schedule from{" "}
+                                {connections.calendar?.source === "ics"
+                                  ? "your calendar feed"
+                                  : googleLive
+                                    ? "Google Calendar"
+                                    : "the connected calendar"}
+                                . Calendar changes are read-only.
+                              </p>
+                            )}
                             <button
                               className="oi-inline-link"
                               onClick={() => navigate("calendar")}
                             >
-                              Open Planner
+                              Open Planner <ArrowRight size={14} />
                             </button>
-                          </>
-                        )}
-                      </>
-                    ),
-                    height: 350,
-                  },
-                  {
-                    id: "ambient",
-                    title: "Ambient sound",
-                    icon: Volume2,
-                    compact: "Sound preset",
-                    expanded:
-                      "All presets, real volume control and Focus controls",
-                    render: ({ mode }) => (
-                      <div className="oi-ambient">
-                        <label htmlFor="oi-sound">Focus sound</label>
-                        <select
-                          id="oi-sound"
-                          value={focus.settings.sound}
-                          onChange={(event) =>
-                            focus.setSettings((current) => ({
-                              ...current,
-                              sound: event.target.value as typeof current.sound,
-                            }))
-                          }
-                        >
-                          <option value="off">Off</option>
-                          <option value="rain">Rain</option>
-                          <option value="roof">Roof rain</option>
-                          <option value="window">Window rain</option>
-                          <option value="storm">Storm</option>
-                          <option value="snow">Snow</option>
-                          <option value="hail">Hail</option>
-                        </select>
-                        <p>
-                          {focus.focusing ? "Focus running" : "Focus paused"} ·
-                          sound plays during a session.
-                        </p>
-                        {mode === "expanded" && (
-                          <>
-                            <label>
-                              Sound volume
-                              <input
-                                aria-label="Ambient volume"
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={focus.settings.volume}
-                                onChange={(event) =>
-                                  focus.setSettings((current) => ({
-                                    ...current,
-                                    volume: Number(event.target.value),
-                                  }))
-                                }
-                              />
-                              {focus.settings.volume}%
-                            </label>
-                            <button
-                              className="primary-button"
-                              onClick={
-                                focus.focusing ? focus.pause : focus.start
-                              }
-                            >
-                              {focus.focusing
-                                ? "Pause focus & sound"
-                                : "Start focus & sound"}
-                            </button>
-                            {focus.focusing &&
-                              !focus.audioArmed &&
-                              focus.settings.sound !== "off" && (
-                                <button onClick={focus.armAudio}>
-                                  Resume sound
-                                </button>
+                          </div>
+                        );
+                      },
+                      height: 190,
+                    },
+                    {
+                      id: "priorities",
+                      title: "Today's priorities",
+                      icon: CheckCheck,
+                      compact: "Three open tasks",
+                      expanded:
+                        "All tasks, filters, editing, due dates and priority",
+                      render: ({ mode }) => tasksPanel(mode === "compact"),
+                      height: 390,
+                    },
+                    {
+                      id: "focus",
+                      title: "Focus session",
+                      icon: Target,
+                      compact: "Timer and duration",
+                      expanded:
+                        "Intention, sound, volume, history and session totals",
+                      render: ({ mode }) => focusPanel(mode === "compact"),
+                      height: 330,
+                    },
+                    {
+                      id: "spotify",
+                      title: "Spotify",
+                      icon: AudioLines,
+                      compact: "Track, artist, playback",
+                      expanded:
+                        "Album, device, progress and full playback controls",
+                      render: ({ mode }) => (
+                        <>
+                          {spotifyError && <p role="alert">{spotifyError}</p>}
+                          {mode === "expanded" ? (
+                            <>
+                              {musicPanel()}
+                              {track && (
+                                <dl className="oi-metadata">
+                                  <div>
+                                    <dt>Album</dt>
+                                    <dd>{track.album || "Not provided"}</dd>
+                                  </div>
+                                  <div>
+                                    <dt>Device</dt>
+                                    <dd>
+                                      {track.device || "No active device"}
+                                    </dd>
+                                  </div>
+                                </dl>
                               )}
-                            <p>
-                              Audio is generated in your browser. Volume changes
-                              the same sound engine used by Focus.
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    ),
-                    height: 220,
-                  },
-                  {
-                    id: "files",
-                    title: "Recent files",
-                    icon: Folder,
-                    compact: "Four recent files",
-                    expanded:
-                      "Thirty files, type, modified date and full Files module",
-                    render: ({ mode }) => (
-                      <>
-                        {filesPanel(mode === "expanded")}
-                        {mode === "expanded" && (
-                          <button
-                            className="oi-inline-link"
-                            onClick={() => navigate("files")}
+                              <button
+                                className="oi-inline-link"
+                                onClick={() => void refresh()}
+                              >
+                                Refresh Spotify
+                              </button>
+                            </>
+                          ) : (
+                            <div className="oi-spotify-compact">
+                              {track ? (
+                                <>
+                                  <strong>{track.title}</strong>
+                                  <span>{track.artist}</span>
+                                  <button
+                                    className="primary-button"
+                                    onClick={() => void playback("toggle")}
+                                  >
+                                    {track.isPlaying ? (
+                                      <Pause size={16} />
+                                    ) : (
+                                      <Play size={16} />
+                                    )}{" "}
+                                    {track.isPlaying
+                                      ? "Pause Spotify"
+                                      : "Play Spotify"}
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <p>
+                                    {connections.spotify.connected
+                                      ? "No active playback"
+                                      : "Spotify not connected"}
+                                  </p>
+                                  <button
+                                    className="oi-inline-link"
+                                    onClick={() => setModal("connections")}
+                                  >
+                                    {connections.spotify.connected
+                                      ? "Spotify settings"
+                                      : "Connect Spotify"}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      ),
+                      height: 260,
+                    },
+                    {
+                      id: "weather",
+                      title: "Weather · 5 days",
+                      icon: Sun,
+                      compact: "Conditions and five days",
+                      expanded:
+                        "Seven days, precipitation, city, units and refresh",
+                      render: ({ mode }) => (
+                        <WeatherPanel
+                          forecastDays={mode === "expanded" ? 7 : 5}
+                          interactive={mode === "expanded"}
+                          showCurrent
+                          onWeather={setWeatherSummary}
+                          onTemperature={setWeatherTemp}
+                        />
+                      ),
+                      height: 325,
+                    },
+                    {
+                      id: "email",
+                      title: "Email",
+                      icon: Mail,
+                      compact: "Three important messages",
+                      expanded:
+                        "Thirty messages, filters, previews, refresh and Inbox",
+                      render: ({ mode }) => (
+                        <>
+                          {inboxPanel(mode === "expanded")}
+                          {mode === "expanded" && (
+                            <>
+                              <p className="oi-detail-note">
+                                {emails.filter((email) => email.unread).length}{" "}
+                                unread in the loaded messages. Opening a message
+                                updates only Orbit’s read marker.
+                              </p>
+                              <button
+                                className="oi-inline-link"
+                                onClick={() => navigate("inbox")}
+                              >
+                                Open Inbox
+                              </button>
+                              <button
+                                className="oi-inline-link"
+                                onClick={() => void refresh()}
+                              >
+                                Refresh email
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ),
+                      height: 360,
+                    },
+                    {
+                      id: "continue",
+                      title: "Continue watching",
+                      icon: Clapperboard,
+                      compact: "One resumable or queued video",
+                      expanded: "All resumable and queued videos with progress",
+                      render: ({ mode }) => (
+                        <MediaSummary
+                          expanded={mode === "expanded"}
+                          onOpen={(id) => {
+                            setMediaId(id);
+                            navigate("media");
+                          }}
+                        />
+                      ),
+                      height: 250,
+                    },
+                    {
+                      id: "notes",
+                      title: "Quick notes",
+                      icon: FileText,
+                      compact: "Short note editor",
+                      expanded:
+                        "Full note editor, character count and download",
+                      render: ({ mode }) => (
+                        <div className="oi-notes-editor">
+                          <textarea
+                            className="oi-notes"
+                            aria-label="Quick notes"
+                            placeholder="Notes"
+                            maxLength={500000}
+                            value={notes}
+                            onChange={(event) => setNotes(event.target.value)}
+                          />
+                          {mode === "expanded" && (
+                            <div className="oi-notes-tools">
+                              <span>
+                                {notes.length.toLocaleString()} / 500,000
+                                characters ·{" "}
+                                {notes.trim()
+                                  ? notes.trim().split(/\s+/).length
+                                  : 0}{" "}
+                                words
+                              </span>
+                              <button
+                                onClick={() => {
+                                  const url = URL.createObjectURL(
+                                    new Blob([notes], { type: "text/plain" }),
+                                  );
+                                  const link = document.createElement("a");
+                                  link.href = url;
+                                  link.download = "orbit-notes.txt";
+                                  link.click();
+                                  setTimeout(
+                                    () => URL.revokeObjectURL(url),
+                                    1000,
+                                  );
+                                }}
+                              >
+                                Download notes
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ),
+                      height: 265,
+                    },
+                    {
+                      id: "calendar",
+                      title: "Calendar",
+                      icon: CalendarDays,
+                      compact: "Seven dates and selected-day events",
+                      expanded:
+                        "Fourteen dates, multi-day agenda and navigation",
+                      render: ({ mode }) => (
+                        <>
+                          {calendarPanel(mode === "expanded")}
+                          {mode === "expanded" && (
+                            <>
+                              <h3 className="oi-section-heading">
+                                Upcoming days
+                              </h3>
+                              <div className="oi-upnext">
+                                {events
+                                  .filter(
+                                    (event) =>
+                                      eventDate(event.end).getTime() > now,
+                                  )
+                                  .slice(0, 40)
+                                  .map((event) => (
+                                    <button
+                                      className="oi-upnext-event"
+                                      key={event.id}
+                                      onClick={() =>
+                                        setDetail({
+                                          type: "event",
+                                          item: event,
+                                        })
+                                      }
+                                    >
+                                      <strong>{event.title}</strong>
+                                      <span>
+                                        {eventDate(
+                                          event.start,
+                                        ).toLocaleDateString()}{" "}
+                                        ·{" "}
+                                        {event.allDay
+                                          ? "All day"
+                                          : shortTime(event.start)}
+                                      </span>
+                                    </button>
+                                  ))}
+                              </div>
+                              <button
+                                className="oi-inline-link"
+                                onClick={() => navigate("calendar")}
+                              >
+                                Open Planner
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ),
+                      height: 350,
+                    },
+                    {
+                      id: "ambient",
+                      title: "Ambient sound",
+                      icon: Volume2,
+                      compact: "Sound preset",
+                      expanded:
+                        "All presets, real volume control and Focus controls",
+                      render: ({ mode }) => (
+                        <div className="oi-ambient">
+                          <label htmlFor="oi-sound">Focus sound</label>
+                          <select
+                            id="oi-sound"
+                            value={focus.settings.sound}
+                            onChange={(event) =>
+                              focus.setSettings((current) => ({
+                                ...current,
+                                sound: event.target
+                                  .value as typeof current.sound,
+                              }))
+                            }
                           >
-                            Open Files
-                          </button>
-                        )}
-                      </>
-                    ),
-                    height: 240,
-                  },
-                ]}
-              />
-            )
-          ) : view === "calendar" ? (
-            <>
-              <WeeklyPlanner
-                date={selectedDate}
-                setDate={setSelectedDate}
-                events={events}
-                tasks={tasks}
-                education={education}
-                onTask={(id, patch) =>
-                  setTasks((current) =>
-                    current.map((task) =>
-                      task.id === id ? { ...task, ...patch } : task,
-                    ),
-                  )
-                }
-                onEvent={(event) => setDetail({ type: "event", item: event })}
-                onEducation={() => navigate("education")}
-              />
+                            <option value="off">Off</option>
+                            <option value="rain">Rain</option>
+                            <option value="roof">Roof rain</option>
+                            <option value="window">Window rain</option>
+                            <option value="storm">Storm</option>
+                            <option value="snow">Snow</option>
+                            <option value="hail">Hail</option>
+                          </select>
+                          <p>
+                            {focus.focusing ? "Focus running" : "Focus paused"}{" "}
+                            · sound plays during a session.
+                          </p>
+                          {mode === "expanded" && (
+                            <>
+                              <label>
+                                Sound volume
+                                <input
+                                  aria-label="Ambient volume"
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={focus.settings.volume}
+                                  onChange={(event) =>
+                                    focus.setSettings((current) => ({
+                                      ...current,
+                                      volume: Number(event.target.value),
+                                    }))
+                                  }
+                                />
+                                {focus.settings.volume}%
+                              </label>
+                              <button
+                                className="primary-button"
+                                onClick={
+                                  focus.focusing ? focus.pause : focus.start
+                                }
+                              >
+                                {focus.focusing
+                                  ? "Pause focus & sound"
+                                  : "Start focus & sound"}
+                              </button>
+                              {focus.focusing &&
+                                !focus.audioArmed &&
+                                focus.settings.sound !== "off" && (
+                                  <button onClick={focus.armAudio}>
+                                    Resume sound
+                                  </button>
+                                )}
+                              <p>
+                                Audio is generated in your browser. Volume
+                                changes the same sound engine used by Focus.
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      ),
+                      height: 220,
+                    },
+                    {
+                      id: "files",
+                      title: "Recent files",
+                      icon: Folder,
+                      compact: "Four recent files",
+                      expanded:
+                        "Thirty files, type, modified date and full Files module",
+                      render: ({ mode }) => (
+                        <>
+                          {filesPanel(mode === "expanded")}
+                          {mode === "expanded" && (
+                            <button
+                              className="oi-inline-link"
+                              onClick={() => navigate("files")}
+                            >
+                              Open Files
+                            </button>
+                          )}
+                        </>
+                      ),
+                      height: 240,
+                    },
+                  ]}
+                />
+              )
+            ) : view === "calendar" ? (
+              <>
+                <WeeklyPlanner
+                  date={selectedDate}
+                  setDate={setSelectedDate}
+                  events={events}
+                  tasks={tasks}
+                  education={education}
+                  onTask={(id, patch) =>
+                    setTasks((current) =>
+                      current.map((task) =>
+                        task.id === id ? { ...task, ...patch } : task,
+                      ),
+                    )
+                  }
+                  onEvent={(event) => setDetail({ type: "event", item: event })}
+                  onEducation={() => navigate("education")}
+                />
+                <div className="workspace-grid">
+                  <div>{calendarPanel(true)}</div>
+                  <div className="workspace-aside">
+                    {tasksPanel()}
+                    {focusPanel()}
+                    <section className="card gentle-card">
+                      <Sparkles size={20} />
+                      <h3>A calendar with breathing room.</h3>
+                      <p>
+                        {calendarLive
+                          ? `Your calendar, read-only and in one place. Source: ${connections.calendar?.source === "ics" ? "ICS feed / import" : "Google"}.`
+                          : "Use a private ICS feed or import an .ics file. Your calendar doesn’t need a Google Cloud project."}
+                      </p>
+                      <button
+                        className="text-button"
+                        onClick={() => setModal("connections")}
+                      >
+                        {calendarLive
+                          ? "Manage connection"
+                          : "Add calendar feed"}
+                        <ArrowUpRight size={14} />
+                      </button>
+                    </section>
+                  </div>
+                </div>
+              </>
+            ) : view === "inbox" ? (
               <div className="workspace-grid">
-                <div>{calendarPanel(true)}</div>
+                <div>{inboxPanel(true)}</div>
                 <div className="workspace-aside">
                   {tasksPanel()}
-                  {focusPanel()}
                   <section className="card gentle-card">
-                    <Sparkles size={20} />
-                    <h3>A calendar with breathing room.</h3>
+                    <Mail size={20} />
+                    <h3>Your attention is a good thing.</h3>
                     <p>
-                      {calendarLive
-                        ? `Your calendar, read-only and in one place. Source: ${connections.calendar?.source === "ics" ? "ICS feed / import" : "Google"}.`
-                        : "Use a private ICS feed or import an .ics file. Your calendar doesn’t need a Google Cloud project."}
+                      Keep it for the people and conversations that matter.
+                      Orbit reads email summaries; it never sends or deletes
+                      your mail.
                     </p>
-                    <button
-                      className="text-button"
-                      onClick={() => setModal("connections")}
-                    >
-                      {calendarLive ? "Manage connection" : "Add calendar feed"}
-                      <ArrowUpRight size={14} />
-                    </button>
                   </section>
                 </div>
               </div>
-            </>
-          ) : view === "inbox" ? (
-            <div className="workspace-grid">
-              <div>{inboxPanel(true)}</div>
-              <div className="workspace-aside">
-                {tasksPanel()}
-                <section className="card gentle-card">
-                  <Mail size={20} />
-                  <h3>Your attention is a good thing.</h3>
-                  <p>
-                    Keep it for the people and conversations that matter. Orbit
-                    reads email summaries; it never sends or deletes your mail.
-                  </p>
-                </section>
-              </div>
-            </div>
-          ) : view === "media" ? (
-            <MediaCenter
-              initialMediaId={mediaId}
-              onOpened={() => setMediaId(undefined)}
-            />
-          ) : view === "shopping" ? (
-            <ShoppingScout />
-          ) : view === "education" ? (
-            <EducationCenter records={education} onChange={saveEducation} />
-          ) : view === "studio" ? (
-            <FileStudio />
-          ) : view === "finance" ? (
-            <FinancePanel />
-          ) : (
-            <>
-              {filesPanel(true)}
-              <div className="files-note">
-                <Link2 size={14} />
-                {googleLive
-                  ? "Your recent files are synced from Google Drive."
-                  : "A glimpse of what’s possible. Connect Google Drive to see your own files."}
-                <button onClick={() => setModal("connections")}>
-                  Profile & settings
-                  <ArrowUpRight size={12} />
+            ) : view === "media" ? (
+              <MediaCenter
+                initialMediaId={mediaId}
+                onOpened={() => setMediaId(undefined)}
+              />
+            ) : view === "shopping" ? (
+              <ShoppingScout />
+            ) : view === "education" ? (
+              <EducationCenter records={education} onChange={saveEducation} />
+            ) : view === "studio" ? (
+              <FileStudio />
+            ) : view === "finance" ? (
+              <FinancePanel />
+            ) : (
+              <>
+                {filesPanel(true)}
+                <div className="files-note">
+                  <Link2 size={14} />
+                  {googleLive
+                    ? "Your recent files are synced from Google Drive."
+                    : "A glimpse of what’s possible. Connect Google Drive to see your own files."}
+                  <button onClick={() => setModal("connections")}>
+                    Profile & settings
+                    <ArrowUpRight size={12} />
+                  </button>
+                </div>
+              </>
+            )}
+            <footer className="page-footer">
+              <span>
+                <OrbitLogo />
+                Orbit 4.6 <span>·</span> Joe
+              </span>
+              <span>
+                {loading ? (
+                  <>
+                    <LoaderCircle className="spin" size={11} /> Syncing your
+                    orbit
+                  </>
+                ) : googleLive ? (
+                  <>
+                    <i className="live-dot" /> Synced with Google
+                  </>
+                ) : (
+                  <>
+                    {demoMode ? "Sample content" : "Private space"}{" "}
+                    <span>·</span>{" "}
+                    {calendarLive ? "Calendar connected" : "Local dashboard"}
+                  </>
+                )}
+                <button
+                  onClick={() => void refresh()}
+                  aria-label="Refresh dashboard"
+                >
+                  <RotateCcw size={12} />
                 </button>
-              </div>
-            </>
-          )}
-          <footer className="page-footer">
-            <span>
-              <OrbitLogo />
-              Orbit 4.5 <span>·</span> Joe
-            </span>
-            <span>
-              {loading ? (
-                <>
-                  <LoaderCircle className="spin" size={11} /> Syncing your orbit
-                </>
-              ) : googleLive ? (
-                <>
-                  <i className="live-dot" /> Synced with Google
-                </>
-              ) : (
-                <>
-                  {demoMode ? "Sample content" : "Private space"} <span>·</span>{" "}
-                  {calendarLive ? "Calendar connected" : "Local dashboard"}
-                </>
-              )}
-              <button
-                onClick={() => void refresh()}
-                aria-label="Refresh dashboard"
-              >
-                <RotateCcw size={12} />
-              </button>
-            </span>
-          </footer>
+              </span>
+            </footer>
+          </Suspense>
         </main>
       </div>
       {chatOpen && (
@@ -2266,6 +2444,23 @@ export default function App() {
                 <CheckCheck size={13} /> Our build handoff is loaded
               </span>
               <button
+                disabled={chatBusy}
+                onClick={() =>
+                  downloadText(
+                    "orbit-conversation.txt",
+                    messages
+                      .map(
+                        (message) =>
+                          `${message.role === "user" ? "You" : "Orbit"}: ${message.content}`,
+                      )
+                      .join("\n\n"),
+                  )
+                }
+              >
+                Download conversation
+              </button>
+              <button
+                disabled={chatBusy}
                 onClick={() => {
                   setMessages([
                     {
@@ -2638,7 +2833,7 @@ export default function App() {
           <div className="search-field">
             <Search size={20} />
             <input
-              placeholder="Search events, emails, files, or to-dos…"
+              placeholder="Search events, emails, files, tasks, or education…"
               aria-label="Search everything"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -2662,6 +2857,18 @@ export default function App() {
                     icon: Clapperboard,
                     target: "media",
                   },
+                  {
+                    label: "Education Center",
+                    icon: GraduationCap,
+                    target: "education",
+                  },
+                  { label: "File Studio", icon: Wrench, target: "studio" },
+                  {
+                    label: "Shopping Scout",
+                    icon: ShoppingBag,
+                    target: "shopping",
+                  },
+                  { label: "Finances", icon: Wallet, target: "finance" },
                 ].map(({ label, icon: Icon, target }) => (
                   <button
                     className="search-result"
@@ -2746,6 +2953,32 @@ export default function App() {
                       <ArrowUpRight size={15} />
                     </button>
                   ))}
+                {education
+                  .filter((record) =>
+                    `${record.title} ${record.course}`
+                      .toLowerCase()
+                      .includes(query.trim().toLowerCase()),
+                  )
+                  .slice(0, 30)
+                  .map((record) => (
+                    <button
+                      key={`education-${record.id}`}
+                      className="search-result"
+                      onClick={() => {
+                        navigate("education");
+                        closeModal();
+                      }}
+                    >
+                      <GraduationCap size={18} />
+                      <div>
+                        <strong>{record.title}</strong>
+                        <small>
+                          Education · {record.course || record.domain}
+                        </small>
+                      </div>
+                      <ArrowUpRight size={15} />
+                    </button>
+                  ))}
                 {tasks
                   .filter((t) =>
                     t.title.toLowerCase().includes(query.toLowerCase()),
@@ -2756,7 +2989,7 @@ export default function App() {
                       key={t.id}
                       onClick={() => {
                         setTaskTab("tasks");
-                        navigate("overview");
+                        navigate("calendar");
                         closeModal();
                         setTimeout(
                           () =>
@@ -2780,6 +3013,9 @@ export default function App() {
                   ...emails.map((e) => e.subject + " " + e.from),
                   ...files.map((f) => f.name),
                   ...tasks.map((t) => t.title),
+                  ...education.map(
+                    (record) => `${record.title} ${record.course}`,
+                  ),
                 ].some((t) =>
                   t.toLowerCase().includes(query.toLowerCase()),
                 ) && (
@@ -2888,6 +3124,37 @@ export default function App() {
                     <Star size={12} /> Important
                   </span>
                 )}
+              </div>
+              <div className="module-filters">
+                <button
+                  onClick={() => {
+                    const title = detail.item.subject.slice(0, 200);
+                    if (
+                      !tasks.some((task) => task.title === title && !task.done)
+                    ) {
+                      setTasks((current) => [
+                        ...current,
+                        { id: newId(), title, done: false, source: "you" },
+                      ]);
+                      notify("Task created from this email.");
+                    } else
+                      notify("An open task with this title already exists.");
+                  }}
+                >
+                  Create task from email
+                </button>
+                <button
+                  onClick={() => {
+                    const id = detail.item.id;
+                    setRead((current) =>
+                      current.filter((value) => value !== id),
+                    );
+                    setDetail(null);
+                    notify("Orbit read marker reset; Gmail is unchanged.");
+                  }}
+                >
+                  Reset Orbit read marker
+                </button>
               </div>
               <div className="email-body">
                 {detail.item.snippet ||

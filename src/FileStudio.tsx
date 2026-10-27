@@ -16,6 +16,7 @@ export default function FileStudio() {
   const [result, setResult] = useState<Result | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
   const fileInput = useRef<HTMLInputElement>(null),
     job = useRef(0);
   const urlRef = useRef("");
@@ -38,12 +39,15 @@ export default function FileStudio() {
     setError("");
     setResult(null);
     setOutput("");
+    setCopyStatus("");
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = "";
   };
   const choose = async (selected?: File) => {
     if (!selected) return;
     clear();
+    setFile(null);
+    if (fileInput.current) fileInput.current.value = "";
     if (tab === "image") {
       if (
         !["image/png", "image/jpeg", "image/webp"].includes(selected.type) ||
@@ -348,6 +352,33 @@ export default function FileStudio() {
                   value={output}
                 />
               )}
+              {!result.image && (
+                <button
+                  className="text-button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(output);
+                      setCopyStatus("Copied to clipboard.");
+                    } catch {
+                      setCopyStatus(
+                        "Copy unavailable. Select the output text or download the file.",
+                      );
+                    }
+                  }}
+                >
+                  Copy output
+                </button>
+              )}
+              {result.image && file && (
+                <p className="module-privacy">
+                  Original: {(file.size / 1024).toFixed(1)} KiB · Output:{" "}
+                  {(result.bytes / 1024).toFixed(1)} KiB ·{" "}
+                  {result.bytes <= file.size
+                    ? `${Math.round((1 - result.bytes / file.size) * 100)}% smaller`
+                    : `${Math.round((result.bytes / file.size - 1) * 100)}% larger`}
+                </p>
+              )}
+              {copyStatus && <p role="status">{copyStatus}</p>}
               <a
                 className="primary-button"
                 href={result.url}
