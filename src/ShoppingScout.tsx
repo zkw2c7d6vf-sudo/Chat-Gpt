@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { ExternalLink, Plus, Search, Tag, Trash2, Trophy } from "lucide-react";
@@ -183,7 +184,7 @@ export default function ShoppingScout() {
         ? current
         : [
             {
-              id: crypto.randomUUID(),
+              id: newId(),
               query: clean,
               createdAt: new Date().toISOString(),
             },
@@ -227,7 +228,7 @@ export default function ShoppingScout() {
     }
     setSavedOffers((current) => [
       {
-        id: crypto.randomUUID(),
+        id: newId(),
         searchId: addingFor,
         store,
         url: url.trim(),
