@@ -1,0 +1,56 @@
+name: Orbit release validation
+
+on:
+  push:
+    branches:
+      - feat/orbit-immersive-home-2026-10-26
+      - orbit-v4.4
+  pull_request:
+    branches:
+      - orbit-v4.4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build TypeScript and Vite
+        run: npm run build
+      - name: Unit and server tests
+        run: npm test
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start Orbit dev server
+        run: |
+          npm run dev > /tmp/orbit-dev.log 2>&1 &
+          echo $! > /tmp/orbit-dev.pid
+          for i in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/orbit-dev.log
+          exit 1
+      - name: Immersive Home E2E
+        run: npm run test:home
+      - name: V2 regression
+        run: npm run test:e2e
+      - name: V3 regression
+        run: npm run test:v3
+      - name: V3.1 regression
+        run: npm run test:v31
+      - name: V4 regression
+        run: npm run test:v4
+      - name: Print development server log on failure
+        if: failure()
+        run: cat /tmp/orbit-dev.log || true
