@@ -122,14 +122,21 @@ export default function ShoppingScout() {
   const [liveSort, setLiveSort] = useState("relevance");
   const [budget, setBudget] = useState("");
   const requestVersion = useRef(0);
-  useEffect(
-    () => localStorage.setItem(searchesKey, JSON.stringify(saved)),
-    [saved],
-  );
-  useEffect(
-    () => localStorage.setItem(offersKey, JSON.stringify(savedOffers)),
-    [savedOffers],
-  );
+  const [storageError, setStorageError] = useState("");
+  useEffect(() => {
+    try {
+      localStorage.setItem(searchesKey, JSON.stringify(saved));
+    } catch {
+      setStorageError("Saved searches could not be stored in this browser. Check available storage and browser permissions.");
+    }
+  }, [saved]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(offersKey, JSON.stringify(savedOffers));
+    } catch {
+      setStorageError("Shopping comparisons could not be stored in this browser. Check available storage and browser permissions.");
+    }
+  }, [savedOffers]);
   const clean = query.trim().slice(0, 120);
   const loadLive = async (term: string) => {
     const version = ++requestVersion.current;
@@ -463,6 +470,7 @@ export default function ShoppingScout() {
           </small>
         )}
       </section>
+      {storageError && <p role="alert" className="shopping-storage-error">{storageError}</p>}
       <form onSubmit={addSearch} className="shopping-search">
         <Search size={18} />
         <input
