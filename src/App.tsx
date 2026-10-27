@@ -66,6 +66,7 @@ import {
 } from "./data";
 
 import WeatherPanel from "./WeatherPanel";
+import ImmersiveHome from "./ImmersiveHome";
 import CalendarConnect from "./CalendarConnect";
 
 import { useVoice } from "./useVoice";
@@ -1574,7 +1575,7 @@ export default function App() {
             Notes
           </button>
         </div>
-        <span className="local-badge">PRIVATE</span>
+        
       </div>
       {taskTab === "tasks" ? (
         <>
@@ -1708,7 +1709,7 @@ export default function App() {
         <div className="sidebar-label">WORKSPACE</div>
         <div className="nav-group">
           {[
-            { id: "overview", label: "Overview", icon: LayoutDashboard },
+            { id: "overview", label: "Home", icon: LayoutDashboard },
             { id: "calendar", label: "Planner", icon: CalendarDays },
             { id: "inbox", label: "Inbox", icon: Mail },
             { id: "files", label: "Files", icon: Folder },
@@ -1876,6 +1877,7 @@ export default function App() {
             </div>
           ) : null}
           {view === "overview" ? (
+            new URLSearchParams(window.location.search).has("classic-home") ? (
             <>
               <div className="v2-status-strip">
                 <span>
@@ -1976,6 +1978,31 @@ export default function App() {
                 {filesPanel()}
               </div>
             </>
+            ) : (
+            <ImmersiveHome dateLabel={dateLabel} widgets={[
+              { id: "upnext", title: "Up next", content: (
+                <div className="oi-upnext">
+                  {todayEvents[0] ? (
+                    <button className="oi-upnext-event" onClick={() => setDetail({ type: "event", item: todayEvents[0] })}>
+                      <strong>{todayEvents[0].title}</strong><span>{shortTime(todayEvents[0].start)}</span>
+                    </button>
+                  ) : <p>{calendarError ? "Calendar unavailable" : calendarLive || demoMode ? "No upcoming events today" : "Calendar not connected"}</p>}
+                  <button className="oi-inline-link" onClick={() => navigate("calendar")}>Open Planner <ArrowRight size={14}/></button>
+                </div>
+              ), height: 190 },
+              { id: "priorities", title: "Today's priorities", content: tasksPanel(), height: 390 },
+              { id: "focus", title: "Focus session", content: focusPanel(), height: 330 },
+              { id: "spotify", title: "Spotify", content: connections.spotify.connected ? musicPanel() : (
+                <div className="oi-empty-widget"><p>Spotify not connected</p><button onClick={() => setModal("connections")}>Connect Spotify</button></div>
+              ), height: 260 },
+              { id: "weather", title: "Weather · 5 days", content: <WeatherPanel onWeather={setWeatherSummary} onTemperature={setWeatherTemp} />, height: 325 },
+              { id: "email", title: "Email", content: inboxPanel(), height: 360 },
+              { id: "continue", title: "Continue watching", content: <MediaSummary onOpen={(id) => { setMediaId(id); navigate("media"); }} />, height: 250 },
+              { id: "notes", title: "Quick notes", content: <textarea className="oi-notes" aria-label="Quick notes" placeholder="Notes" value={notes} onChange={event => setNotes(event.target.value)} />, height: 265 },
+              { id: "calendar", title: "Calendar", content: calendarPanel(), height: 350 },
+              { id: "ambient", title: "Ambient sound", content: <div className="oi-ambient"><label htmlFor="oi-sound">Focus sound</label><select id="oi-sound" value={soundscape} onChange={event => setSoundscape(event.target.value as Soundscape)}><option value="off">Off</option><option value="rain">Rain</option><option value="roof">Roof rain</option><option value="window">Window rain</option><option value="storm">Storm</option><option value="snow">Snow</option><option value="hail">Hail</option></select><p>Sound plays during a focus session.</p>{soundError && <p role="alert">{soundError}</p>}</div>, height: 220 },
+              { id: "files", title: "Recent files", content: filesPanel(), height: 240 },
+            ]} />            )
           ) : view === "calendar" ? (
             <div className="workspace-grid">
               <div>{calendarPanel(true)}</div>
