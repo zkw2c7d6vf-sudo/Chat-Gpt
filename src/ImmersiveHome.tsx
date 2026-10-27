@@ -540,12 +540,21 @@ export default function ImmersiveHome({
   const [narrow, setNarrow] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const topZ = useRef(100);
+  const frame = useRef<number | null>(null);
+  const bodyCache = useRef(new Map<string, ReactNode>());
+  const finishRef = useRef<(cancel?: boolean) => void>(() => {});
   const drag = useRef<{
     id: string;
     kind: "move" | "resize";
     startX: number;
     startY: number;
     geometry: Geometry;
+    pending: Geometry;
+    index: number;
+    space: string;
+    element: HTMLElement;
+    grip: HTMLElement;
+    pointerId: number;
   } | null>(null);
   const space = SPACES.includes(saved.space) ? saved.space : "Today";
   const states = saved.spaces[space] || {};
@@ -575,8 +584,18 @@ export default function ImmersiveHome({
       [id]: { ...defaultWindow(id, index, space), ...current[id], ...patch },
     }));
   useEffect(() => {
-    writeLocal(KEY, saved);
+    if (!drag.current) writeLocal(KEY, saved);
   }, [saved]);
+  useEffect(() => {
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === "Escape") finishRef.current(true);
+    };
+    window.addEventListener("keydown", cancel);
+    return () => {
+      window.removeEventListener("keydown", cancel);
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    };
+  }, []);
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
@@ -601,13 +620,68 @@ export default function ImmersiveHome({
       height: Math.max(170, Math.min(g.height, 950)),
     };
   };
+  // Pointer movement stays outside React and storage. Only the final geometry is saved.
+  const paintGesture = () => {
+    frame.current = null;
+    const active = drag.current;
+    if (!active) return;
+    const { element, pending, geometry, kind } = active;
+    if (kind === "move")
+      element.style.transform = `translate3d(${pending.x - geometry.x}px, ${pending.y - geometry.y}px, 0)`;
+    else {
+      element.style.width = `${pending.width}px`;
+      element.style.height = `${pending.height}px`;
+    }
+  };
+  const finish = (cancel = false) => {
+    const active = drag.current;
+    if (!active) return;
+    drag.current = null;
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+    const geometry = cancel ? active.geometry : active.pending;
+    Object.assign(active.element.style, {
+      left: `${geometry.x}px`,
+      top: `${geometry.y}px`,
+      width: `${geometry.width}px`,
+      height: `${geometry.height}px`,
+      transform: "",
+      willChange: "",
+    });
+    active.element.removeAttribute("data-manipulating");
+    stageRef.current?.closest(".oi-root")?.removeAttribute("data-manipulating");
+    if (active.grip.hasPointerCapture(active.pointerId))
+      active.grip.releasePointerCapture(active.pointerId);
+    setSaved((previous) => ({
+      ...previous,
+      spaces: {
+        ...previous.spaces,
+        [active.space]: {
+          ...previous.spaces[active.space],
+          [active.id]: {
+            ...defaultWindow(active.id, active.index, active.space),
+            ...previous.spaces[active.space]?.[active.id],
+            ...geometry,
+            z: ++topZ.current,
+          },
+        },
+      },
+    }));
+  };
+  finishRef.current = finish;
+  useEffect(() => {
+    if (drag.current && (drag.current.space !== space || narrow))
+      finishRef.current(true);
+  }, [space, narrow]);
   const start = (
     event: ReactPointerEvent,
     id: string,
     index: number,
     kind: "move" | "resize",
   ) => {
-    if (event.button !== 0 || narrow) return;
+    if (event.button !== 0 || narrow || drag.current) return;
     if (
       kind === "move" &&
       (event.target as HTMLElement).closest("button,input,select,textarea,a")
@@ -615,30 +689,56 @@ export default function ImmersiveHome({
       return;
     const w = windowState(id, index);
     if (w.expanded) return;
+    const element = event.currentTarget.closest<HTMLElement>(".oi-window");
+    if (!element) return;
+    const geometry = bounded(w);
+    topZ.current = Math.max(
+      topZ.current,
+      ...Object.values(states).map((state) => state.z),
+    );
     drag.current = {
       id,
+      index,
+      space,
       kind,
       startX: event.clientX,
       startY: event.clientY,
-      geometry: w,
+      geometry,
+      pending: geometry,
+      element,
+      grip: event.currentTarget as HTMLElement,
+      pointerId: event.pointerId,
     };
+    element.style.zIndex = String(widgets.length + 1);
+    element.style.willChange = kind === "move" ? "transform" : "width, height";
+    element.setAttribute("data-manipulating", kind);
+    stageRef.current
+      ?.closest(".oi-root")
+      ?.setAttribute("data-manipulating", kind);
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
+    event.stopPropagation();
   };
-  const moving = (event: ReactPointerEvent, index: number) => {
-    if (!drag.current) return;
-    const { id, kind, startX, startY, geometry } = drag.current;
-    const dx = event.clientX - startX,
-      dy = event.clientY - startY;
-    const patch =
-      kind === "move"
-        ? bounded({ ...geometry, x: geometry.x + dx, y: geometry.y + dy })
-        : bounded({
-            ...geometry,
-            width: geometry.width + dx,
-            height: geometry.height + dy,
-          });
-    update(id, index, patch);
+  const moving = (event: ReactPointerEvent) => {
+    const active = drag.current;
+    if (!active || event.pointerId !== active.pointerId) return;
+    const dx = event.clientX - active.startX,
+      dy = event.clientY - active.startY;
+    active.pending = bounded(
+      active.kind === "move"
+        ? {
+            ...active.geometry,
+            x: active.geometry.x + dx,
+            y: active.geometry.y + dy,
+          }
+        : {
+            ...active.geometry,
+            width: active.geometry.width + dx,
+            height: active.geometry.height + dy,
+          },
+    );
+    if (frame.current === null)
+      frame.current = requestAnimationFrame(paintGesture);
   };
   const reorder = (id: string, delta: number) => {
     const items = widgets
@@ -672,6 +772,14 @@ export default function ImmersiveHome({
       ...Object.values(states).map((state) => state.z),
     );
     update(id, index, { z: ++topZ.current });
+  };
+  const renderContent = (widget: HomeWidget, context: HomeWidgetContext) => {
+    // Parent clock/focus updates can continue without rebuilding panel contents mid-gesture.
+    if (drag.current && bodyCache.current.has(widget.id))
+      return bodyCache.current.get(widget.id);
+    const content = widget.render(context);
+    bodyCache.current.set(widget.id, content);
+    return content;
   };
   const backdrop =
     saved.scene.background.startsWith("data:") ||
@@ -763,7 +871,7 @@ export default function ImmersiveHome({
               }
         }
       >
-        {ordered.map((widget) => {
+        {(narrow ? ordered : widgets).map((widget) => {
           const index = widgets.indexOf(widget),
             w = windowState(widget.id, index);
           if (w.closed || w.minimized) return null;
@@ -814,9 +922,10 @@ export default function ImmersiveHome({
                 role="toolbar"
                 aria-label={`Move ${widget.title}`}
                 onPointerDown={(e) => start(e, widget.id, index, "move")}
-                onPointerMove={(e) => moving(e, index)}
-                onPointerUp={() => (drag.current = null)}
-                onPointerCancel={() => (drag.current = null)}
+                onPointerMove={moving}
+                onPointerUp={() => finish()}
+                onPointerCancel={() => finish(true)}
+                onLostPointerCapture={() => finish()}
                 onKeyDown={(e) => {
                   if (!e.key.startsWith("Arrow")) return;
                   e.preventDefault();
@@ -897,7 +1006,7 @@ export default function ImmersiveHome({
                 </div>
               </div>
               <div className="oi-window-body">
-                {widget.render({
+                {renderContent(widget, {
                   mode,
                   availableWidth: w.expanded
                     ? canvasWidth - 20
@@ -918,9 +1027,10 @@ export default function ImmersiveHome({
                   aria-valuemax={950}
                   aria-valuenow={w.height}
                   onPointerDown={(e) => start(e, widget.id, index, "resize")}
-                  onPointerMove={(e) => moving(e, index)}
-                  onPointerUp={() => (drag.current = null)}
-                  onPointerCancel={() => (drag.current = null)}
+                  onPointerMove={moving}
+                  onPointerUp={() => finish()}
+                  onPointerCancel={() => finish(true)}
+                  onLostPointerCapture={() => finish()}
                   onKeyDown={(e) => {
                     const amount = e.shiftKey ? 40 : 10;
                     if (
@@ -960,33 +1070,41 @@ export default function ImmersiveHome({
         })}
       </div>
       <nav className="scene-tool-dock" aria-label="Home tools">
-        {widgets.map((widget, index) => {
-          const state = windowState(widget.id, index);
-          const open = !state.closed && !state.minimized;
-          return (
-            <button
-              key={widget.id}
-              aria-label={`${open ? "Hide" : "Open"} ${widget.title}`}
-              aria-pressed={open}
-              title={widget.title}
-              onClick={() => {
-                topZ.current = Math.max(
-                  topZ.current,
-                  ...Object.values(states).map((w) => w.z),
-                );
-                update(widget.id, index, {
-                  closed: open,
-                  minimized: false,
-                  z: ++topZ.current,
-                });
-              }}
-            >
-              <widget.icon size={19} />
-              <span>{widget.title}</span>
-              {state.minimized && <i />}
-            </button>
-          );
-        })}
+        {widgets
+          .filter(
+            (widget, index) =>
+              ["priorities", "focus", "spotify", "notes", "ambient"].includes(
+                widget.id,
+              ) || windowState(widget.id, index).minimized,
+          )
+          .map((widget) => {
+            const index = widgets.indexOf(widget);
+            const state = windowState(widget.id, index);
+            const open = !state.closed && !state.minimized;
+            return (
+              <button
+                key={widget.id}
+                aria-label={`${open ? "Hide" : "Open"} ${widget.title}`}
+                aria-pressed={open}
+                title={widget.title}
+                onClick={() => {
+                  topZ.current = Math.max(
+                    topZ.current,
+                    ...Object.values(states).map((w) => w.z),
+                  );
+                  update(widget.id, index, {
+                    closed: open,
+                    minimized: false,
+                    z: ++topZ.current,
+                  });
+                }}
+              >
+                <widget.icon size={19} />
+                <span>{widget.title}</span>
+                {state.minimized && <i />}
+              </button>
+            );
+          })}
         <div className="scene-dock-divider" />
         <button
           aria-label="Choose background"
@@ -1020,12 +1138,12 @@ export default function ImmersiveHome({
                 <button
                   onClick={() =>
                     update(widget.id, index, {
-                      closed: !w.closed,
+                      closed: w.closed || w.minimized ? false : true,
                       minimized: false,
                     })
                   }
                 >
-                  {w.closed ? "Show" : "Hide"}
+                  {w.closed || w.minimized ? "Show" : "Hide"}
                 </button>
                 <button
                   aria-label={`Move ${widget.title} up`}

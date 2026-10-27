@@ -91,7 +91,7 @@ try {
   assert(backup.data["orbit-home-scene-v2"]);
   assert(backup.data["orbit-immersive-home-v1"]);
   mkdirSync("docs/previews", { recursive: true });
-  await page.evaluate(() => scrollTo(0,0));
+  await page.evaluate(() => scrollTo(0, 0));
   await page.screenshot({
     path: "docs/previews/home-rebuild-desktop.png",
     fullPage: true,
@@ -118,12 +118,13 @@ try {
     await page
       .getByRole("button", { name: "Close Quick notes", exact: true })
       .click();
-    if (width === 390)
-      await page.evaluate(() => scrollTo(0,0));
-  await page.screenshot({
+    if (width === 390) {
+      await page.evaluate(() => scrollTo(0, 0));
+      await page.screenshot({
         path: "docs/previews/home-rebuild-mobile.png",
         fullPage: true,
       });
+    }
   }
   assert.deepEqual(errors, []);
   console.log(

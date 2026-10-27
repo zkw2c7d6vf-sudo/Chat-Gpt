@@ -1,5 +1,12 @@
 # Orbit development changelog
 
+## 2026-10-27 — 4.5.2 Home performance and controls
+- Removed per-pointer React/layout persistence and mounted-panel reordering from desktop dragging; added frame-scheduled transforms and one drop save.
+- Reused panel contents during gestures, paused expensive overlapping blur, and handled cancellation and lost capture.
+- Reduced the permanent dock to daily Home tools plus Backgrounds; retained optional window restoration and Widgets access.
+- Added a bordered, labeled search control on desktop/tablet/mobile and tighter mobile panel spacing.
+- Added regression coverage with a large local scene and running Focus; refreshed previews.
+
 ## 2026-10-27 — 4.5.1 scene-first Home rebuild
 - Rebuilt the Home composition from the supplied earlier reference with a full-screen navy scene, large greeting, slim icon rail and compact dock.
 - Replaced eleven initially open windows with purposeful context defaults and on-demand tools.

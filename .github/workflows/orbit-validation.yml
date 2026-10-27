@@ -43,6 +43,8 @@ jobs:
         run: npm run test:home
       - name: Scene-first Home acceptance
         run: npm run test:scene
+      - name: Home drag and control regression
+        run: npm run test:interaction
       - name: Orbit 4.5 all-widget and module acceptance
         run: npm run test:v45
       - name: V2 regression

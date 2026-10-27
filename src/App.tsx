@@ -1420,10 +1420,11 @@ export default function App() {
             </button>
             <button
               className="global-search"
+              aria-label="Search Orbit"
               onClick={() => setModal("search")}
             >
               <Search size={15} />
-              <span>Find anything…</span>
+              <span>Search Orbit…</span>
               <kbd>⌘ K</kbd>
             </button>
             <button

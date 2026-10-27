@@ -1,4 +1,6 @@
-# Orbit 4.5.1
+# Orbit 4.5.2
+
+4.5.2 removes per-move layout saves and panel rerenders from dragging, reduces the dock to daily Home tools plus Backgrounds, and adds a visible search field on every screen size. [Interaction details](docs/home-performance-review.md).
 
 Home has been rebuilt around the supplied scene-first reference: a full-screen navy landscape, compact icon rail, three initial panels and an on-demand tool dock. [View the screenshots and design changes](docs/home-rebuild-review.md). Earlier layouts remain stored separately.
 

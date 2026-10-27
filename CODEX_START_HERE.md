@@ -1,4 +1,6 @@
-# Orbit — start here after 4.5.1
+# Orbit — start here after 4.5.2
+
+Read `docs/home-performance-review.md` before changing gesture handling. Never restore per-pointer state/storage writes or DOM reordering during desktop dragging. Keep the concise daily-tool dock and labeled search field.
 
 Latest user direction supersedes the eleven-open-window composition: Home follows the supplied earlier Orbit reference, scene-first with fewer open panels. Read `docs/home-rebuild-review.md` and its screenshots first. Today opens three tools; the dock exposes all eleven. Preserve old layout data separately.
 
