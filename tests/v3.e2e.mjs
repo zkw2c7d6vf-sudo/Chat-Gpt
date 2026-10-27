@@ -211,7 +211,7 @@ async function capture(type, title, extra) {
     .waitFor({ state: "hidden" });
 }
 try {
-  await page.goto(base, { waitUntil: "networkidle" });
+  await page.goto(`${base.replace(/\/$/, "")}/?classic-home=1`, { waitUntil: "networkidle" });
   await check(
     "media center is a genuine side tab with empty movies, TV and photo slots",
     async () => {
@@ -479,7 +479,7 @@ try {
   await check(
     "dashboard continue-watching summary opens the correct saved movie",
     async () => {
-      await nav("Overview");
+      await nav("Home");
       await visible(
         page.getByText("PICK UP WHERE YOU LEFT OFF", { exact: true }),
       );
@@ -488,7 +488,7 @@ try {
         page.getByRole("dialog", { name: "Playing Orbit Test Movie" }),
       );
       await page.getByRole("button", { name: "Close media player" }).click();
-      await nav("Overview");
+      await nav("Home");
     },
   );
   await check(
@@ -676,7 +676,7 @@ try {
     async () => {
       for (const width of [390, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 1100 });
-        for (const view of ["Overview", "Media Center"]) {
+        for (const view of ["Home", "Media Center"]) {
           await nav(view);
           const size = await page.evaluate(() => ({
             viewport: innerWidth,
@@ -702,7 +702,7 @@ try {
     },
   );
   await page.setViewportSize({ width: 1440, height: 1100 });
-  await nav("Overview");
+  await nav("Home");
   await page.evaluate(() => scrollTo(0, 0));
   await page.mouse.move(1430, 5);
   await page.screenshot({ path: "/tmp/orbit-v3-overview.png", fullPage: true });
