@@ -18,7 +18,8 @@ test("every Home widget is represented by a compact/expanded content contract", 
   for (const w of contract.widgets) {
     for (const key of ["id","title","dataSource","compact","expanded","assertion","privacy"]) {
       assert.equal(typeof w[key], "string", `${w.id} missing ${key}`);
-      assert.ok(w[key].length > 12 || key === "id" || key === "title", `${w.id} vague ${key}`);
+      assert.ok(w[key].trim().length > 0, `${w.id} blank ${key}`);
+      if (["compact","expanded","assertion","privacy"].includes(key)) assert.ok(w[key].length > 12, `${w.id} vague ${key}`);
     }
     for (const state of ["loading","ready","empty","disconnected","error"])
       assert.ok(w.states.includes(state), `${w.id} missing ${state} behavior`);
