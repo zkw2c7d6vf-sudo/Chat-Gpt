@@ -12,7 +12,7 @@
 .oi-window-bar{flex:0 0 41px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 8px 0 14px;background:#142640c0;border-bottom:1px solid #9db7de22;cursor:grab;touch-action:none;user-select:none}
 .oi-window-bar:active{cursor:grabbing}.oi-window-title{font-family:"Manrope Variable",sans-serif;font-weight:650;font-size:12px;letter-spacing:.1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .oi-window-controls{display:flex;align-items:center;gap:3px}.oi-window-controls button{width:27px;height:27px;border-radius:7px;display:grid;place-items:center;color:#abc2dd}.oi-window-controls button:hover{background:#a3c8f522;color:white}.oi-window-controls button:last-child:hover{background:#a43c5090}
-.oi-window-body{flex:1;min-height:0;overflow:auto;padding:11px}.oi-window-body>.card{margin:0;width:100%;height:auto;min-height:0;box-shadow:none;background:transparent;border:0;border-radius:8px;padding:4px}
+.oi-window-body{flex:1;min-height:0;overflow:auto;padding:11px}.orbit-v31 .oi-window-body>.card{margin:0;width:100%;height:auto;min-height:0;box-shadow:none;background:transparent;border:0;border-radius:8px;padding:4px}
 .oi-window-body .weather-card{width:100%}.oi-window-body .weather-forecast>div:nth-child(n+6){display:none}
 .oi-window-body .mail-list,.oi-window-body .agenda-list,.oi-window-body .task-list{max-height:220px;overflow-y:auto}
 .oi-window-body .card-footer-link{margin-top:8px}.oi-window-body .weather-header{margin-top:0}
