@@ -7,6 +7,10 @@ on:
       - orbit-v4.5.2
   workflow_dispatch:
 
+concurrency:
+  group: orbit-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

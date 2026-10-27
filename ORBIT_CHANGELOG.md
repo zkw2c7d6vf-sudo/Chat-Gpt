@@ -1,6 +1,15 @@
 # Orbit development changelog
 
+## 2026-10-27 — 4.6 existing-workflow completion
+
+- Reproduced the 4.5.2 Shopping quota-write crash in isolation; added guarded persistence, visible retry, retained in-memory changes and search/offer recovery tests. Incorporated PR #5's safety intent without merging its unverified branch.
+- Completed task search/sort/export, overdue Planner recovery, Education course/duplicate/export, Inbox search/unread/email-to-task, Drive filters/sort and manual finance edit/date/filter/undo workflows.
+- Refined Media filters/sort, Focus history, Notes/life-organizer export, File Studio copying/input recovery, Spotify command handling, assistant transcript export and backup inventory.
+- Added widget search and reversible hide-all, consistent search borders and on-demand module loading while retaining the sparse Home, storage contracts and gesture performance path.
+- Added module/storage regressions and CSV safety checks; documented category-level evidence and private account/Mac acceptance limits. Preserved newer baseline handoff commits and permanent user operating rules.
+
 ## 2026-10-27 — 4.5.2 Home performance and controls
+
 - Removed per-pointer React/layout persistence and mounted-panel reordering from desktop dragging; added frame-scheduled transforms and one drop save.
 - Reused panel contents during gestures, paused expensive overlapping blur, and handled cancellation and lost capture.
 - Reduced the permanent dock to daily Home tools plus Backgrounds; retained optional window restoration and Widgets access.
@@ -8,6 +17,7 @@
 - Added regression coverage with a large local scene and running Focus; refreshed previews.
 
 ## 2026-10-27 — 4.5.1 scene-first Home rebuild
+
 - Rebuilt the Home composition from the supplied earlier reference with a full-screen navy scene, large greeting, slim icon rail and compact dock.
 - Replaced eleven initially open windows with purposeful context defaults and on-demand tools.
 - Preserved old window layout storage and added the new layout to backups.

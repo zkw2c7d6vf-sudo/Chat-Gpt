@@ -1,4 +1,6 @@
-# Orbit 4.5.2
+# Orbit 4.6
+
+4.6 completes existing module workflows and recovers a reproduced Shopping storage crash. See [the functional review and verification limits](docs/v4.6-review.md). Current development: `feat/orbit-v4.6`; historical `main` is not this build.
 
 4.5.2 removes per-move layout saves and panel rerenders from dragging, reduces the dock to daily Home tools plus Backgrounds, and adds a visible search field on every screen size. [Interaction details](docs/home-performance-review.md).
 
