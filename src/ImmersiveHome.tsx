@@ -190,7 +190,7 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
   const raise = (id: string, index: number) => update(id,index,{z:++topZ.current});
   const backdrop = saved.scene.background.startsWith("data:") || saved.scene.background.startsWith("https://") ? `linear-gradient(#07122060,#07122060),url("${saved.scene.background.replaceAll('"','')}")` : saved.scene.background;
   const ordered = [...widgets].sort((a,b) => windowState(a.id,widgets.indexOf(a)).z - windowState(b.id,widgets.indexOf(b)).z);
-  return <div className="oi-root" style={{ backgroundImage: backdrop }}>
+  return <div className={`oi-root ${narrow ? "oi-narrow" : ""}`} style={{ backgroundImage: backdrop }}>
     <div className="oi-toolbar"><div className="oi-spaces" role="group" aria-label="Workspace">{SPACES.map(s => <button key={s} className={space===s ? "active":""} onClick={() => setSaved(prev => ({...prev,space:s}))}>{s}</button>)}</div>
       <div className="oi-toolbar-actions"><button onClick={() => {setShowWidgets(true);setShowScenes(false);}}><Layers3 size={15}/> Widgets</button><button onClick={() => {setShowScenes(true);setShowWidgets(false);}}><Image size={15}/> Backgrounds</button></div></div>
     <div className="oi-scene-credit">{saved.scene.title}{saved.scene.credit ? ` · ${saved.scene.credit}` : ""}</div>
