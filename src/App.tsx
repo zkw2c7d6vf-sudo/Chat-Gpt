@@ -1995,7 +1995,7 @@ export default function App() {
               { id: "spotify", title: "Spotify", content: connections.spotify.connected ? musicPanel() : (
                 <div className="oi-empty-widget"><p>Spotify not connected</p><button onClick={() => setModal("connections")}>Connect Spotify</button></div>
               ), height: 260 },
-              { id: "weather", title: "Weather · 5 days", content: <WeatherPanel onWeather={setWeatherSummary} onTemperature={setWeatherTemp} />, height: 325 },
+              { id: "weather", title: "Weather · 5 days", content: <WeatherPanel forecastDays={5} onWeather={setWeatherSummary} onTemperature={setWeatherTemp} />, height: 325 },
               { id: "email", title: "Email", content: inboxPanel(), height: 360 },
               { id: "continue", title: "Continue watching", content: <MediaSummary onOpen={(id) => { setMediaId(id); navigate("media"); }} />, height: 250 },
               { id: "notes", title: "Quick notes", content: <textarea className="oi-notes" aria-label="Quick notes" placeholder="Notes" value={notes} onChange={event => setNotes(event.target.value)} />, height: 265 },
