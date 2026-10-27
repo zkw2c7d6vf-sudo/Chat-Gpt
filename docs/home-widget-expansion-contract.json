@@ -1,0 +1,294 @@
+{
+  "schema": 1,
+  "appliesTo": "Orbit Home all current and future windows",
+  "implementationStatus": "specification; not proof of expanded views in runtime",
+  "notes": "Any new widget must be added to this manifest before release. Passing manifest coverage does not prove functionality; Playwright content-delta tests are required.",
+  "widgets": [
+    {
+      "id": "upnext",
+      "title": "Up next",
+      "dataSource": "calendar",
+      "compact": "one next event",
+      "expanded": "chronological upcoming events over 7 days, dates, open-event and Planner actions",
+      "assertion": "upcoming future event details and navigation",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "priorities",
+      "title": "Today's priorities",
+      "dataSource": "tasks",
+      "compact": "three highest-priority incomplete tasks",
+      "expanded": "all incomplete tasks with due/priority metadata, completion, creation and useful filters",
+      "assertion": "more than three incomplete tasks are available, not duplicated",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "focus",
+      "title": "Focus session",
+      "dataSource": "focus",
+      "compact": "time remaining, start/pause and duration",
+      "expanded": "timer, all real durations, reset, active sound preset, focus status and controls",
+      "assertion": "focus controls and sound settings visible",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "spotify",
+      "title": "Spotify",
+      "dataSource": "spotify",
+      "compact": "connection or live track and playback",
+      "expanded": "real track metadata, album, progress, device, permitted playback controls and open Spotify",
+      "assertion": "more genuine playback details without fabricated records",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "weather",
+      "title": "Weather · 5 days",
+      "dataSource": "weather",
+      "compact": "current conditions and five-day forecast",
+      "expanded": "seven-day forecast, precipitation, location/unit controls, retry and attribution",
+      "assertion": "seven real forecast days from same weather response",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "email",
+      "title": "Email",
+      "dataSource": "gmail",
+      "compact": "three messages and current connection state",
+      "expanded": "up to thirty messages, important/all filters, sender/subject/time, open message and Inbox",
+      "assertion": "more messages and working filters using existing mail state",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "continue",
+      "title": "Continue watching",
+      "dataSource": "media",
+      "compact": "topmost in-progress or queued item",
+      "expanded": "multiple in-progress and queued items with progress and resume actions and Media Center link",
+      "assertion": "two or more valid resumable items if data exists",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "notes",
+      "title": "Quick notes",
+      "dataSource": "notes",
+      "compact": "brief editable local note",
+      "expanded": "large full editor, note-related controls and size/count feedback without duplicate storage",
+      "assertion": "same note remains editable after restore and refresh",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "calendar",
+      "title": "Calendar",
+      "dataSource": "calendar",
+      "compact": "one week of seven date cells and four selected-day events",
+      "expanded": "at least fourteen selectable date cells and multiday agenda with navigation",
+      "assertion": "more than seven dates and multi-day events, when present",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "ambient",
+      "title": "Ambient sound",
+      "dataSource": "focusSound",
+      "compact": "active preset selection and sound state",
+      "expanded": "all supported presets, status, controls linked to running Focus and genuine audio settings",
+      "assertion": "more functional settings without fictional mixer controls",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    },
+    {
+      "id": "files",
+      "title": "Recent files",
+      "dataSource": "googleDrive",
+      "compact": "four recent connected files",
+      "expanded": "up to thirty connected files with type, modified metadata, open action and Files link",
+      "assertion": "more than four real file records when available",
+      "states": [
+        "loading",
+        "ready",
+        "empty",
+        "disconnected",
+        "error"
+      ],
+      "requiredActions": [
+        "maximize",
+        "restore",
+        "minimize",
+        "reopen",
+        "close",
+        "show",
+        "resize",
+        "move"
+      ],
+      "privacy": "Use existing Orbit state; no invented remote or copied personal records."
+    }
+  ]
+}
