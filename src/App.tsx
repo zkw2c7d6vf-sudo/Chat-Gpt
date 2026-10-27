@@ -1,3 +1,4 @@
+import { newId } from "./id";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
@@ -764,7 +765,7 @@ export default function App() {
     if (!taskInput.trim()) return;
     setTasks((t) => [
       {
-        id: crypto.randomUUID(),
+        id: newId(),
         title: taskInput.trim(),
         done: false,
         dueDate: taskDueDate || undefined,
@@ -809,7 +810,7 @@ export default function App() {
         } else {
           setTasks((t) => [
             ...t,
-            { id: crypto.randomUUID(), title, done: false },
+            { id: newId(), title, done: false },
           ]);
           answer = `Added “${title}” to your little to-dos.`;
         }
@@ -905,7 +906,7 @@ export default function App() {
         const title = text.replace(/^add (a )?task[: ]+/i, "");
         setTasks((t) => [
           ...t,
-          { id: crypto.randomUUID(), title, done: false },
+          { id: newId(), title, done: false },
         ]);
         answer = `Added “${title}” to your little to-dos.`;
       } else if (/mail|inbox|email/.test(text.toLowerCase())) {
@@ -1952,7 +1953,7 @@ export default function App() {
                       : [
                           ...current,
                           {
-                            id: crypto.randomUUID(),
+                            id: newId(),
                             title,
                             done: false,
                             source: "assistant",
@@ -2509,7 +2510,7 @@ export default function App() {
         onTask={(title) =>
           setTasks((current) => [
             ...current,
-            { id: crypto.randomUUID(), title, done: false, source: "you" },
+            { id: newId(), title, done: false, source: "you" },
           ])
         }
         onNote={(text) =>
