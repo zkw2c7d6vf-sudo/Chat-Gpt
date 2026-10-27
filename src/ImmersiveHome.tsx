@@ -179,7 +179,7 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
     const patch = kind === "move" ? bounded({ ...geometry, x: geometry.x + dx, y: geometry.y + dy }) : bounded({ ...geometry, width: geometry.width + dx, height: geometry.height + dy });
     update(id,index,patch);
   };
-  const reorder = (id: string, index: number, delta: number) => {
+  const reorder = (id: string, delta: number) => {
     const items = widgets.map((w,i) => ({ id: w.id, order: windowState(w.id,i).z })).sort((a,b) => a.order-b.order);
     const from = items.findIndex(w => w.id === id), to = Math.min(items.length-1,Math.max(0,from+delta));
     if (to===from) return;
@@ -200,7 +200,7 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
         const pos = narrow ? {} : w.expanded ? {left:10,top:10,width:Math.max(300,canvasWidth-20),height:Math.min(850,window.innerHeight-220),zIndex:1000} : { left: bounded(w).x, top: bounded(w).y, width: bounded(w).width, height: bounded(w).height, zIndex: w.z };
         return <section key={widget.id} className={`oi-window ${w.expanded ? "oi-expanded" : ""}`} style={pos} onPointerDown={() => raise(widget.id,index)} aria-label={`${widget.title} widget`}>
           <div className="oi-window-bar" tabIndex={0} role="toolbar" aria-label={`Move ${widget.title}`} onPointerDown={e => start(e,widget.id,index,"move")} onPointerMove={e => moving(e,index)} onPointerUp={() => drag.current=null} onPointerCancel={() => drag.current=null}
-            onKeyDown={e => { if(!e.key.startsWith("Arrow")) return; e.preventDefault(); const d=e.shiftKey?30:10;if(narrow){reorder(widget.id,index,e.key==="ArrowUp"?-1:1);return;}update(widget.id,index,bounded({...w,x:w.x+(e.key==="ArrowLeft"?-d:e.key==="ArrowRight"?d:0),y:w.y+(e.key==="ArrowUp"?-d:e.key==="ArrowDown"?d:0)})); }}>
+            onKeyDown={e => { if(!e.key.startsWith("Arrow")) return; e.preventDefault(); const d=e.shiftKey?30:10;if(narrow){reorder(widget.id,e.key==="ArrowUp"?-1:1);return;}update(widget.id,index,bounded({...w,x:w.x+(e.key==="ArrowLeft"?-d:e.key==="ArrowRight"?d:0),y:w.y+(e.key==="ArrowUp"?-d:e.key==="ArrowDown"?d:0)})); }}>
             <span className="oi-window-title">{widget.title}</span><div className="oi-window-controls">
               <button aria-label={`Minimize ${widget.title}`} title="Minimize" onClick={() => update(widget.id,index,{minimized:true})}><Minus size={15}/></button>
               <button aria-label={`${w.expanded?"Restore":"Maximize"} ${widget.title}`} title={w.expanded?"Restore":"Maximize"} onClick={() => update(widget.id,index,{expanded:!w.expanded})}>{w.expanded?<Minimize2 size={14}/>:<Maximize2 size={14}/>}</button>
@@ -211,7 +211,7 @@ export default function ImmersiveHome({ widgets, dateLabel }: { widgets: HomeWid
       })}
     </div>
     {widgets.some((widget,index)=>windowState(widget.id,index).minimized&&!windowState(widget.id,index).closed) && <div className="oi-dock" aria-label="Minimized widgets">{widgets.filter((widget,index)=>windowState(widget.id,index).minimized&&!windowState(widget.id,index).closed).map(widget => <button key={widget.id} onClick={()=>update(widget.id,widgets.indexOf(widget),{minimized:false,z:++topZ.current})}>{widget.title} <Maximize2 size={12}/></button>)}</div>}
-    {showWidgets && <div className="oi-widget-panel" role="dialog" aria-label="Manage widgets"><div className="oi-widget-panel-head"><strong>Widgets</strong><button aria-label="Close widgets" onClick={()=>setShowWidgets(false)}><X size={16}/></button></div>{widgets.map((widget,index)=>{const w=windowState(widget.id,index);return <div className="oi-widget-entry" key={widget.id}><span>{widget.title}</span><button onClick={()=>update(widget.id,index,{closed:!w.closed,minimized:false})}>{w.closed?"Show":"Hide"}</button><button aria-label={`Move ${widget.title} up`} onClick={()=>reorder(widget.id,index,-1)}><ArrowUp size={14}/></button><button aria-label={`Move ${widget.title} down`} onClick={()=>reorder(widget.id,index,1)}><ArrowDown size={14}/></button></div>;})}<button className="oi-reset" onClick={()=>setWindows(()=>({}))}><RotateCcw size={14}/> Reset {space} layout</button></div>}
+    {showWidgets && <div className="oi-widget-panel" role="dialog" aria-label="Manage widgets"><div className="oi-widget-panel-head"><strong>Widgets</strong><button aria-label="Close widgets" onClick={()=>setShowWidgets(false)}><X size={16}/></button></div>{widgets.map((widget,index)=>{const w=windowState(widget.id,index);return <div className="oi-widget-entry" key={widget.id}><span>{widget.title}</span><button onClick={()=>update(widget.id,index,{closed:!w.closed,minimized:false})}>{w.closed?"Show":"Hide"}</button><button aria-label={`Move ${widget.title} up`} onClick={()=>reorder(widget.id,-1)}><ArrowUp size={14}/></button><button aria-label={`Move ${widget.title} down`} onClick={()=>reorder(widget.id,1)}><ArrowDown size={14}/></button></div>;})}<button className="oi-reset" onClick={()=>setWindows(()=>({}))}><RotateCcw size={14}/> Reset {space} layout</button></div>}
     {showScenes && <ScenePicker current={saved.scene} onSelect={scene=>setSaved(prev=>({...prev,scene}))} onClose={()=>setShowScenes(false)}/>}
     <span className="oi-sr-only">{dateLabel}</span>
   </div>;
