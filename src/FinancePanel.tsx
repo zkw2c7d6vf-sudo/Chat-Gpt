@@ -153,7 +153,7 @@ export default function FinancePanel() {
           onChange={(e) => setMonth(e.target.value)}
         />
         <select
-          aria-label="Filter finance type"
+          aria-label="Ledger entry filter"
           value={type}
           onChange={(e) => setType(e.target.value)}
         >

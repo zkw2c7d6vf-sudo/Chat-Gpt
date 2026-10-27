@@ -771,4 +771,10 @@
     transition-duration: 0.01ms !important;
   }
 }
-.module-filters input[type="checkbox"] { flex: none; width: 16px; height: 16px; padding: 0; appearance: auto; }
+.module-filters input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  appearance: auto;
+}

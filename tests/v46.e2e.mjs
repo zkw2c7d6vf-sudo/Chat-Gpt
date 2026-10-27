@@ -260,6 +260,11 @@ async function fixture(width = 1440) {
   return { context, page, errors, requests };
 }
 async function run(name, fn, width) {
+  if (
+    process.env.ORBIT_TEST_FILTER &&
+    !name.toLowerCase().includes(process.env.ORBIT_TEST_FILTER.toLowerCase())
+  )
+    return;
   const f = await fixture(width);
   try {
     await fn(f);
@@ -317,7 +322,9 @@ await run(
     await nav(page, "Planner");
     const panel = page.getByRole("region", { name: "Weekly planner" });
     await panel.getByText("Overdue tasks · 1", { exact: true }).click();
-    await panel.getByRole("button", { name: "Move Renew permit to today" }).click();
+    await panel
+      .getByRole("button", { name: "Move Renew permit to today" })
+      .click();
     assert.equal(
       await panel.getByText("Overdue tasks · 1", { exact: true }).count(),
       0,
@@ -555,13 +562,11 @@ await run(
       '{\n  "a": 1\n}',
     );
     await page.getByRole("button", { name: "Images", exact: true }).click();
-    await page
-      .getByLabel("File Studio input")
-      .setInputFiles({
-        name: "bad.png",
-        mimeType: "text/plain",
-        buffer: Buffer.from("bad"),
-      });
+    await page.getByLabel("File Studio input").setInputFiles({
+      name: "bad.png",
+      mimeType: "text/plain",
+      buffer: Buffer.from("bad"),
+    });
     assert(
       await page
         .getByRole("button", { name: "Convert image", exact: true })
@@ -572,7 +577,9 @@ await run(
 await run(
   "Backup inventory, last export and new records round trip",
   async ({ page }) => {
-    await page.getByRole("button", { name: "Profile and connections" }).click();
+    await page
+      .getByRole("button", { name: "Settings and connections" })
+      .click();
     assert(
       (await page.getByLabel("Backup inventory").innerText()).includes(
         "1 education records",

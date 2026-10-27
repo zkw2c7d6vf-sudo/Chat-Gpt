@@ -128,12 +128,29 @@ export default function ShoppingScout() {
     offers: Offer[];
   } | null>(null);
   const requestVersion = useRef(0);
+  const [storageError, setStorageError] = useState("");
+  const persistedSearches = useRef(saved);
+  const persistedOffers = useRef(savedOffers);
+  const persist = () => {
+    try {
+      if (persistedSearches.current !== saved) {
+        if (!writeLocal(searchesKey, saved)) throw new Error("searches");
+        persistedSearches.current = saved;
+      }
+      if (persistedOffers.current !== savedOffers) {
+        if (!writeLocal(offersKey, savedOffers)) throw new Error("comparisons");
+        persistedOffers.current = savedOffers;
+      }
+      setStorageError("");
+    } catch {
+      setStorageError(
+        "Shopping changes could not be saved. Keep this tab open and retry after making browser storage available.",
+      );
+    }
+  };
   useEffect(() => {
-    writeLocal(searchesKey, saved);
-  }, [saved]);
-  useEffect(() => {
-    writeLocal(offersKey, savedOffers);
-  }, [savedOffers]);
+    persist();
+  }, [saved, savedOffers]);
   const clean = query.trim().slice(0, 120);
   const loadLive = async (term: string) => {
     const version = ++requestVersion.current;
@@ -468,6 +485,12 @@ export default function ShoppingScout() {
           </small>
         )}
       </section>
+      {storageError && (
+        <div className="module-notice" role="alert">
+          {storageError}
+          <button onClick={persist}>Retry saving shopping</button>
+        </div>
+      )}
       <form onSubmit={addSearch} className="shopping-search">
         <Search size={18} />
         <input

@@ -863,3 +863,13 @@
 .scene-home .forecast-detail {
   flex: 0 0 auto;
 }
+/* Match the labeled Home search field in the other workspace sections. */
+.app-shell:not(.scene-home-shell) .global-search {
+  border: 1px solid #89acd437;
+  border-radius: 9px;
+  padding: 8px 11px;
+  background: #101e32;
+}
+.oi-window[data-widget-id="focus"] .focus-heading > span {
+  display: none;
+}
