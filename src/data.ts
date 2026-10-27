@@ -240,7 +240,7 @@ export const initialTasks: Task[] = [
   { id: "v2-spotify", title: "Connect Spotify", done: true, source: "build" },
 ];
 export const buildHandoff =
-  "Orbit V4.3 for Joe: local-first navy dashboard with a compact Today brief, integrated calendar and task planner, seven-day forecast, weather location and units in Settings, and a separate private manual finance panel. Preserve existing Spotify, ICS, Google, weather, media, shopping, focus, assistant, and backup behavior. Finance entries are included only in explicit Orbit backups; Orbit does not connect to banks. No fake integration data, silent external actions, or required paid services.";
+  "Orbit V4.4 for Joe: local-first navy dashboard with a compact Today brief, integrated calendar and task planner, seven-day forecast, weather location and units in Settings, and a separate private manual finance panel. Preserve existing Spotify, ICS, Google, weather, media, shopping, focus, assistant, and backup behavior. Finance entries are included only in explicit Orbit backups; Orbit does not connect to banks. No fake integration data, silent external actions, or required paid services.";
 export const defaultConnections: Connections = {
   google: { configured: false, connected: false, authUrl: "/api/auth/google" },
   spotify: {

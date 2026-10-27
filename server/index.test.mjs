@@ -74,6 +74,16 @@ async function fixture(t, configured = false, behavior = {}) {
             ? 1
             : 3600,
       });
+    if (String(url).includes("/calendar/") && behavior.calendarForbidden)
+      return Response.json(
+        {
+          error: {
+            message: "Insufficient Permission: Request had insufficient authentication scopes.",
+            errors: [{ reason: "insufficientPermissions" }],
+          },
+        },
+        { status: 403 },
+      );
     if (String(url).includes("/calendar/"))
       return Response.json({
         items: [
@@ -103,7 +113,15 @@ async function fixture(t, configured = false, behavior = {}) {
       });
     if (String(url).includes("/drive/v3/files"))
       return behavior.driveForbidden
-        ? Response.json({ error: "Forbidden" }, { status: 403 })
+        ? Response.json(
+            {
+              error: {
+                message: "Drive API has not been used in this project before or it is disabled.",
+                errors: [{ reason: "accessNotConfigured" }],
+              },
+            },
+            { status: 403 },
+          )
         : Response.json({
             files: [
               {
@@ -364,7 +382,18 @@ test("a denied Google service reports its own error while other live data surviv
   assert.equal(dashboard.files.length, 0);
   assert.equal(dashboard.errors.length, 1);
   assert.equal(dashboard.errors[0].service, "files");
-  assert.match(dashboard.errors[0].message, /Enable the required API/);
+  assert.match(dashboard.errors[0].message, /Google Drive API is not enabled/);
+});
+
+test("a Google scope error tells the user to reconnect instead of enabling an API", async (t) => {
+  const { call, connect } = await fixture(t, true, { calendarForbidden: true });
+  await connect("google");
+  const dashboard = await (await call("/api/dashboard")).json();
+  const calendarError = dashboard.errors.find((error) => error.service === "calendar");
+  assert.match(calendarError.message, /Disconnect Google in Orbit, reconnect/);
+  assert.match(calendarError.message, /Calendar access/);
+  assert.equal(dashboard.emails.length, 1);
+  assert.equal(dashboard.files.length, 1);
 });
 
 test("local loopback writes work while cross-origin writes stay rejected", async (t) => {

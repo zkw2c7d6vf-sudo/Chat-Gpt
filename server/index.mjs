@@ -387,11 +387,34 @@ export function createDashboardServer(options = {}) {
           "Spotify playback controls require a Premium account and an authorized app user.",
           403,
         );
-      if (response.status === 403)
-        throw new PublicError(
-          "Google denied this request. Enable the required API and reconnect with the requested permissions.",
-          403,
-        );
+      if (provider === "google" && response.status === 403) {
+        let details = {};
+        try {
+          details = await response.json();
+        } catch {
+          // Google sometimes returns an empty or non-JSON error body.
+        }
+        const reason = details?.error?.errors?.[0]?.reason || "";
+        const googleMessage = details?.error?.message || "";
+        const apiName = path.startsWith("/calendar/")
+          ? "Google Calendar API"
+          : path.startsWith("/gmail/")
+            ? "Gmail API"
+            : path.startsWith("/drive/")
+              ? "Google Drive API"
+              : "the Google API";
+        const message =
+          reason === "accessNotConfigured" ||
+          /has not been used|is disabled|not enabled/i.test(googleMessage)
+            ? `${apiName} is not enabled for the Google Cloud project used by Orbit. Enable it in that project, then retry.`
+            : reason === "insufficientPermissions" ||
+                /insufficient authentication scopes|insufficient permission/i.test(
+                  googleMessage,
+                )
+              ? `Google connected, but Orbit lacks permission for this service. Disconnect Google in Orbit, reconnect, and approve the requested ${apiName.replace(" API", "")} access.`
+              : `Google denied access to ${apiName}. Check that it is enabled in the same project as Orbit’s OAuth client and reconnect Google to refresh permissions.`;
+        throw new PublicError(message, 403);
+      }
       throw new PublicError(
         `${provider === "google" ? "Google" : "Spotify"} returned an error (${response.status}).`,
         502,

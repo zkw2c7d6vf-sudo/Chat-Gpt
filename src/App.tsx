@@ -667,6 +667,8 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("orbit-track-steps", JSON.stringify(trackNextSteps));
   }, [trackNextSteps]);
+  const calendarError = live?.errors.find((error) => error.service === "calendar")?.message;
+  const mailError = live?.errors.find((error) => error.service === "emails")?.message;
   const googleLive = connections.google.connected;
   const calendarLive = connections.calendar?.connected || googleLive;
   const events = calendarLive
@@ -1077,14 +1079,14 @@ export default function App() {
           <div className="empty-state">
             <Sun size={27} />
             <strong>
-              {calendarLive || demoMode
+              {calendarError ? "Calendar could not load" : calendarLive || demoMode
                 ? "No events scheduled."
                 : "Calendar not connected"}
             </strong>
             <p>
-              {calendarLive || demoMode
+              {calendarError || (calendarLive || demoMode
                 ? "No events on this day."
-                : "Add an ICS link or import a calendar file."}
+                : "Add an ICS link or import a calendar file.")}
             </p>
             {!calendarLive && !demoMode && (
               <button
@@ -1165,14 +1167,14 @@ export default function App() {
           <div className="empty-state">
             <CheckCheck size={28} />
             <strong>
-              {googleLive || demoMode
+              {mailError ? "Inbox could not load" : googleLive || demoMode
                 ? "All caught up."
                 : "Email not connected"}
             </strong>
             <p>
-              {googleLive || demoMode
+              {mailError || (googleLive || demoMode
                 ? `No ${mailTab === "important" ? "important " : ""}emails to show.`
-                : "Email isn’t connected. Open Gmail directly, or add optional Google access later."}
+                : "Email isn’t connected. Open Gmail directly, or add optional Google access later.")}
             </p>
           </div>
         )}
@@ -1184,7 +1186,7 @@ export default function App() {
         <p>
           {important.length
             ? "Important mail"
-            : googleLive || demoMode
+            : mailError ? "Refresh to try loading mail again." : googleLive || demoMode
               ? "No important mail"
               : "An ICS calendar does not grant email access."}
         </p>
@@ -1700,7 +1702,7 @@ export default function App() {
         >
           <OrbitLogo />
           <span className="sidebar-wordmark">
-            orbit<span>PERSONAL / 4.3</span>
+            orbit<span>PERSONAL / 4.4</span>
           </span>
         </a>
         <div className="sidebar-label">WORKSPACE</div>
@@ -2040,7 +2042,7 @@ export default function App() {
           <footer className="page-footer">
             <span>
               <OrbitLogo />
-              Orbit 4.3 <span>·</span> Joe
+              Orbit 4.4 <span>·</span> Joe
             </span>
             <span>
               {loading ? (
@@ -2261,7 +2263,7 @@ export default function App() {
               <strong>Joe</strong>
               <span>Personal dashboard · private space</span>
             </div>
-            <small>Orbit 4.3</small>
+            <small>Orbit 4.4</small>
           </div>
           <p className="modal-intro">
             Connections, local preferences, assistant settings, and backups in

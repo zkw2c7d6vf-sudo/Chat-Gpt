@@ -1,4 +1,4 @@
-# Orbit v4.3
+# Orbit v4.4
 
 A personal command center for calendar, important mail, Spotify, weather, tasks, local media, and personal planning. Built with React, TypeScript, Vite, and a small Node.js API.
 
@@ -37,6 +37,10 @@ Orbit 4.2 tightens focus timer controls and copy, and expands the animated rain 
 ## v4.3: Today, Planner, and Finances
 
 The overview has a compact daily brief with the next event, up to three priority tasks, open task count, and a prominent current temperature. The weather panel shows only a seven-day forecast; location and units are changed in profile settings. Planner combines the existing calendar with tasks and optional due dates and priority labels. Finances is a separate private section for manually entered income and expenses. Entries stay local, are included in Orbit backups, and do not appear on the overview. No bank connection or paid service is required.
+
+## v4.4: Google recovery and service polish
+
+Google errors now identify whether Calendar, Gmail, or Drive needs its API enabled or its consent scopes refreshed. A failed Google service remains isolated so the other connected panels can still load. See the [v4.4 review](docs/v4.4-review.md) for the seven-pass audit.
 
 ## v4.0: watch and discover
 

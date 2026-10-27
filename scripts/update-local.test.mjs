@@ -24,7 +24,7 @@ test("ZIP updater refreshes application code while preserving credentials, conne
     execFileSync(process.execPath, [script, folder, "--copy-only"]);
     assert.equal(
       JSON.parse(await readFile(join(folder, "package.json"), "utf8")).version,
-      "4.3.0",
+      JSON.parse(await readFile(resolve("package.json"), "utf8")).version,
     );
     assert.equal(
       await readFile(join(folder, ".env"), "utf8"),
