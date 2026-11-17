@@ -7,3 +7,6 @@
 @media(prefers-reduced-motion:reduce){.turntable[role=button]{transition:none}}
 
 .homeWidgets .yearTag:before{content:'·';margin-right:5px}
+
+/* Keep the weather source inside the fixed-height card at desktop sizes. */
+.homeWidgets .weather .cardHead{height:48px;min-height:48px;padding-top:2px;padding-bottom:2px}.homeWidgets .weather .cardFoot{height:44px;min-height:44px;flex-wrap:nowrap;align-items:center;padding:0 18px;gap:8px}.homeWidgets .weather .cardFoot a{display:flex;align-items:center;min-height:44px;white-space:nowrap}.homeWidgets .weather .cardFoot .textButton{height:44px;min-height:44px}

@@ -1,14 +1,14 @@
 /* App shell only: never cache API responses, credentials, article text or personal data.
    Bump the cache version whenever the shell or its local assets change. */
 'use strict';
-const CACHE = 'midnight-shell-v16-widgets';
+const CACHE = 'midnight-shell-v17-widgets';
 const SHELL = '/static/index.html';
 const ASSETS = ['/static/widget-core.js','/static/widgets.js','/static/widgets.css','/static/wallpaper.js','/static/wallpaper.css','/static/wallpapers/nature-long.jpg','/static/wallpapers/rain-long.jpg','/static/calm.js','/static/calm.css','/static/today-core.js','/static/today.js','/static/today.css','/static/notifications.js','/static/notifications.css','/static/icons.js','/static/calendar.js','/static/icons/mic.svg','/static/command-core.js','/static/command.js','/static/command-spaces.css',SHELL, '/static/style.css', '/static/polish.css', '/static/ui.js',
   '/static/app.js', '/static/focus.js', '/static/weather.js',
   '/static/capture-store.js', '/static/capture.js', '/static/spotify-logo.png',
   '/static/christmas-tree.jpg', ...['cloud-fog','cloud-lightning','cloud-moon',
     'cloud-rain','cloud-snow','cloud-sun','cloud','locate-fixed','map-pin','moon',
-    'sun','wind'].map(name => '/static/icons/' + name + '.svg')].map(path=>/\.(js|css)$/.test(path)?path+'?v=widgets3':path);
+    'sun','wind'].map(name => '/static/icons/' + name + '.svg')].map(path=>/\.(js|css)$/.test(path)?path+'?v=widgets4':path);
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
   // Loaded pages retain their DOM and drafts. The complete new shell is used on their next navigation.
