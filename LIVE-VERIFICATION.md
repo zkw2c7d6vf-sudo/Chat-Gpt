@@ -32,3 +32,28 @@ The main weather heading uses a city/town name. Unnamed coordinates resolve from
 Long-clip browser check: Nature decoded at 3840×2160 with duration 60.427 seconds; the weather heading resolved the public test coordinates to Buffalo. API selection, oversized-HD fallback and town lookup tests bring automated coverage to 58 Python plus 24 Node checks (82 total). No real captures, playback or physical-device states were modified.
 
 Installed longer-clip update: all four existing saved server files were byte-identical after the stopped-server installation. Previous source is in upgrade-backups/20261117-122821-487909. Rain playback was verified at 59.259 seconds and 4096×2160.
+
+
+## Current provider: Pixabay — November 17, 2026
+
+The previous provider integration, key field and automatic asset downloads are retired.
+Pixabay is the sole API provider; 1080p is the default, optional 4K remains, and the
+existing one-to-ten-minute landscape duration rule is retained. Renditions are
+validated by actual dimensions and the CDN host. Catalogs persist for 24 hours.
+Legacy provider credentials are never reused; Pixabay credentials remain in ignored
+local settings and are omitted from public responses, errors, tests and packages.
+Bundled offline footage retains truthful attribution but triggers no provider requests.
+
+Mocked API checks cover default quality, dimension selection, HTTPS/CDN validation,
+secret isolation, credential migration, persistent caching, key changes, rate limits,
+error redaction, download limits, offline fallback and explicit rotation. The existing
+wallpaper motion/cancellation tests still apply. A live API request was attempted but
+failed with a connection error in this environment; live account acceptance and video
+playback are not claimed. The running external installation requires the supplied
+local activation launcher because this session cannot modify its folder or restart it.
+
+Final provider-pass validation: 80 Python tests and 45 Node tests pass. The source
+build, JavaScript syntax/local asset checks, credential-free package scan, and
+read-only validation of the local activation update pass. The activation helper
+was also checked with synthetic settings to confirm 1080p configuration, private
+file permissions, preservation of other connections and the private capture link.

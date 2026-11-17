@@ -2,7 +2,7 @@
 
 A local dashboard for Mac and Windows. The home is a large clock with Spotify, weather and your next calendar event. A small bottom dock opens Calendar, Tasks, Focus, Room, Read and Inbox as floating panels. Capture and Search have separate controls in the top right.
 
-Appearance defaults to Nature: a muted 4K misty landscape. Settings also offers Black, Automatic (the computer’s light/dark setting), Light, Rain and Christmas. Number fonts show real digit previews and update immediately. Silver glass replaces the former navy palette. Spaces and the large Today planning section are removed; existing captures, tasks, deadlines, drafts and integration settings are retained.
+Appearance defaults to Nature: a muted landscape. Rotating Pixabay clips default to 1080p, with optional 4K. Settings also offers Black, Automatic (the computer’s light/dark setting), Light, Rain and Christmas. Number fonts show real digit previews and update immediately. Silver glass replaces the former navy palette. Spaces and the large Today planning section are removed; existing captures, tasks, deadlines, drafts and integration settings are retained.
 
 ## Start Midnight
 
@@ -12,7 +12,7 @@ For an existing installation, stop its server, run **Apply Midnight Update.comma
 
 ## GitHub source checkouts
 
-The source-only GitHub branch omits large MP4 files. Both launchers fetch the two credited public background videos on first launch and verify their SHA-256 checksums. Existing videos are retained. No Pexels API key is needed for those two included scenes. If the download fails, the dashboard starts with its local still images; run `python scripts/fetch_assets.py` later to retry. A complete packaged ZIP includes the videos already.
+The source-only GitHub branch omits large MP4 files. Existing bundled videos are retained when updating. New checkouts use the local still images until Pixabay is configured and a video has been saved. The launchers no longer download videos from the previous provider. `scripts/fetch_assets.py` supports only explicitly listed public Pixabay assets; the default manifest is empty.
 
 ## The three main widgets
 
@@ -24,13 +24,15 @@ The bell counts unread notifications from this visit; Inbox counts saved unfinis
 
 ## Live backgrounds
 
-Nature and Rain each include a local 4K video lasting about a minute, plus a still image. API rotation accepts clips from one to ten minutes and rejects the former short clips. They work without a key. Playback is muted, pauses when the dashboard is hidden, and respects Reduced Motion. **Settings → Appearance** keeps Black and Christmas available. **Play live backgrounds** pauses the scenery without affecting Spotify.
+Nature and Rain support muted, locally saved landscape videos. Rotation retains the one-to-ten-minute duration range. Playback pauses when the dashboard is hidden and respects Reduced Motion. **Settings → Appearance** keeps all existing themes available. **Play live backgrounds** controls scenery without affecting Spotify.
 
-To enable rotating Pexels scenes, get a free key at https://www.pexels.com/api/, paste it into **Settings → Live backgrounds → Pexels API key**, and choose **Save backgrounds**. No client secret or other account is needed. Leave the field empty to retain a saved key; **Remove key** removes it locally. The key is kept in `data/wallpaper.json` with owner-only permissions where supported; it is never returned by bootstrap or settings reads and is sent only to Pexels' API. Do not put it in a chat or source archive.
+Pixabay is the only online video provider. Get a free key at https://pixabay.com/api/docs/ and use **Settings → Live backgrounds → Pixabay API key → Save backgrounds**. Leave the field empty to keep a saved key; **Remove key** removes it locally. Credentials live in `data/wallpaper.json` with owner-only permissions where supported, are never returned by settings/bootstrap, and are sent only to Pixabay's video API. The old provider's generic key is ignored and is removed when saving the new settings. No key is included in source, tests or packages.
 
-Rotation defaults to every 30 minutes, with 15 minutes, hourly and daily options. **Next scene** switches early. 4K is preferred when Pexels offers it; oversized long 4K clips may use an available HD rendition. choose HD to reduce processing. The first API clip can take a moment to download, while the included background remains visible. The settings status reports actual clip resolution and failures.
+Rotation defaults to every 30 minutes, with 15-minute, hourly and daily options. **Next scene** switches early. **1080p** is the default and selects actual 1920×1080 renditions, regardless of Pixabay's rendition labels; it never silently substitutes 720p or 4K. Optional **4K when available** retains higher-resolution selection and falls back to 1080p for oversized downloads. Only landscape MP4 files from Pixabay's approved CDN are downloaded. The settings status reports actual resolution and failures.
 
-Catalog lookups are cached for six hours. Rate limits, invalid keys, outages and oversized downloads keep the last saved scene or the included fallback. Downloaded videos are served by the local backend, with two retained clips per scene/quality (maximum eight clips, 256 MB each). No wallpaper API calls or remote video streams come directly from the browser. The included files add about 117 MB to the source bundle. Pexels footage is free stock media, not open-source media; see ASSET-CREDITS.md.
+Search catalogs are cached locally for 24 hours, including across server restarts, as required by the [Pixabay API documentation](https://pixabay.com/api/docs/). No background mass querying is performed. API failures, invalid keys, rate limits and oversized downloads keep the last saved Pixabay clip or a bundled fallback. Up to two clips per theme/quality are retained (eight total, maximum 256 MB per clip). Browser playback uses the local backend; credentials are never sent with video downloads or exposed in error messages.
+
+Previously bundled Nature/Rain videos and stills remain usable offline and retain their original creator credits. That attribution does not enable the retired provider or make network requests. Pixabay clips show their Pixabay creator and source page. See `ASSET-CREDITS.md` for the bundled footage's provenance. New source checkouts initially have stills; after the first successful Pixabay download, the saved video also works offline.
 
 ## Instant Capture
 

@@ -55,3 +55,12 @@ test('failed rotation releases its source and restores the included scene',async
   assert.equal(app.videos[1].getAttribute('src'),null);assert.equal(app.videos[0].dataset.active,'true');assert.equal(app.videos[0].paused,false);
   obsolete();assert.equal(app.videos[0].dataset.active,'true');
 });
+
+test('Pixabay scenes show their creator and provider; fallback credits stay accurate',async()=>{
+  const app=wallpaperContext({motion:false});await settle();
+  assert.equal(app.byId('wallpaperProvider').textContent,'Pexels');
+  app.setScene({src:'/api/wallpaper/media/pixabay-nature-hd-test',source:'pixabay',author:'Test filmmaker',page:'https://pixabay.com/videos/id-123/',width:1920,duration:90});
+  await app.api.refresh();assert.equal(app.byId('wallpaperProvider').textContent,'Pixabay');
+  assert.equal(app.byId('wallpaperProvider').href,'https://pixabay.com');assert.equal(app.byId('wallpaperAuthor').textContent,'Test filmmaker');
+  assert.match(app.byId('wallpaperStatus').textContent,/1080p.*Saved from Pixabay/);assert.equal(app.sources.length,0);
+});

@@ -20,6 +20,8 @@ from urllib.parse import urlencode, urljoin, urlsplit
 import feedparser
 import httpx
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from icalendar import Calendar
@@ -251,13 +253,13 @@ async def settings(body: Settings):
 class WallpaperPreferences(BaseModel):
     key: str | None = Field(default=None, max_length=200)
     interval: int = 30
-    quality: str = '4k'
+    quality: str = 'hd'
 
     @field_validator('key')
     @classmethod
     def valid_key(cls, value):
-        if value is not None and value.strip() and not re.fullmatch(r'[A-Za-z0-9_-]{20,200}', value.strip()):
-            raise ValueError('Paste a valid Pexels API key, or leave the field empty to keep it.')
+        if value is not None and value.strip() and not re.fullmatch(r'\d{1,12}-[A-Za-z0-9]{20,100}', value.strip()):
+            raise ValueError('Paste a valid Pixabay API key, or leave the field empty to keep it.')
         return value
 
     @field_validator('interval')
@@ -811,6 +813,15 @@ async def calendar(tz: str = 'UTC', start: str | None = None, end: str | None = 
 @app.exception_handler(httpx.RequestError)
 async def network_error(request, exc):
     return JSONResponse({'detail': 'Network unavailable. Check your connection and try again.'}, 502)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request, exc):
+    if request.url.path == '/api/wallpaper/settings':
+        # Validation errors must not reflect even a mistyped credential to the client.
+        return JSONResponse({'detail': [{key: error[key] for key in ('type', 'loc', 'msg')}
+                                        for error in exc.errors()]}, 422)
+    return await request_validation_exception_handler(request, exc)
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'static'), name='static')

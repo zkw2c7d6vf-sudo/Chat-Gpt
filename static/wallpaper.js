@@ -4,7 +4,7 @@ window.MidnightWallpaper=(()=>{
  const $=id=>document.getElementById(id),root=document.documentElement;
  const videos=[$('wallpaperVideoA'),$('wallpaperVideoB')],reduced=matchMedia('(prefers-reduced-motion: reduce)');
  const included={nature:{src:'/static/wallpapers/nature-long.mp4',poster:'/static/wallpapers/nature-long.jpg',author:'Tom Fisk',page:'https://www.pexels.com/video/32329775/',width:3840,duration:60.43},rain:{src:'/static/wallpapers/rain-long.mp4',poster:'/static/wallpapers/rain-long.jpg',author:'Engin Akyurt',page:'https://www.pexels.com/video/11887609/',width:4096,duration:59.26}};
- let active=null,loading=null,generation=0,request=0,busy=false,motion=true,prefs={configured:false,interval:30,quality:'4k'},lastScene=null,lastNotice='';
+ let active=null,loading=null,generation=0,request=0,busy=false,motion=true,prefs={configured:false,interval:30,quality:'hd'},lastScene=null,lastNotice='';
  try{motion=localStorage.getItem('midnight-wallpaper-motion')!=='off';}catch{}
  const theme=()=>root.dataset.appearance==='nature'?'nature':root.dataset.appearance==='rainy'?'rain':null;
  const api=(path,options)=>MidnightApp.request(path,options);
@@ -19,13 +19,13 @@ window.MidnightWallpaper=(()=>{
   videos.forEach(video=>{if(video===active&&play)video.play().catch(()=>status('Motion is paused by your browser. Turn live backgrounds off and on to play.'));else video.pause();});
   $('wallpaperMotion').checked=motion;
  }
- function describe(scene){const quality=scene.width>=3840?'4K':scene.width>=1920?'HD':'Landscape';const seconds=Math.round(scene.duration||0),length=seconds?' · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):'';return (scene.source==='pexels'?quality+length+' · Saved from Pexels':quality+length+' · Included scene')+(reduced.matches?' · Reduced Motion is on':'')+(lastNotice?' · '+lastNotice:'');}
+ function describe(scene){const quality=scene.width>=3840?'4K':scene.width>=1920?'1080p':'Landscape';const seconds=Math.round(scene.duration||0),length=seconds?' · '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):'';return (scene.source==='pixabay'?quality+length+' · Saved from Pixabay':quality+length+' · Included scene')+(reduced.matches?' · Reduced Motion is on':'')+(lastNotice?' · '+lastNotice:'');}
  function present(scene,name){
   if(theme()!==name)return;
   if(!/^\/(static\/wallpapers\/|api\/wallpaper\/media\/)/.test(scene.src))return;
   lastScene=scene;lastNotice=scene.notice||'';root.dataset.scene=name;
   $('wallpaperCredit').hidden=false;$('wallpaperAuthor').textContent=scene.author;
-  $('wallpaperAuthor').href=/^https:\/\/(www\.)?pexels\.com\//.test(scene.page)?scene.page:'https://www.pexels.com';
+  const provider=scene.source==='pixabay'?'Pixabay':'Pexels';$('wallpaperProvider').textContent=provider;$('wallpaperProvider').href=provider==='Pixabay'?'https://pixabay.com':'https://www.pexels.com';$('wallpaperAuthor').href=/^https:\/\/(www\.)?(pixabay|pexels)\.com\//.test(scene.page)?scene.page:$('wallpaperProvider').href;
   $('liveBackdrop').style.backgroundImage='url("'+included[name].poster+'")';
   status(describe(scene));
   if(active&&active.getAttribute('src')!==scene.src)active.dataset.active='false';
@@ -43,7 +43,7 @@ window.MidnightWallpaper=(()=>{
   incoming.src=scene.src;
   incoming.load();
  }
- async function preferences(){try{prefs=await api('wallpaper/settings');$('wallpaperInterval').value=String(prefs.interval);$('wallpaperQuality').value=prefs.quality;$('pexelsKey').placeholder=prefs.configured?'Key saved · leave blank to keep it':'Paste a key to enable rotation';$('removePexels').hidden=!prefs.configured;$('nextWallpaper').disabled=!prefs.configured||busy;}catch{status('The local server is unavailable. Included scenes still work.');}}
+ async function preferences(){try{prefs=await api('wallpaper/settings');$('wallpaperInterval').value=String(prefs.interval);$('wallpaperQuality').value=prefs.quality;$('pixabayKey').placeholder=prefs.configured?'Key saved · leave blank to keep it':'Paste a key to enable rotation';$('removePixabay').hidden=!prefs.configured;$('nextWallpaper').disabled=!prefs.configured||busy;}catch{status('The local server is unavailable. Included scenes still work.');}}
  async function refresh(){
   const name=theme(),token=++request;
   if(!name){delete root.dataset.scene;$('wallpaperCredit').hidden=true;generation++;lastScene=null;active=null;loading=null;videos.forEach(release);syncMotion();return;}
@@ -54,15 +54,15 @@ window.MidnightWallpaper=(()=>{
   finally{if(token===request){busy=false;$('nextWallpaper').disabled=!prefs.configured;}}
  }
  async function save(clear=false){
-  $('saveWallpaper').disabled=true;$('removePexels').disabled=true;
+  $('saveWallpaper').disabled=true;$('removePixabay').disabled=true;
   try{
-   const key=$('pexelsKey').value.trim();
+   const key=$('pixabayKey').value.trim();
    prefs=await post('wallpaper/settings',{key:clear?'':key||null,interval:Number($('wallpaperInterval').value),quality:$('wallpaperQuality').value});
-   $('pexelsKey').value='';await preferences();status(clear?'Pexels key removed. Included scenes remain available.':'Background preferences saved locally.');await refresh();
+   $('pixabayKey').value='';await preferences();status(clear?'Pixabay key removed. Included scenes remain available.':'Background preferences saved locally.');await refresh();
   }catch(error){status(error.message);}
-  finally{$('saveWallpaper').disabled=false;$('removePexels').disabled=false;}
+  finally{$('saveWallpaper').disabled=false;$('removePixabay').disabled=false;}
  }
- $('saveWallpaper').onclick=()=>save();$('removePexels').onclick=()=>save(true);
+ $('saveWallpaper').onclick=()=>save();$('removePixabay').onclick=()=>save(true);
  $('nextWallpaper').onclick=async()=>{const name=theme();if(!name){status('Choose Nature or Rain to change the scene.');return;}if(busy)return;busy=true;$('nextWallpaper').disabled=true;const token=++request;try{const scene=await post('wallpaper/next?theme='+name,{});if(token===request)present(scene,name);}catch(error){status(error.message);}finally{busy=false;$('nextWallpaper').disabled=!prefs.configured;}};
  $('wallpaperMotion').onchange=()=>{motion=$('wallpaperMotion').checked;try{localStorage.setItem('midnight-wallpaper-motion',motion?'on':'off');}catch{}syncMotion();};
  addEventListener('midnight:appearance',refresh);document.addEventListener('visibilitychange',()=>{syncMotion();if(!document.hidden&&!busy)refresh();});reduced.addEventListener('change',()=>{syncMotion();if(lastScene)status(describe(lastScene));});
