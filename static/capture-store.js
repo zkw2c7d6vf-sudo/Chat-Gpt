@@ -19,7 +19,10 @@ class MidnightCaptureStore {
     return new Promise((resolve, reject) => {
       let result;
       const tx = this.db.transaction(stores, mode);
-      tx.oncomplete = () => resolve(result);
+      tx.oncomplete = () => {
+        if (mode==='readwrite'&&stores.includes('items')) window.dispatchEvent(new Event('midnight:captures-invalidated'));
+        resolve(result);
+      };
       tx.onabort = tx.onerror = () => reject(tx.error || new Error('Local storage could not be updated.'));
       work(tx, value => { result = value; });
     });

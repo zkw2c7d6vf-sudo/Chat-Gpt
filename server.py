@@ -123,7 +123,11 @@ async def local_guard(request: Request, call_next):
         if int(request.headers.get('content-length', '0')) > 2_000_000:
             return JSONResponse({'detail': 'Maximum request size is 2 MB.'}, 413)
     response = await call_next(request)
-    response.headers.update({'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+    # Public source assets may be retained and revalidated with ETag/Last-Modified.
+    # HTML, service worker updates and all API/personal responses stay uncached.
+    static_asset = (request.url.path.startswith('/static/') and request.url.path != '/static/index.html'
+                    and (200 <= response.status_code < 300 or response.status_code == 304))
+    response.headers.update({'Cache-Control': 'no-cache' if static_asset else 'no-store', 'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
         'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; connect-src 'self'; media-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
     return response

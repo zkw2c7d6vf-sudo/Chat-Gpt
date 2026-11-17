@@ -43,7 +43,10 @@
  register('media:play','Play Spotify','Media','▶',()=>MidnightApp.media('play'),['resume music'],{available:()=>!!MidnightApp.snapshot().player});
  register('media:pause','Pause Spotify','Media','Ⅱ',()=>MidnightApp.media('pause'),['stop music'],{available:()=>!!MidnightApp.snapshot().player});
  async function rebuild(){
-  const token=++generation;const items=registry.list();const snapshot=MidnightApp.snapshot();
+  const token=++generation;
+  // Rebuild from current data when Search opens; closed panels need no index work.
+  if(mode!=='search'||!dialog.open)return;
+  const items=registry.list();const snapshot=MidnightApp.snapshot();
   if(snapshot.player?.title)items.push({id:'media:current',title:snapshot.player.title,type:'Media',icon:'♫',subtitle:snapshot.player.artist||'Current Spotify track',keywords:['spotify','music','now playing'],action:()=>MidnightApp.reveal('music')});
   for(const [i,event] of [...new Map([...snapshot.events,...(window.MidnightCalendar?.snapshot()||[])].map(event=>[event.title+'|'+event.start+'|'+event.end,event])).values()].entries())items.push({id:'event:'+i,title:event.title,type:'Calendar',icon:'▦',subtitle:new Date(event.start).toLocaleString()+(event.location?' · '+event.location:''),keywords:['event','class','schedule'],action:()=>MidnightApp.revealEvent(event)});
   try{for(const item of await MidnightCapture.all()){if(item.archived)continue;items.push({id:'capture:'+item.id,title:item.text.slice(0,140),type:item.kind,icon:item.done?'✓':item.kind==='reminder'?'◷':'▤',subtitle:item.done?'Completed':item.dueAt?new Date(item.dueAt).toLocaleString():'Saved in this browser',keywords:[item.text,item.kind,item.done?'done':''],action:()=>MidnightCapture.edit(item)});}}catch{}

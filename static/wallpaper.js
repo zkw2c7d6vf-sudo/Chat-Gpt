@@ -4,14 +4,18 @@ window.MidnightWallpaper=(()=>{
  const $=id=>document.getElementById(id),root=document.documentElement;
  const videos=[$('wallpaperVideoA'),$('wallpaperVideoB')],reduced=matchMedia('(prefers-reduced-motion: reduce)');
  const included={nature:{src:'/static/wallpapers/nature-long.mp4',poster:'/static/wallpapers/nature-long.jpg',author:'Tom Fisk',page:'https://www.pexels.com/video/32329775/',width:3840,duration:60.43},rain:{src:'/static/wallpapers/rain-long.mp4',poster:'/static/wallpapers/rain-long.jpg',author:'Engin Akyurt',page:'https://www.pexels.com/video/11887609/',width:4096,duration:59.26}};
- let active=null,generation=0,request=0,busy=false,motion=true,prefs={configured:false,interval:30,quality:'4k'},lastScene=null,lastNotice='';
+ let active=null,loading=null,generation=0,request=0,busy=false,motion=true,prefs={configured:false,interval:30,quality:'4k'},lastScene=null,lastNotice='';
  try{motion=localStorage.getItem('midnight-wallpaper-motion')!=='off';}catch{}
  const theme=()=>root.dataset.appearance==='nature'?'nature':root.dataset.appearance==='rainy'?'rain':null;
  const api=(path,options)=>MidnightApp.request(path,options);
  const post=(path,body)=>api(path,{method:'POST',body:JSON.stringify(body)});
  function status(message){$('wallpaperStatus').textContent=message;}
+ function release(video){video.pause();video.onloadeddata=null;video.onerror=null;video.dataset.active='false';video.removeAttribute('src');video.load();}
  function syncMotion(){
   const play=motion&&!reduced.matches&&!document.hidden&&!!theme();
+  if(loading&&(!play||loading.getAttribute('src')!==lastScene?.src)){generation++;release(loading);loading=null;}
+  if(active)active.dataset.active=String(!!theme()&&active.getAttribute('src')===lastScene?.src);
+  if(play&&lastScene&&root.dataset.scene===theme()&&active?.getAttribute('src')!==lastScene.src&&loading?.getAttribute('src')!==lastScene.src)loadScene(lastScene,theme());
   videos.forEach(video=>{if(video===active&&play)video.play().catch(()=>status('Motion is paused by your browser. Turn live backgrounds off and on to play.'));else video.pause();});
   $('wallpaperMotion').checked=motion;
  }
@@ -24,20 +28,25 @@ window.MidnightWallpaper=(()=>{
   $('wallpaperAuthor').href=/^https:\/\/(www\.)?pexels\.com\//.test(scene.page)?scene.page:'https://www.pexels.com';
   $('liveBackdrop').style.backgroundImage='url("'+included[name].poster+'")';
   status(describe(scene));
-  if(active?.getAttribute('src')===scene.src){syncMotion();return;}
-  const token=++generation,incoming=videos.find(video=>video!==active);incoming.pause();incoming.dataset.active='false';incoming.poster=included[name].poster;incoming.src=scene.src;
+  if(active&&active.getAttribute('src')!==scene.src)active.dataset.active='false';
+  syncMotion();
+ }
+ function loadScene(scene,name){
+  const token=++generation,incoming=videos.find(video=>video!==active);loading=incoming;incoming.pause();incoming.dataset.active='false';incoming.poster=included[name].poster;
   incoming.onloadeddata=()=>{
    if(token!==generation||theme()!==name)return;
-   if(active){active.pause();active.dataset.active='false';}
-   active=incoming;incoming.dataset.active='true';syncMotion();
+   const previous=active;active=incoming;loading=null;incoming.dataset.active='true';
+   if(previous&&previous!==incoming)release(previous);
+   syncMotion();
   };
-  incoming.onerror=()=>{if(token===generation){status('This scene could not play. The saved still background is available.');if(scene.src!==included[name].src)present({...included[name],notice:'Using the included scene.'},name);}};
+  incoming.onerror=()=>{if(token===generation){generation++;loading=null;release(incoming);status('This scene could not play. The saved still background is available.');if(scene.src!==included[name].src)present({...included[name],notice:'Using the included scene.'},name);}};
+  incoming.src=scene.src;
   incoming.load();
  }
  async function preferences(){try{prefs=await api('wallpaper/settings');$('wallpaperInterval').value=String(prefs.interval);$('wallpaperQuality').value=prefs.quality;$('pexelsKey').placeholder=prefs.configured?'Key saved · leave blank to keep it':'Paste a key to enable rotation';$('removePexels').hidden=!prefs.configured;$('nextWallpaper').disabled=!prefs.configured||busy;}catch{status('The local server is unavailable. Included scenes still work.');}}
  async function refresh(){
   const name=theme(),token=++request;
-  if(!name){delete root.dataset.scene;$('wallpaperCredit').hidden=true;generation++;syncMotion();return;}
+  if(!name){delete root.dataset.scene;$('wallpaperCredit').hidden=true;generation++;lastScene=null;active=null;loading=null;videos.forEach(release);syncMotion();return;}
   if(!lastScene||root.dataset.scene!==name)present({...included[name],source:'included'},name);
   busy=true;$('nextWallpaper').disabled=true;
   try{const scene=await api('wallpaper?theme='+name);if(token===request&&theme()===name)present(scene,name);}

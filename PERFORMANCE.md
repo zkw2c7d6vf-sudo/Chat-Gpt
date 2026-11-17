@@ -36,3 +36,68 @@ No live publisher, weather, Spotify, or plug calls are needed for validation. Te
 - Full-suite elapsed time was 202.56 seconds, dominated by dependency-file loading. This is test setup time, not a dashboard response-time measurement.
 
 The source project has no Git repository; changes were made in place. Added test files are `tests/test_performance.py` and `tests/test_performance.cjs`. Existing tests and the focus model were preserved.
+
+## GitHub performance pass — November 17, 2026
+
+This pass starts from the verified `midnight` branch at
+`37b0c63ca66ed799cda4d6006bcc2273b5766249`. It retains the interface,
+integrations, fuzzy search rules, capture data formats and reminder behavior.
+
+- Capture reads share an invalidatable in-memory snapshot. Successful item
+  transactions invalidate it only after committing. Concurrent readers share
+  storage work; an edit arriving during a read forces a fresh snapshot. Callers
+  receive separate record copies. Local writes, backup restores, cross-tab
+  messages, opening Inbox and returning to a visible tab retain refresh paths.
+- The 30-second reminder check uses that snapshot and only updates notifications
+  when the due set or its content changes. It skips hidden tabs. Browsers without
+  BroadcastChannel retain the database polling fallback. Due reminders still
+  appear within the existing 30-second check interval or upon returning.
+- Search builds its index when opened and refreshes while open. It prepares
+  normalized titles and unique search words once per snapshot, normalizes each
+  query once, and stops comparisons when the best possible word score is found.
+  Exact/prefix/typo scores, accents, multiple terms, usage/context boosts and the
+  40-result limit are unchanged. Obsolete asynchronous rebuilds are discarded.
+- Wallpaper metadata, stills and credits remain available with motion off,
+  Reduced Motion on or a hidden tab. Video loading waits until playback is
+  allowed. Identical pending sources are shared, hidden pending loads cancel,
+  and the previous video source is released after a scene switch. Active video
+  pauses and resumes as before; non-video themes release both sources.
+- Successful public `/static/` assets permit storage with mandatory HTTP
+  revalidation. An unchanged ETag produces a body-free 304. HTML, the worker,
+  API responses and errors retain `no-store`; security headers are unchanged.
+  The worker and shell asset versions are bumped together.
+
+### Controlled measurements
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| Full capture reads in 120 simulated visible idle checks (one hour), with Tasks and Search consumers | 360 | 0 |
+| Median of four searches over 1,000 synthetic captures (15 samples) | 644.91 ms | 9.05 ms |
+| Index construction for those captures | 0.67 ms | 25.92 ms |
+
+The search corpus uses classroom notes and repeated long keywords; queries cover
+typos, multiple words and no match. The search timing excludes index construction;
+preparation moves that work to index replacement rather than every keystroke.
+These are local operation counts and Node microbenchmarks, not browser frame,
+CPU, memory or whole-app speed measurements. Reminder filtering still runs on
+the 30-second cadence. Integrations retain their existing polling schedules.
+
+### Validation
+
+Python API tests include ETag/304 reuse and uncached private/error responses.
+JavaScript regression tests cover reminder deadlines, completed reminders,
+cross-tab races, direct store invalidation, failed writes/reads, polling fallback,
+search ranking equivalence and deferred/stale search rebuilds, video deferral,
+duplicate loads, cancellation, resuming and source release. Existing backend,
+timer, weather, task, search and wallpaper tests also pass. The source build
+checks JavaScript syntax and local asset references.
+
+Full browser verification remains outstanding: this session's sandbox rejected
+binding the isolated test server and launching headless Chrome. No browser
+capture-suite pass, visual check, real microphone check, device check or live
+account performance is claimed. No private settings/data were used or changed.
+
+Final results: **70 Python tests and 44 Node tests passed**, along with the source
+build, JavaScript syntax/local asset checks and `git diff --check`. Python reports
+the existing Starlette/AnyIO deprecation warning. The passing Node count includes
+four legacy Spaces-store tests; that module remains unloaded, as before.
