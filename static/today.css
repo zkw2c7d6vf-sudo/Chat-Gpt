@@ -1,0 +1,55 @@
+/* Daily planning is a quiet, optional layer above the existing Spaces. */
+.todayPanel{flex-shrink:0;margin:0 0 22px;border:1px solid var(--material-stroke,var(--line));border-radius:22px;background:linear-gradient(120deg,var(--accent-soft),transparent 65%),var(--material-surface,var(--surface));box-shadow:inset 0 1px 0 var(--material-highlight,var(--glass));overflow:hidden;scroll-margin-top:20px}
+.todayHeading{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 26px}
+.todayEyebrow{color:var(--accent);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;line-height:1.6}
+.todayHeading h2{font-size:clamp(21px,2vw,28px);letter-spacing:-.7px;margin:5px 0 8px;font-weight:500}
+.todaySummary{color:var(--muted);font-size:12px;line-height:1.6}
+.todayActions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.todayActions button{min-width:44px;min-height:44px}
+.todayColumns{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,1fr);border-top:1px solid var(--line)}
+.todayPriorities,.todayNext{min-width:0;padding:18px 26px 22px}
+.todayNext{border-left:1px solid var(--line);background:var(--glass)}
+.todaySectionHead{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;margin-bottom:8px}
+.todaySectionHead h3{font-size:14px;font-weight:500;letter-spacing:-.2px}
+.todaySectionHead>span{font-size:12px;color:var(--muted)}
+.todaySectionHead .textButton{min-height:44px}
+.todayTask{display:flex;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);min-width:0}
+.todayTask:first-child{border-top:0}
+.todayTask>.captureTaskToggle{flex-shrink:0;margin:0;width:44px;height:44px;min-height:44px;background:var(--glass);border:1px solid var(--line);border-radius:50%;color:var(--accent)}
+.todayTaskCopy{flex:1;min-width:0}
+.todayTaskText{display:block;width:100%;min-height:44px;padding:8px 4px;background:transparent;text-align:left;line-height:1.5;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;border-radius:8px}
+.todayTaskCopy small{display:block;color:var(--muted);font-size:10px;line-height:1.6;padding:0 4px 5px}
+.todayTaskCopy small.todayOverdue{color:var(--warm)}
+.todayTaskActions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.todayTaskActions button{min-height:44px;min-width:44px;padding:8px 12px;font-size:12px}
+.todayTaskActions .todayPin{border-radius:12px;background:transparent;font-size:22px;color:var(--muted);padding:8px}
+.todayTaskActions .todayPin[aria-pressed=true]{color:var(--accent);background:var(--accent-soft)}
+.todayPriorityEmpty{display:flex;align-items:center;gap:14px;width:100%;min-height:63px;background:transparent;text-align:left;border-top:1px solid var(--line);color:var(--muted);font-size:13px;padding:8px 0}
+.todayPriorityEmpty>span:last-child{margin-left:auto;padding:10px;color:var(--accent);font-size:20px}
+.todayPriorityNumber{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border:1px dashed var(--line);border-radius:50%;font:16px var(--number-font)}
+.todayEvent{display:grid;gap:8px;width:100%;padding:16px;text-align:left;background:var(--glass);border:1px solid var(--line);border-radius:14px}
+.todayEvent small{font-size:11px;color:var(--accent)}
+.todayEvent strong{font-size:16px;font-weight:500;line-height:1.5;overflow-wrap:anywhere}
+.todayEvent>span{font-size:12px;color:var(--muted)}
+.todayEmpty{color:var(--muted);font-size:13px;line-height:1.8;padding:12px 0}
+.todayTaskHeader{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:10px 26px;gap:14px}
+.todayTabs{display:flex;gap:6px;flex-wrap:wrap}
+.todayTabs button{background:transparent;min-height:44px;padding:10px 12px;font-size:12px;border-radius:12px;color:var(--muted)}
+.todayTabs button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent)}
+.todayTabs button span{display:inline-block;margin-left:6px;opacity:.8}
+#todayTasks{padding:0 26px 8px;max-height:330px;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
+#todayTasks .todayEmpty{padding-bottom:10px}
+#todayStatus{padding:0 26px 14px;min-height:0;margin:0}
+#todayStatus:empty{display:none}
+.todayShowMore{margin:10px 0}
+#todayFocus{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+#todayFocusText{font-size:14px;line-height:1.6;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:6px 0 12px}
+.todayFocusActions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.todayFocusActions button{min-height:44px}
+.isDone .todayTaskText{text-decoration:line-through;color:var(--muted)}
+.restorePanel{margin:18px 0;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--glass)}
+.restorePanel h3{margin-bottom:8px}
+.restorePanel input{max-width:100%}
+@media(max-width:1100px){.todayHeading{padding:20px}.todayPriorities,.todayNext{padding:14px 20px}.todayColumns{grid-template-columns:minmax(0,1.5fr) minmax(240px,1fr)}.todayTask{gap:8px}.todayTaskActions{gap:3px}.todayTaskActions button{padding:8px}.todayTaskHeader{padding:10px 20px}#todayTasks{padding-left:20px;padding-right:20px}}
+@media(max-width:850px){.todayColumns{grid-template-columns:1fr}.todayNext{border-left:0;border-top:1px solid var(--line)}.todayTaskHeader{flex-wrap:wrap}}
+@media(prefers-reduced-motion:no-preference){.todayPanel button{transition:background .18s,color .18s,transform .18s}}

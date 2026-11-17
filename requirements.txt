@@ -1,0 +1,10 @@
+fastapi==0.121.1
+uvicorn==0.38.0
+httpx==0.28.1
+python-kasa==0.10.2
+feedparser==6.0.12
+icalendar==6.3.2
+recurring-ical-events==3.8.0
+tzdata==2025.2
+pytest==8.4.2
+trafilatura==2.0.0

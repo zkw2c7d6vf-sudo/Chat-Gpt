@@ -1,0 +1,74 @@
+/* A permanent bottom region. Its contents never participate in the widget grid. */
+:root {--notification-dock-height:72px;}
+body {overflow:hidden;}
+main:has(.spaceLayout) {
+ height:calc(100dvh - var(--notification-dock-height) - env(safe-area-inset-bottom));
+ min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+ scrollbar-color:var(--scrollbar) transparent;scrollbar-gutter:stable;
+}
+#notificationDock {
+ position:fixed;inset:auto 0 0;margin:0;width:100%;max-width:none;
+ height:calc(var(--notification-dock-height) + env(safe-area-inset-bottom));
+ padding:12px 28px calc(12px + env(safe-area-inset-bottom));
+ display:flex;align-items:center;gap:16px;border:0;border-top:1px solid var(--line);
+ border-radius:0;background:color-mix(in srgb,var(--bg) 88%,transparent);color:var(--text);overflow:visible;backdrop-filter:var(--material-filter);-webkit-backdrop-filter:var(--material-filter);
+ box-shadow:none;box-sizing:border-box;
+}
+#notificationDock::backdrop,#notificationPanel::backdrop {background:transparent;pointer-events:none;backdrop-filter:none;}
+.notificationToggle {display:flex;align-items:center;gap:9px;min-height:44px;padding:8px 10px;border-radius:10px;background:transparent;color:var(--muted);font-size:13px;white-space:nowrap;flex-shrink:0;}
+.notificationToggle[aria-expanded=true] {background:var(--glass);color:var(--text);}
+.notificationToggle>.lineIcon {width:17px;height:17px;}
+#notificationCount {display:grid;place-items:center;min-width:20px;height:20px;padding:0 4px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-variant-numeric:tabular-nums;}
+.notificationLatest {display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding-left:16px;border-left:1px solid var(--line);}
+#notificationLatestIcon {display:grid;place-items:center;color:var(--muted);flex-shrink:0;}
+#notificationLatestIcon>.lineIcon {width:17px;height:17px;}
+.notificationLatest[data-notification-kind=error] #notificationLatestIcon {color:var(--error-text);}
+.notificationLatest[data-notification-kind=reminder] #notificationLatestIcon,.notificationLatest[data-notification-kind=focus] #notificationLatestIcon {color:var(--accent);}
+.notificationCopy {display:flex;align-items:baseline;gap:10px;min-width:0;}
+#notificationTitle {font-size:13px;font-weight:550;white-space:nowrap;flex-shrink:0;}
+#notificationDock #toast {position:static;inset:auto;transform:none;display:block;width:auto;max-width:none;background:transparent;color:var(--muted);box-shadow:none;border-radius:0;padding:0;margin:0;font-size:13px;line-height:1.5;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;pointer-events:auto;}
+.notificationConnection {font-size:11px;color:var(--muted);padding:4px 8px;border:1px solid var(--line);border-radius:6px;flex-shrink:0;}
+#notificationAction {font-size:12px;padding:8px 12px;min-height:44px;color:var(--accent);white-space:nowrap;flex-shrink:0;}
+#notificationDismiss {width:44px;min-width:44px;height:44px;background:transparent;color:var(--muted);}
+#notificationDismiss .lineIcon {width:16px;height:16px;}
+#notificationPanel {
+ position:fixed;inset:auto 28px calc(var(--notification-dock-height) + 12px) auto;
+ margin:0;width:440px;max-width:calc(100vw - 56px);max-height:calc(100dvh - 160px);
+ padding:0;border:1px solid var(--material-stroke);border-radius:20px;background:var(--material-surface);backdrop-filter:var(--material-filter);-webkit-backdrop-filter:var(--material-filter);
+ color:var(--text);box-shadow:var(--material-shadow);overflow:hidden;
+}
+.notificationPanelHeader {display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border-bottom:1px solid var(--line);}
+.notificationPanelHeader h2 {font-size:17px;font-weight:550;letter-spacing:-.3px;}
+.notificationPanelHeader .quiet {background:transparent;color:var(--muted);}
+#notificationList {max-height:calc(100dvh - 300px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:0 20px;}
+.notificationRow {display:flex;align-items:flex-start;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);}
+.notificationRow:last-child {border:0;}
+.notificationRowIcon {padding-top:2px;color:var(--muted);}
+.notificationRowIcon .lineIcon {width:18px;height:18px;}
+.notificationRowContent {min-width:0;flex:1;}
+.notificationRowHeading {display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
+.notificationRowHeading strong {font-size:13px;font-weight:550;}
+.notificationRowHeading time {font-size:11px;white-space:nowrap;color:var(--muted);}
+.notificationRow p {font-size:13px;line-height:1.65;color:var(--muted);overflow-wrap:anywhere;margin:6px 0 0;}
+.notificationRow .textButton {justify-content:flex-start;color:var(--accent);padding-left:0;font-size:12px;margin-top:4px;}
+.notificationMeta {display:block;font-size:11px;color:var(--muted);margin-top:8px;}
+.notificationDismissed .notificationRowIcon {opacity:.5;}
+.notificationEmpty {padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;}
+.notificationPanelFooter {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 20px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;}
+.notificationPanelFooter .textButton {font-size:12px;}
+/* Dialogs use the same available viewport; the dock cannot cover their actions. */
+dialog:modal {position:fixed;inset:0 0 calc(var(--notification-dock-height) + env(safe-area-inset-bottom));margin:auto;max-height:calc(100dvh - var(--notification-dock-height) - 48px);}
+#captureDialog:modal,#inboxDialog:modal,#readerDialog:modal,#settingsDialog:modal,#weatherDialog:modal,#spaceEditorDialog:modal,#calendarBrowserDialog:modal {max-height:calc(100dvh - var(--notification-dock-height) - 48px);}
+@media(prefers-reduced-motion:no-preference) {
+ .notificationLatest[data-notification-kind=focus] #notificationLatestIcon {animation:dockComplete 600ms ease-out;}
+ @keyframes dockComplete {0%{transform:scale(.7);opacity:.3;}60%{transform:scale(1.15);}100%{transform:scale(1);opacity:1;}}
+}
+/* Mode belongs to the panel header; writing tools get the available height. */
+#captureDialog .dialogTop {gap:20px;}
+#captureDialog .dialogTop .commandModes {margin:0 0 0 auto;flex-shrink:0;}
+#captureDialog .dialogTop .commandModes button {padding:8px 18px;}
+#captureDialog #captureText {height:clamp(112px,18vh,180px);min-height:112px;}
+#captureDialog:has(#captureKeyboard[hidden]) #captureText {height:clamp(180px,30vh,280px);}
+#captureDialog .captureKeyboard {padding:12px;gap:6px;}
+#captureDialog .touchKey {min-height:48px;font-size:18px;scroll-margin-bottom:100px;}
+#captureDialog .touchKey.modifier {font-size:13px;}

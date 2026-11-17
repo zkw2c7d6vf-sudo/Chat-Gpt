@@ -1,0 +1,20 @@
+{
+  "videos": [
+    {
+      "name": "Nature",
+      "path": "static/wallpapers/nature-long.mp4",
+      "url": "https://videos.pexels.com/video-files/32329775/13790558_3840_2160_30fps.mp4",
+      "sha256": "ff3a9d6420b068f030a0958eb730765174aa18ad3cb41150663877dfeea2ae55",
+      "credit": "Tom Fisk",
+      "page": "https://www.pexels.com/video/32329775/"
+    },
+    {
+      "name": "Rain",
+      "path": "static/wallpapers/rain-long.mp4",
+      "url": "https://videos.pexels.com/video-files/11887609/11887609-uhd_4096_2160_30fps.mp4",
+      "sha256": "2d82b41e1fedb71eb4bf7dde0a0f69b526d0213b1f43c1566d0e580b313c1b0b",
+      "credit": "Engin Akyurt",
+      "page": "https://www.pexels.com/video/11887609/"
+    }
+  ]
+}

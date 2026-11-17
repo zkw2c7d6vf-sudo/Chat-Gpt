@@ -1,0 +1,331 @@
+/* Midnight interface refinement. All colors follow the existing semantic palette. */
+:root {
+  --heading-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --material-filter:blur(20px) saturate(180%);
+  --material-surface:linear-gradient(145deg,color-mix(in srgb,var(--surface) 88%,transparent),color-mix(in srgb,var(--surface-end) 78%,transparent));
+  --material-stroke:color-mix(in srgb,var(--text) 7%,transparent);
+  --material-highlight:rgba(255,255,255,0.1);
+  --material-shadow:inset 0 1px 0 var(--material-highlight),0 2px 8px rgba(0,0,0,.08),0 16px 44px rgba(0,0,0,.16);
+  --card-radius:20px;
+  --panel-radius:24px;
+}
+:root[data-theme=graphite] {
+  --hue:220; --bg:#111214; --surface:#25272b; --surface-end:#1b1d20;
+  --surface-raised:#34373d; --accent:#d7dfed; --secondary:#8e9bad;
+  --text:#f2f3f5; --muted:#abb1bd; --sky-start:#303945; --sky-mid:#434b56;
+  --sky-end:#66707c; --hill-one:#424c59; --hill-two:#2b333e;
+}
+:root[data-theme=sand] {
+  color-scheme:light; --hue:32; --bg:#f3eee6; --surface:#fffcf7; --surface-end:#f6f0e7;
+  --surface-raised:#e8dfd2; --text:#352e27; --muted:#706052; --accent:#795339;
+  --secondary:#b29270; --control-ink:#fffaf3; --shadow:#55412914; --backdrop:#342c255c;
+  --sky-start:#e9dfd0; --sky-mid:#ded1be; --sky-end:#c9b596;
+  --hill-one:#ccb99e; --hill-two:#b6a186; --warm:#815c28;
+  --toast-bg:#f5e4cb; --error-bg:#f5ded8; --error-text:#782f28;
+}
+body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; -webkit-font-smoothing:antialiased;}
+.clock #clock {font-size:clamp(96px,10vw,152px); font-weight:300; letter-spacing:-7px;}
+.clock #today {font-size:14px; letter-spacing:.2px; margin-top:12px;}
+.captureNav {position:absolute; top:0; left:0; gap:8px;}
+.captureNav .primary,.captureNav .smallButton {min-height:48px; border-radius:12px; font-size:14px; font-weight:500;}
+#captureCount {border-radius:7px; background:var(--accent-soft); font-size:12px; min-height:22px;}
+.headerTools {gap:8px;}
+.headerTools .quiet {width:46px; height:46px; border-radius:15px;}
+.card {border-radius:var(--card-radius);border:1px solid var(--material-stroke);background:var(--material-surface);backdrop-filter:var(--material-filter);-webkit-backdrop-filter:var(--material-filter);box-shadow:var(--material-shadow);}
+.cardHead h2 {font-size:17px; letter-spacing:-.4px;}
+button,.smallButton,.textButton,a {transition:background-color 180ms, color 180ms, box-shadow 180ms, transform 220ms var(--ease-out);}
+button:not(.touchKey),.smallButton,.textButton,.cardFoot a {min-height:44px;}
+button.quiet,.weather #locate,.headerTools .quiet {min-width:44px; min-height:44px;}
+.textButton,.cardFoot a {display:inline-flex; align-items:center; justify-content:center; border-radius:10px; padding:6px 8px; font-size:12px;}
+.primary {box-shadow:inset 0 1px 0 color-mix(in srgb,white 16%,transparent); font-weight:600;}
+.primary:hover:not(:disabled) {background:color-mix(in srgb,var(--accent) 86%,var(--surface));}
+.music .cardHead,.weather .cardHead,.card.focusWidget .cardHead,.room .cardHead {padding-top:16px;}
+.musicBody {min-height:156px; gap:18px;}
+.music .cardFoot {padding-bottom:10px; gap:4px; flex-wrap:wrap;}
+.transport button,.transport .play {width:44px; height:44px; flex-shrink:0;}
+.transport {gap:8px;}
+.room h2 {white-space:normal; font-size:14px; text-align:left;}
+.weather #condition {font-size:17px; line-height:1.3;}
+.weatherBody {grid-template-rows:auto auto auto; min-height:94px;}
+.weather #weatherDetail {font-size:11px; line-height:1.5;}
+.weather .cardFoot {padding:0 12px 7px; gap:2px; flex-wrap:wrap;}
+.weather .cardFoot a {font-size:10px; margin-left:auto;}
+.weather #weatherMore {font-size:12px;}
+.weatherStats {min-height:12px;}
+.miniDay {min-height:64px;}
+.calendarDays {gap:5px;}
+.dayChip {min-height:46px;}
+.dayChip span {font-size:10px;}
+.dayChip strong {font-size:14px;}
+/* Native dialogs retain Escape, focus trapping, cancel guards and focus restoration. */
+html:has(:is(dialog,#captureDialog,#inboxDialog,#readerDialog,#weatherDialog,#locationDialog)[open]) {overflow:hidden;}
+dialog, #captureDialog, #inboxDialog, #readerDialog, #weatherDialog, #locationDialog {
+  padding:24px; max-height:calc(100dvh - 48px); border-radius:var(--panel-radius); overflow-y:auto;
+  overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--scrollbar) transparent;
+  background:var(--material-surface);backdrop-filter:var(--material-filter);-webkit-backdrop-filter:var(--material-filter);border-color:var(--material-stroke);
+  box-shadow:var(--material-shadow);
+  opacity:0; transform:translateY(12px) scale(.98);
+  transition:opacity 180ms ease, transform 260ms var(--ease-out);
+}
+:is(dialog,#captureDialog,#inboxDialog,#readerDialog,#weatherDialog,#locationDialog)[open] {opacity:1; transform:translateY(0) scale(1);}
+dialog:not([open]) {pointer-events:none;}
+:is(dialog,#captureDialog,#inboxDialog,#readerDialog,#weatherDialog,#locationDialog).panelUnderlay {transform:translateY(-8px) scale(.975);}
+dialog::backdrop {background:var(--backdrop); backdrop-filter:blur(12px); opacity:0; transition:opacity 220ms ease;}
+:is(dialog,#captureDialog,#inboxDialog,#readerDialog,#weatherDialog,#locationDialog)[open]::backdrop {opacity:1;}
+@starting-style {
+  :is(dialog,#captureDialog,#inboxDialog,#readerDialog,#weatherDialog,#locationDialog)[open] {opacity:0; transform:translateY(20px) scale(.97);}
+  :is(dialog,#captureDialog,#inboxDialog,#readerDialog,#weatherDialog,#locationDialog)[open][data-arrival=handoff] {transform:translateX(24px) scale(.98);}
+  :is(dialog,#captureDialog,#inboxDialog,#readerDialog,#weatherDialog,#locationDialog)[open]::backdrop {opacity:0;}
+}
+dialog .dialogTop, #readerDialog .dialogTop, #weatherDialog .dialogTop, #captureDialog .dialogTop, #inboxDialog .dialogTop {
+  position:sticky; top:-24px; z-index:3; background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:var(--material-filter);-webkit-backdrop-filter:var(--material-filter); margin:-24px -24px 20px;
+  padding:18px 24px 14px; border-bottom:1px solid var(--line); gap:12px;
+}
+.dialogTop h2 {font-size:22px; margin:0; line-height:1.25;}
+.dialogTop .quiet {flex-shrink:0; border-radius:50%; font-size:20px;}
+.settingsGrid {gap:20px;}
+.settingsGrid section {border:1px solid var(--material-stroke); border-radius:18px; background:var(--glass);box-shadow:inset 0 1px 0 var(--material-highlight); padding:20px; scroll-margin-top:88px;}
+.settingsGrid section h3 {margin:0 0 8px;}
+.settingsGrid p {font-size:13px; line-height:1.65;}
+.settingsGrid input,.settingsGrid textarea,.settingsGrid select {font-size:16px; border-radius:12px;}
+.appearance .two {gap:20px;}
+.themePreviews {display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin:8px 0 12px;}
+.themePreview {padding:8px; display:grid; gap:9px; background:var(--glass); border:1px solid var(--line); border-radius:13px; text-align:left; font-size:12px;}
+.themePreview[aria-pressed=true] {border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); color:var(--accent);}
+.themeSwatch {display:block; height:30px; border-radius:7px; background:linear-gradient(120deg,var(--preview-bg) 60%,var(--preview-accent) 60%); box-shadow:inset 0 0 0 1px #ffffff18;}
+[data-theme-choice=midnight] {--preview-bg:#171f33;--preview-accent:#b7ebd7;}
+[data-theme-choice=ocean] {--preview-bg:#142936;--preview-accent:#94dcf5;}
+[data-theme-choice=forest] {--preview-bg:#173125;--preview-accent:#b3e1b9;}
+[data-theme-choice=plum] {--preview-bg:#2b1b3c;--preview-accent:#dfc4ff;}
+[data-theme-choice=ember] {--preview-bg:#35231c;--preview-accent:#ffc49c;}
+[data-theme-choice=light] {--preview-bg:#edf2f6;--preview-accent:#266568;}
+[data-theme-choice=christmas] {--preview-bg:#122d24;--preview-accent:#e7cc86;}
+[data-theme-choice=rainy] {--preview-bg:#1b2a38;--preview-accent:#b2ccdf;}
+[data-theme-choice=graphite] {--preview-bg:#25272b;--preview-accent:#d7dfed;}
+[data-theme-choice=sand] {--preview-bg:#f3eee6;--preview-accent:#795339;}
+.saveBar,.captureSaveBar {bottom:-24px; background:var(--surface); margin:20px -24px -24px; padding:16px 24px max(16px,env(safe-area-inset-bottom)); z-index:4;}
+.captureSaveBar .captureHint {max-width:340px;}
+.captureTypes {gap:6px;}
+.captureTypes button {border-radius:11px;}
+#captureText {background:color-mix(in srgb,var(--bg) 70%,var(--surface));}
+#captureSearch,.citySearch input {font-size:16px;}
+.readerFooter {position:sticky; bottom:-24px; padding:14px 0; background:var(--surface);}
+.dayNavigation {gap:4px; flex-shrink:0;}
+.dayNavigation #closeWeather {margin-left:0;}
+#toast {width:max-content; max-width:calc(100vw - 32px); pointer-events:none;}
+@media(hover:hover) {
+  .themePreview:hover,.article:hover {background:var(--accent-soft);}
+  .textButton:hover,.cardFoot a:hover {background:var(--glass); color:var(--text);}
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+}
+/* Absolutely positioned tools use the header bounds, not its padded grid area. */
+.captureNav,.headerRight {grid-column:auto;grid-row:auto;}
+
+/* Custom focus sessions: quiet rainfall, a direct duration picker and a small reward. */
+.card.focusWidget {position:relative;isolation:isolate;min-height:0;background:var(--material-surface);}
+.card.focusWidget > :not(.focusRain) {z-index:1;}
+.focusRain {position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;overflow:hidden;transition:opacity 400ms ease;}
+.focusRain i {position:absolute;top:-30px;left:var(--rain-x);width:1px;height:28px;border-radius:2px;background:linear-gradient(transparent,var(--accent));opacity:.24;animation:focusRainfall 2.6s linear infinite;animation-delay:var(--rain-delay);animation-play-state:paused;}
+.focusRain i:nth-child(6n+1) {--rain-x:10%;--rain-delay:-.8s;}
+.focusRain i:nth-child(6n+2) {--rain-x:27%;--rain-delay:-2s;}
+.focusRain i:nth-child(6n+3) {--rain-x:44%;--rain-delay:-1.3s;}
+.focusRain i:nth-child(6n+4) {--rain-x:61%;--rain-delay:-.3s;}
+.focusRain i:nth-child(6n+5) {--rain-x:78%;--rain-delay:-1.7s;}
+.focusRain i:nth-child(6n) {--rain-x:94%;--rain-delay:-2.4s;}
+.focusRain i:nth-child(n+7) {animation-duration:3.8s;opacity:.12;}
+.focusWidget.running .focusRain {opacity:1;}
+.focusWidget.running .focusRain i {animation-play-state:running;}
+@keyframes focusRainfall {to {transform:translate(-12px,410px);}}
+#focusCustomDialog {width:min(420px,calc(100% - 16px));}
+#focusMinutes {font-size:32px;font-variant-numeric:tabular-nums;}
+.customTimerActions {display:flex;justify-content:flex-end;margin-top:20px;}
+.chatgptHandoff {padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--glass);margin-bottom:16px;}
+.chatgptHandoff a {display:inline-flex;align-items:center;min-height:44px;}
+.chatgptHandoff p {margin-bottom:0;}
+@media(prefers-reduced-motion:reduce) {
+  .focusRain {display:none;}
+  .focusRain i {animation:none;transition:none;}
+}
+
+/* Desktop layout: explicit card areas, natural minimum rows, no overlapping tracks. */
+main {display:flex;flex-direction:column;min-width:1000px;height:100dvh;min-height:760px;padding:20px 28px;}
+.dashboardHeader {height:clamp(120px,16vh,172px);min-height:0;padding:0;margin-bottom:16px;grid-template-columns:1fr auto 1fr;grid-template-rows:1fr;}
+.clock #clock {font-size:clamp(100px,12vh,150px);}
+.dashboard {flex:1;min-height:0;gap:16px;grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:minmax(300px,auto) minmax(260px,1fr);grid-template-areas:"music music music music weather weather weather weather focus focus room room" "agenda agenda agenda agenda agenda news news news news news news news";}
+.dashboard > .card.music {grid-area:music;}
+.dashboard > .card.weather {grid-area:weather;}
+.dashboard > .card.focusWidget {grid-area:focus;min-height:0;}
+.dashboard > .card.room {grid-area:room;}
+.dashboard > .card.agenda {grid-area:agenda;}
+.dashboard > .card.news {grid-area:news;}
+.card.focusWidget .focusDial {width:118px;height:118px;margin:auto;display:grid;place-items:center;background:transparent;border-radius:50%;padding:0;color:var(--text);}
+#focusTime {font-size:32px;}
+.focusCaption {font-size:11px;color:var(--muted);margin:4px 0 10px;}
+.card.focusWidget #focusStart {width:calc(100% - 40px);min-height:46px;margin:0 20px 18px;font-size:14px;}
+#focusCustomDialog .focusPresets {display:flex;gap:8px;margin:16px 0 22px;}
+#focusCustomDialog .focusPresets button {flex:1;min-height:44px;font-size:14px;border:1px solid var(--line);border-radius:12px;background:var(--glass);color:var(--text);}
+#focusCustomDialog .focusPresets button[aria-pressed=true] {border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+@media(max-width:1150px) {
+ main {height:auto;min-height:100dvh;}
+ .dashboard {grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:290px 230px minmax(340px,auto);grid-template-areas:"music weather" "focus room" "agenda news";}
+ .card.focusWidget {display:grid;grid-template-columns:1fr 1fr;grid-template-rows:60px 1fr;align-items:center;}
+ .card.focusWidget .cardHead {grid-column:1/-1;}
+ .card.focusWidget .focusDial {grid-column:1;grid-row:2;}
+ .focusCaption {display:none;}
+ .card.focusWidget #focusStart {grid-column:2;grid-row:2;width:calc(100% - 40px);margin:0 20px;}
+ .room .lamp {width:94px;height:94px;margin:0 auto;}
+ .room .powerButton {max-width:220px;}
+}
+
+/* Reading pass: calm hierarchy, useful labels and less decorative filler. */
+
+.cardHead,.music .cardHead,.weather .cardHead,.card.focusWidget .cardHead,.room .cardHead {padding:20px 24px 0;}
+.cardHead h2,.card.focusWidget .cardHead h2,.room h2 {font-size:16px;font-weight:550;letter-spacing:-.25px;}
+.cardHead .quiet {background:transparent;color:var(--muted);}
+.headerTools svg,.cardHead .quiet svg {width:20px;height:20px;}
+.musicBody {padding:8px 24px;gap:20px;}
+.turntable {flex-basis:132px;height:132px;}
+.track h2 {font-size:clamp(20px,1.6vw,28px);line-height:1.3;}
+.trackMeta {gap:8px;align-items:center;}
+.trackMeta #artist {flex-basis:auto;font-size:12px;}
+.timecodes {font-size:11px;margin-top:7px;}
+.music .cardFoot {padding:0 14px 12px;}
+.weatherBody {padding:8px 20px;grid-template-columns:100px minmax(0,1fr);column-gap:16px;min-height:84px;}
+.temperature {font-size:64px;}
+.weather #location {font-size:12px;}
+.weather #weatherDetail {font-size:12px;}
+.weatherStats {font-size:11px;padding:0 20px 8px;}
+.miniForecast {padding:0 16px 4px;gap:4px;}
+.miniDay {min-height:76px;padding:7px 3px;gap:4px 2px;}
+.miniDay .forecastWeekday {grid-column:1/-1;text-align:center;font-size:11px;font-weight:500;color:var(--text);}
+.miniDay strong {font-size:13px;}
+.miniDay small {font-size:11px;}
+.weather .cardFoot {padding:0 12px 6px;}
+.room .lamp {height:108px;width:106px;margin:auto;}
+.room .powerButton {margin:8px 18px 0;width:calc(100% - 36px);font-size:13px;}
+.room .textButton {margin:0 0 12px;}
+.card.focusWidget .focusDial {width:126px;height:126px;}
+.card.focusWidget #focusTime {font-size:34px;letter-spacing:-1.5px;}
+.agenda .cardHead,.news .cardHead {padding:20px 24px 14px;}
+.calendarDays {padding:0 20px 14px;gap:5px;}
+.dayChip {border:1px solid transparent;border-radius:10px;min-height:44px;}
+.dayChip[aria-pressed=true] {border-color:var(--accent);background:var(--accent-soft);}
+.dayChip span {font-size:11px;}
+.dayChip strong {font-size:15px;}
+.events {padding:0 20px;}
+.event {gap:20px;padding:16px 0;}
+.eventInfo h3 {font-size:15px;line-height:1.45;}
+.eventInfo p {font-size:12px;}
+.articles {grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));padding:0 20px 20px;gap:12px;}
+.article {min-height:136px;border-radius:16px;background:var(--glass);}
+.articleMedia.noImage {display:none;}
+.article:has(.articleMedia.noImage) {grid-template-columns:1fr;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;}
+.articleCopy {padding:18px 12px;}
+.article h3 {font-size:17px;font-weight:500;line-height:1.5;letter-spacing:-.25px;margin:8px 0 12px;}
+.article .source {font-size:10px;letter-spacing:1px;}
+.article time {font-size:12px;}
+.article:hover:not(:disabled) {background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 35%,transparent);}
+.agenda .cardFoot,.news .cardFoot {padding:0 12px;min-height:46px;}
+@media(max-width:1150px) {
+ .dashboard {grid-template-rows:310px 220px minmax(340px,auto);}
+ .room .lamp {height:78px;width:82px;margin:0 auto;}
+ .room .powerButton {margin-top:0;}
+ .room .textButton {margin-bottom:0;}
+ .card.focusWidget .focusDial {width:124px;height:124px;}
+}
+
+/* Capture pass: writing comes first, secondary tools stay quiet. */
+#captureDialog {width:min(960px,calc(100vw - 64px));max-height:calc(100dvh - 48px);}
+#captureDialog .dialogTop {margin-bottom:22px;}
+#captureTypes {display:flex;gap:4px;width:max-content;max-width:100%;padding:4px;margin:0 0 20px;background:var(--bg);border:1px solid var(--line);border-radius:15px;}
+#captureTypes button {min-width:106px;min-height:44px;padding:10px 18px;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--muted);font-size:14px;}
+#captureTypes button[aria-pressed=true] {background:var(--surface-raised);color:var(--text);border-color:var(--line);box-shadow:0 2px 8px var(--shadow);}
+#captureText {min-height:140px;height:clamp(140px,21vh,220px);max-height:320px;resize:vertical;font-size:24px;line-height:1.6;padding:20px 22px;border-radius:18px;border-color:var(--line);background:color-mix(in srgb,var(--bg) 70%,var(--surface));}
+#captureText::placeholder {color:var(--muted);opacity:.7;}
+.captureToolbar {margin-top:14px;gap:8px;}
+.captureToolbar .smallButton {padding:10px 14px;font-size:13px;background:transparent;border-color:var(--line);border-radius:12px;}
+#captureKeyboardToggle {margin-left:auto;}
+#captureVoiceState {font-size:12px;margin:8px 0 0;}
+.captureKeyboard {margin:18px 0 12px;gap:7px;padding:16px;background:var(--bg);border:1px solid var(--line);border-radius:20px;}
+.keyRow {gap:7px;}
+.touchKey {min-height:52px;max-width:none;padding:10px 4px;border-radius:9px;font-size:19px;box-shadow:0 2px 0 var(--shadow);background:var(--surface-raised);}
+.touchKey.modifier {font-size:14px;max-width:132px;}
+.touchKey.spaceKey {font-size:14px;max-width:410px;}
+.captureSaveBar {margin-top:20px;align-items:center;padding-top:16px;padding-bottom:16px;}
+.captureDraftState {font-size:13px;color:var(--muted);line-height:1.5;}
+.captureSaveBar .captureHint {font-size:11px;line-height:1.5;margin-top:3px;}
+#captureMessage:empty {display:none;}
+#captureMessage:not(:empty) {margin-bottom:6px;}
+#captureSave {min-height:50px;min-width:130px;font-size:16px;border-radius:14px;}
+#captureDueLabel {font-size:13px;max-width:380px;margin-bottom:0;}
+#inboxDialog {width:min(1000px,calc(100vw - 64px));}
+.inboxToolbar {justify-content:space-between;gap:16px;margin-bottom:20px;}
+.inboxUtilities {display:flex;gap:8px;align-items:center;}
+.inboxUtilities .smallButton {min-height:44px;display:inline-flex;align-items:center;font-size:13px;background:transparent;}
+.inboxControls {position:sticky;top:52px;z-index:2;background:var(--surface);padding:0 0 14px;border-bottom:1px solid var(--line);}
+.captureSearchField {position:relative;}
+#captureSearch {margin:0;padding:14px 52px 14px 16px;border-radius:13px;font-size:16px;}
+#captureSearch::-webkit-search-cancel-button {display:none;}
+#captureSearchClear {position:absolute;right:4px;top:3px;background:transparent;color:var(--muted);font-size:18px;}
+#inboxFilters {gap:4px;margin:14px 0 0;}
+#inboxFilters button {padding:8px 14px;font-size:13px;background:transparent;border-color:transparent;color:var(--muted);}
+#inboxFilters button[aria-pressed=true] {background:var(--accent-soft);color:var(--accent);border-color:var(--line);}
+#inboxStatus:empty {display:none;}
+.captureItems {gap:10px;margin-top:18px;}
+.captureItem {padding:20px;border-radius:20px;}
+.captureItem.hasTaskToggle {display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;}
+.captureTaskToggle {width:44px;height:44px;margin-top:20px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--accent);font-size:22px;}
+.captureTaskToggle[aria-pressed=true] {background:var(--accent-soft);border-color:var(--accent);}
+.captureItemMeta {font-size:12px;color:var(--muted);line-height:1.6;}
+.captureCopy {font-size:19px;line-height:1.65;margin:8px 0 12px;}
+.captureActions {gap:4px;border-top:1px solid var(--line);padding-top:8px;}
+.captureActions .smallButton {border:0;background:transparent;font-size:12px;color:var(--muted);padding:8px 12px;}
+.captureActions .smallButton:first-child {padding-left:0;min-width:44px;}
+.captureStorageDetails {border-top:1px solid var(--line);padding:16px 0 0;margin-top:22px;color:var(--muted);font-size:12px;line-height:1.6;}
+.captureStorageDetails summary {cursor:pointer;min-height:44px;display:list-item;padding:12px 0;}
+.captureStorageDetails summary:focus-visible {outline:2px solid var(--accent);outline-offset:3px;}
+@media(max-height:800px) {
+ #captureText {height:140px;min-height:140px;}
+ #captureDialog .dialogTop {margin-bottom:16px;}
+ #captureTypes {margin-bottom:14px;}
+ .captureKeyboard {padding:12px;margin-top:12px;gap:5px;}
+ .touchKey {min-height:48px;padding:8px 4px;}
+ .captureSaveBar {margin-top:12px;}
+}
+
+.appearanceFont {max-width:300px;margin-top:20px;}
+.appearanceFont label {margin-bottom:10px;}
+#focusCustomDialog .dialogTop h2 {font-size:23px;}
+#plugToggle:not(:disabled) {color:var(--accent);background:var(--accent-soft);}
+@media(hover:hover) {
+ .captureActions .smallButton:hover {color:var(--text);background:var(--glass);}
+ .captureTaskToggle:hover {border-color:var(--accent);background:var(--accent-soft);}
+}
+.room:has(#plugSettings[hidden]) .powerButton {margin-bottom:18px;}
+
+/* A restrained surface hierarchy: reading content and controls, rather than nested tiles. */
+.music {background:linear-gradient(135deg,color-mix(in srgb,var(--surface-raised) 78%,transparent),color-mix(in srgb,var(--surface-end) 82%,transparent));}
+.headerTools .quiet {background:transparent;border-radius:12px;color:var(--muted);}
+.captureNav .smallButton {background:transparent;}
+.captureNav .primary {box-shadow:none;}
+.transport .play {width:46px;height:46px;}
+.cardHead .quiet:hover {color:var(--text);}
+
+/* Shared materials retain contrast in light palettes and transparency preferences. */
+:root:is([data-theme=light],[data-theme=sand]) {
+ --material-highlight:rgba(255,255,255,.8);
+ --material-stroke:color-mix(in srgb,var(--text) 6%,transparent);
+ --material-shadow:inset 0 1px 0 var(--material-highlight),0 2px 8px rgba(31,45,60,.035),0 18px 48px rgba(31,45,60,.075);
+}
+.captureItem,.spaceWidgetEdit {border-color:var(--material-stroke);box-shadow:inset 0 1px 0 var(--material-highlight);}
+.weather .sky {opacity:.92;}
+@media(prefers-reduced-transparency:reduce) {
+ :root {--material-filter:none;--material-surface:var(--surface);}
+ .music {background:var(--surface);}
+}
+@media(prefers-contrast:more) {
+ :root {--material-stroke:color-mix(in srgb,var(--text) 25%,transparent);--material-surface:var(--surface);}
+}
