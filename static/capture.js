@@ -8,6 +8,7 @@
   let shift = false, symbols = false, keyboard = true, saving = false, draftQueue = Promise.resolve();
   let recognition = null, voiceSession = 0, voiceFailed = false, voiceBusy = false;
   let voiceInstallReady = false, skipCloseDraft = false, draftRevision = 0;
+  let recordsRevision = 0, loadedRevision = -1, recordsRead = null;
   const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel('midnight-capture') : null;
   const message = value => { byId('captureMessage').textContent = value; };
   const voiceState = value => { byId('captureVoiceState').textContent = value; };
@@ -30,12 +31,32 @@
     draftQueue.then(()=>{ if (revision===draftRevision) byId('captureDraftState').textContent=draft.text ? 'Draft saved in this browser' : 'Stored in this browser'; }).catch(fail);
     return draftQueue;
   }
-  async function refresh() {
-    records=await store.all();
-    records.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
-    const savedCount=records.filter(r=>!r.archived&&!r.done).length;byId('captureCount').textContent=String(savedCount);byId('inboxOpen').title='Inbox · '+savedCount+' saved item'+(savedCount===1?'':'s');byId('inboxOpen').setAttribute('aria-label','Inbox, '+savedCount+' saved item'+(savedCount===1?'':'s'));
+  function readRecords() {
+    if (loadedRevision===recordsRevision) return Promise.resolve(records);
+    if (!recordsRead) recordsRead=(async()=>{
+      // A committed edit arriving during a read requires a fresh snapshot.
+      while (loadedRevision!==recordsRevision) {
+        const revision=recordsRevision,next=await store.all();
+        if (revision!==recordsRevision) continue;
+        records=next.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));loadedRevision=revision;
+      }
+      return records;
+    })().finally(()=>{recordsRead=null;});
+    return recordsRead.then(()=>loadedRevision===recordsRevision ? records : readRecords());
+  }
+  let reminderSignature='';
+  function refreshReminders(render=true) {
     const due=records.filter(r=>!r.archived&&!r.done&&r.kind==='reminder'&&r.dueAt&&Date.parse(r.dueAt)<=Date.now());
-    MidnightNotifications.reminders(due,openReminders);
+    const signature=JSON.stringify(due.map(r=>[r.id,r.text,r.dueAt]));
+    if (signature===reminderSignature) return;
+    reminderSignature=signature;MidnightNotifications.reminders(due,openReminders);
+    if (render&&inbox.open) renderInbox();
+  }
+  async function refresh() {
+    recordsRevision++;
+    await readRecords();
+    const savedCount=records.filter(r=>!r.archived&&!r.done).length;byId('captureCount').textContent=String(savedCount);byId('inboxOpen').title='Inbox · '+savedCount+' saved item'+(savedCount===1?'':'s');byId('inboxOpen').setAttribute('aria-label','Inbox, '+savedCount+' saved item'+(savedCount===1?'':'s'));
+    refreshReminders(false);
     if (inbox.open) renderInbox();
     window.dispatchEvent(new Event('midnight:captures'));
   }
@@ -248,6 +269,7 @@
   dialog.addEventListener('close',()=>{stopVoice(true); if (skipCloseDraft) {skipCloseDraft=false;return;} if (!saving) keepDraft();});
   document.addEventListener('visibilitychange',()=>{ if (document.hidden) stopVoice(true); else refresh().catch(()=>{}); });
   window.addEventListener('pagehide',()=>stopVoice(true));
+  window.addEventListener('midnight:captures-invalidated',()=>{recordsRevision++;});
   byId('captureTypes').onclick=e=>{ const b=e.target.closest('[data-kind]'); if (b&&!saving) {setKind(b.dataset.kind);keepDraft();} };
   text.oninput=()=>{message('');keepDraft();suggestCapture();}; byId('captureDue').oninput=keepDraft;
   let keyboardPreference='auto';
@@ -270,7 +292,7 @@
   function suggestCapture(){proposal=MidnightCommandCore.parseCapture(text.value);const visible=proposal&&(proposal.kind!==kind||proposal.due&&!byId('captureDue').value);byId('captureProposal').hidden=!visible;if(visible)byId('captureProposalText').textContent='Suggested: '+proposal.kind+(proposal.due?' · '+new Date(proposal.due).toLocaleString():proposal.needsDate?' · choose a date':'')+'. Review before saving.';}
   byId('captureProposalApply').onclick=()=>{if(!proposal)return;setKind(proposal.kind);if(proposal.due)byId('captureDue').value=proposal.due;keepDraft();byId('captureProposal').hidden=true;};
   window.addEventListener('midnight:captureopen',()=>{byId('captureProposal').hidden=true;applyKeyboard();});
-  window.MidnightCapture={title:()=>editing?'Edit capture':'Quick Capture',open:openCapture,openInbox,edit:openCapture,update,all:async()=>{await store.ready;return store.all();},ready:()=>store.ready,flush:()=>draftQueue,stopVoice:()=>stopVoice(true),applyKeyboard,isSaving:()=>saving};
+  window.MidnightCapture={title:()=>editing?'Edit capture':'Quick Capture',open:openCapture,openInbox,edit:openCapture,update,all:async()=>{await store.ready;return (await readRecords()).map(item=>({...item}));},ready:()=>store.ready,flush:()=>draftQueue,stopVoice:()=>stopVoice(true),applyKeyboard,isSaving:()=>saving};
   byId('captureMic').onclick=dictate; byId('captureVoiceInstall').onclick=installVoice;
   byId('captureForm').onsubmit=save;
   byId('inboxFilters').onclick=e=>{const b=e.target.closest('[data-filter]');if (b) {filter=b.dataset.filter;byId('inboxFilters').querySelectorAll('button').forEach(el=>el.setAttribute('aria-pressed',String(el===b)));renderInbox();}};
@@ -286,6 +308,6 @@
     store=new MidnightCaptureStore();
     store.ready.then(refresh).catch(e=>{byId('inboxStatus').textContent='Local storage unavailable. '+e.message;});
     if (channel) channel.onmessage=()=>refresh().catch(()=>{});
-    setInterval(()=>refresh().catch(()=>{}),30000);
+    setInterval(()=>{if(document.hidden)return;if(channel)refreshReminders();else refresh().catch(()=>{});},30000);
   } catch(e) { byId('inboxStatus').textContent='Local storage unavailable. '+e.message; }
 })();

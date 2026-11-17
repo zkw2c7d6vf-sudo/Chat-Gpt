@@ -47,6 +47,18 @@ def test_offline_worker_is_served_at_root(client):
     assert 'midnight-shell-' in response.text
 
 
+def test_static_assets_revalidate_while_html_and_private_responses_stay_uncached(client):
+    asset = client.get('/static/app.js')
+    assert asset.headers['cache-control'] == 'no-cache'
+    reused = client.get('/static/app.js', headers={'If-None-Match': asset.headers['etag']})
+    assert reused.status_code == 304
+    assert reused.content == b''
+    assert reused.headers['cache-control'] == 'no-cache'
+    assert 'frame-ancestors' in reused.headers['content-security-policy']
+    for path in ['/', '/app', '/static/index.html', '/sw.js', '/api/bootstrap', '/api/settings', '/static/missing.js']:
+        assert client.get(path).headers['cache-control'] == 'no-store'
+
+
 def test_mutations_need_csrf(client):
     assert client.post('/api/plug',json={'on':True}).status_code==403
     assert client.post('/api/spotify/connect').status_code==403
