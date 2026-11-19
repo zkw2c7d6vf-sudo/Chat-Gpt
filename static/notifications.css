@@ -15,6 +15,7 @@ main:has(.spaceLayout) {
  box-shadow:none;box-sizing:border-box;
 }
 #notificationDock::backdrop,#notificationPanel::backdrop {background:transparent;pointer-events:none;backdrop-filter:none;}
+#notificationDock[hidden],body:has(dialog[open]) #notificationDock,body:has(dialog[open]) #notificationPanel {display:none!important;}
 .notificationToggle {display:flex;align-items:center;gap:9px;min-height:44px;padding:8px 10px;border-radius:10px;background:transparent;color:var(--muted);font-size:13px;white-space:nowrap;flex-shrink:0;}
 .notificationToggle[aria-expanded=true] {background:var(--glass);color:var(--text);}
 .notificationToggle>.lineIcon {width:17px;height:17px;}
@@ -56,9 +57,6 @@ main:has(.spaceLayout) {
 .notificationEmpty {padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;}
 .notificationPanelFooter {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 20px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;}
 .notificationPanelFooter .textButton {font-size:12px;}
-/* Dialogs use the same available viewport; the dock cannot cover their actions. */
-dialog:modal {position:fixed;inset:0 0 calc(var(--notification-dock-height) + env(safe-area-inset-bottom));margin:auto;max-height:calc(100dvh - var(--notification-dock-height) - 48px);}
-#captureDialog:modal,#inboxDialog:modal,#readerDialog:modal,#settingsDialog:modal,#weatherDialog:modal,#spaceEditorDialog:modal,#calendarBrowserDialog:modal {max-height:calc(100dvh - var(--notification-dock-height) - 48px);}
 @media(prefers-reduced-motion:no-preference) {
  .notificationLatest[data-notification-kind=focus] #notificationLatestIcon {animation:dockComplete 600ms ease-out;}
  @keyframes dockComplete {0%{transform:scale(.7);opacity:.3;}60%{transform:scale(1.15);}100%{transform:scale(1);opacity:1;}}

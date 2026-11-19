@@ -16,7 +16,7 @@ test('weather indexes are isolated by timezone and forecast snapshot, including 
 function appContext(overrides={}) {
   const source=fs.readFileSync(require.resolve('../static/app.js'),'utf8').replace(/\ninit\(\);\s*$/,'');
   const context=vm.createContext({Intl,Date,Map,URL,JSON,Math,Number,Promise,encodeURIComponent,
-    localStorage:{getItem:()=>null},MidnightFocus:require('../static/focus.js'),...overrides});
+    AbortController,setTimeout,clearTimeout,localStorage:{getItem:()=>null},MidnightFocus:require('../static/focus.js'),...overrides});
   vm.runInContext(source,context);return context;
 }
 test('identical GETs share only in-flight work; mutations remain distinct and failures can retry',async()=>{

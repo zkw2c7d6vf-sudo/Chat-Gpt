@@ -1,0 +1,26 @@
+/* Static glass: no backdrop sampling, new animation loops, or promoted layers. */
+:root[data-effects=efficient]{
+ --material-surface:linear-gradient(155deg,#ffffff18 0%,#ffffff04 36%,#ffffff00 58%,#b9ccff09 100%),#252830eb;
+ --material-stroke:#e5edff38;
+ --material-highlight:#ffffff40;
+ --material-shadow:inset 0 1px 0 #ffffff36,inset 1px 0 0 #ffffff0d,inset 0 -1px 0 #aabde51a,0 8px 22px #00000026;
+}
+:root[data-effects=efficient][data-theme=light]:not([data-scene]){
+ --material-surface:linear-gradient(155deg,#ffffffbf,#ffffff24 42%,#dbe4f018),#eeedf0ed;
+ --material-stroke:#ffffffc9;--material-highlight:#ffffff;
+ --material-shadow:inset 0 1px 0 #fff,inset 1px 0 0 #ffffff88,inset 0 -1px 0 #7c879722,0 8px 22px #252b3814;
+}
+:root[data-effects=efficient] :is(.homeWidgets>.card,.bottomDock,.googleSearch,dialog,#notificationPanel){background:var(--material-surface);border-color:var(--material-stroke);box-shadow:var(--material-shadow)}
+:root[data-effects=efficient] .bottomDock button:hover{background:linear-gradient(150deg,#ffffff19,#ffffff06);box-shadow:inset 0 1px 0 #ffffff20}
+/* Keep the arm in the record's coordinate system at every desktop size.
+   Explicit paint rules prevent generic icon styling from filling the arm. */
+.music .turntable{aspect-ratio:1;flex-shrink:0;overflow:visible}
+.music .turntable svg.tonearm{width:100%;height:100%;inset:0;fill:none;overflow:visible;filter:none;transform:none}
+.music .tonearm path{fill:none;stroke:#d7dee9;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:none}
+.music .tonearm .armShadow{stroke:#10151e;stroke-width:7}
+.music .tonearm .armHighlight{stroke:#ffffff;stroke-width:1;opacity:.7}
+.music .tonearm circle{fill:#8793a6;stroke:#d7dee9;stroke-width:2}
+.music .tonearm .pivotCenter{fill:#303a4a;stroke:#c4ccda;stroke-width:1.5}
+.music .tonearm .cartridge{fill:#c3cddb;stroke:#384355;stroke-width:1.5;stroke-linejoin:round}
+@media(prefers-contrast:more){:root[data-effects=efficient]{--material-surface:var(--surface);--material-stroke:var(--text)}}
+@media(prefers-reduced-transparency:reduce){:root[data-effects=efficient]{--material-surface:var(--surface)}}

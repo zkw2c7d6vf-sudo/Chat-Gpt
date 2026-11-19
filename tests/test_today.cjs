@@ -16,5 +16,9 @@ test('existing backups preserve planning fields and ignore unknown properties',(
  assert.equal(b.items[0].plannedFor,'2026-11-17');assert.equal(b.items[0].secret,undefined);assert.equal(b.draft.text,'Draft');
 });
 test('invalid backups and duplicate IDs are rejected before any write',()=>{
- for(const bad of [{},{format:'midnight-capture',version:2,items:[]},{format:'midnight-capture',version:1,items:[task('a'),task('a')]},{format:'midnight-capture',version:1,items:[task('a',{dueAt:'bad'})]},{format:'midnight-capture',version:1,items:[task('a',{text:'a'.repeat(20001)})]},{format:'midnight-capture',version:1,items:[],draft:{text:'bad',kind:'bogus',due:''}}])assert.throws(()=>validateBackup(bad));
+ for(const bad of [{},{format:'midnight-capture',version:3,items:[]},{format:'midnight-capture',version:1,items:[task('a'),task('a')]},{format:'midnight-capture',version:1,items:[task('a',{dueAt:'bad'})]},{format:'midnight-capture',version:1,items:[task('a',{text:'a'.repeat(20001)})]},{format:'midnight-capture',version:1,items:[],draft:{text:'bad',kind:'bogus',due:''}}])assert.throws(()=>validateBackup(bad));
 });
+test('version 2 restores edited drafts and collections beyond the old 10,000 record limit',()=>{
+ const items=Array.from({length:10001},(_,i)=>task('t'+i));const result=validateBackup({format:'midnight-capture',version:2,items,drafts:[{id:'t0',text:'Unfinished edit',kind:'task',due:'',updatedAt:stamp},{id:'new',text:'New draft',kind:'note',due:'',updatedAt:stamp}]});assert.equal(result.items.length,10001);assert.equal(result.drafts.length,2);assert.equal(result.drafts[0].id,'t0');
+});
+test('pinning a due task preserves the total due count',()=>{const item=task('due',{dueAt:new Date(2026,10,16).toISOString()});assert.equal(plan([item],now).dueTotal,1);const p=plan([{...item,plannedFor:'2026-11-17'}],now);assert.equal(p.due.length,0);assert.equal(p.dueTotal,1);});

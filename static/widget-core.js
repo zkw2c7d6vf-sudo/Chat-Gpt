@@ -14,17 +14,20 @@
   return (live?'Ends in ':'In ')+text;
  }
  function agenda(events,now=Date.now(),tz='UTC'){
-  const unique=[...new Map(events.map(e=>[e.title+'|'+e.start+'|'+e.end,e])).values()].filter(e=>Number.isFinite(Date.parse(e.start))&&Number.isFinite(Date.parse(e.end))&&Date.parse(e.end)>now).sort((a,b)=>Date.parse(a.start)-Date.parse(b.start));
+  const unique=[...new Map(events.map(e=>[e.id||e.uid+'|'+e.start+'|'+e.end+'|'+e.title+'|'+(e.location||''),e])).values()].filter(e=>Number.isFinite(Date.parse(e.start))&&Number.isFinite(Date.parse(e.end))&&Date.parse(e.end)>now).sort((a,b)=>Date.parse(a.start)-Date.parse(b.start));
   const today=dateKey(now,tz),current=unique.find(e=>!e.all_day&&Date.parse(e.start)<=now)||unique.find(e=>!e.all_day&&dateKey(e.start,tz)===today)||unique.find(e=>e.all_day&&dateKey(e.start,tz)<=today)||unique[0];
-  const following=unique.find(e=>e!==current&&Date.parse(e.start)>=Date.parse(current?.start));
-  return {current,following,todayCount:unique.filter(e=>dateKey(e.start,tz)===today||Date.parse(e.start)<=now).length,label:current?relative(current,now,tz):'',live:!!current&&!current.all_day&&Date.parse(current.start)<=now};
+  const upcoming=unique.filter(e=>e!==current&&Date.parse(e.start)>=Math.max(now,Date.parse(current?.start))).slice(0,2);
+  const following=upcoming[0];
+  return {current,following,upcoming,todayCount:unique.filter(e=>dateKey(e.start,tz)===today||Date.parse(e.start)<=now).length,label:current?relative(current,now,tz):'',live:!!current&&!current.all_day&&Date.parse(current.start)<=now};
  }
  function outlook(data,now=Date.now(),tz='UTC'){
   const hourly=data?.hourly||{},times=hourly.time||[],limit=now+12*3600000;
   const indexes=times.map((value,i)=>({i,ms:typeof value==='number'?value*1000:Date.parse(value)})).filter(row=>row.ms>=now-30*60000&&row.ms<=limit);
   const rain=indexes.find(row=>Number.isFinite(hourly.precipitation_probability?.[row.i])&&hourly.precipitation_probability[row.i]>=40);
   if(rain)return 'Rain chance '+Math.round(hourly.precipitation_probability[rain.i])+'% · '+time(rain.ms,tz);
-  if(indexes.some(row=>Number.isFinite(hourly.precipitation_probability?.[row.i])))return 'Low rain chance for the next 12 hours';
+  const covered=indexes.filter(row=>Number.isFinite(hourly.precipitation_probability?.[row.i]));
+  if(covered.length>=12&&covered[0].ms<=now+3600000&&covered.at(-1).ms>=limit-3600000&&covered.every((row,i)=>!i||row.ms-covered[i-1].ms<=3600000))return 'Low rain chance for the next 12 hours';
+  if(covered.length)return 'Low rain chance in available hours · 12-hour coverage incomplete';
   return '';
  }
  const api={agenda,relative,outlook,dateKey,time};root.MidnightWidgetCore=api;if(typeof module!=='undefined')module.exports=api;

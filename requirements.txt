@@ -8,3 +8,8 @@ recurring-ical-events==3.8.0
 tzdata==2025.2
 pytest==8.4.2
 trafilatura==2.0.0
+Pillow==13.0.0
+pillow-heif==1.8.1
+pypdfium2==5.15.2
+reportlab==5.1.0
+imageio-ffmpeg==0.8.1

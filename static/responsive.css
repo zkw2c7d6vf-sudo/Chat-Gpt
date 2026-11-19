@@ -1,0 +1,20 @@
+/* Efficient is the default; full glass remains an optional appearance setting. */
+:root[data-effects=efficient]{--material-filter:none;--material-surface:linear-gradient(135deg,#ffffff09,#ffffff02),#292c32f5}
+:root[data-effects=efficient][data-theme=light]:not([data-scene]){--material-surface:linear-gradient(135deg,#ffffff80,#ffffff18),#eeedecf5}
+:root[data-effects=efficient] *,:root[data-effects=efficient] *::before,:root[data-effects=efficient] *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+:root[data-effects=efficient] dialog::backdrop{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:#08090db0}
+:root[data-effects=efficient] .clockHero,:root[data-effects=efficient] .liveBackdrop video{filter:none}
+:root[data-effects=efficient] .disc.playing,:root[data-effects=efficient] .ambientCloud,:root[data-effects=efficient] .rainGlass,:root[data-effects=efficient] .treeLights,:root[data-effects=efficient] .treeLights g,:root[data-effects=efficient] body::before{animation:none!important}
+:root[data-effects=efficient] .homeWidgets>.card,:root[data-effects=efficient] .bottomDock{background:var(--material-surface)}
+:root[data-page-visibility=hidden] *,:root[data-page-visibility=hidden] *::before,:root[data-page-visibility=hidden] *::after{animation-play-state:paused!important}
+:root[data-wallpaper-motion=off] .rainGlass{animation:none;display:none}
+.googleSearch{display:flex;align-items:center;gap:12px;width:min(640px,100%);margin:-12px auto 28px;padding:4px 6px 4px 18px;border:1px solid var(--material-stroke);border-radius:20px;background:var(--material-surface);box-shadow:inset 0 1px 0 var(--material-highlight)}
+.googleSearch>svg{width:20px;height:20px;flex-shrink:0;color:var(--muted)}
+.googleSearch input[type=search]{flex:1;min-width:0;width:auto;min-height:48px;border:0;margin:0;padding:10px 0;background:transparent!important;color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:none}
+.googleSearch input::placeholder{color:var(--muted);opacity:1}
+.googleSearch:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+.googleSearch input:focus-visible{outline:none}
+.googleSearch button{flex-shrink:0;min-width:48px;min-height:48px;padding:12px;border-radius:15px;background:var(--glass);color:var(--text);display:grid;place-items:center}
+.googleSearch button svg{width:20px;height:20px}
+.effectSetting{max-width:440px}.effectSetting select{min-height:48px}#effectsStatus:empty{display:none}
+@media(max-height:850px){.clockHero{height:clamp(210px,32vh,300px)}.googleSearch{margin:-4px auto 22px}}

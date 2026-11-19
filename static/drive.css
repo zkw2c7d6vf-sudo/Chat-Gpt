@@ -1,0 +1,163 @@
+#driveDialog {width: min(560px, calc(100vw - 36px))}
+#driveDialog .dialogTop {display: flex; align-items: center; justify-content: space-between}
+#driveClose, #driveRefresh, #driveDisconnect {min-height: 44px; min-width: 44px}
+#driveClose svg {width: 20px; height: 20px}
+#driveRecent a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--text);
+}
+#driveRecent a:hover {background: var(--accent-soft)}
+.driveRecentHead {display: flex; align-items: center; justify-content: space-between}
+#driveDialog p {color: var(--muted); line-height: 1.55}
+#driveDialog p:empty, #driveRecent:empty {display: none}
+#driveRecent {list-style: none; margin: 0 0 8px; padding: 0}
+#driveRecent a {justify-content: space-between; border-top: 1px solid var(--line); padding: 0 8px}
+#driveRecent a span {overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+#driveRecent small {flex: none; color: var(--muted)}
+#driveSetup summary {cursor: pointer; min-height: 44px; padding: 12px 0}
+#driveSetup code {overflow-wrap: anywhere}
+#driveConnect {display: grid; gap: 6px}
+#driveConnect input {min-width: 0; min-height: 44px}
+
+#home > .homeSearchRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+  width: min(100%, 680px);
+  margin: var(--clock-to-search) auto var(--search-to-cards);
+}
+#home .homeSearchRow > #googleSearch {
+  grid-column: 1 / -1;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  background: var(--home-glass);
+}
+.driveHome {display: grid; min-width: 0}
+#driveTiles {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 6px;
+}
+#driveTiles a, #driveTilesConnect, #home .quickCreate #createToggle, .quickCreate .createOption {
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 1px solid var(--material-stroke);
+  border-radius: var(--home-pill);
+  background: var(--home-glass);
+  color: var(--text);
+}
+#driveTiles a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+#driveTiles a:hover, #driveTilesConnect:hover {border-color: var(--accent)}
+#driveTiles .driveFileName {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.25;
+}
+#driveTiles .lineIcon {width: 18px; height: 18px; flex: none; color: var(--accent)}
+#driveTiles[hidden], #driveTilesConnect[hidden] {display: none}
+#driveTilesConnect {justify-self: start; font-size: 12px}
+#driveTilesConnect:disabled {opacity: 1; cursor: default}
+
+.quickCreate {align-self: center; position: relative; z-index: 5}
+#home .quickCreate #createToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+#createToggle svg {width: 16px; height: 16px; transition: transform 260ms ease}
+.quickCreate.isOpen #createToggle svg {transform: rotate(45deg)}
+/* Keep the shortcuts on the New row, clear of the search form above it. */
+.createActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.createActions[inert] {display: none}
+.quickCreate {display: flex; align-items: center; gap: 8px}
+.quickCreate .createOption {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 88px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+.createOption > * {grid-area: 1 / 1}
+.createOption img {width: 23px; height: 23px; object-fit: contain}
+.createOption img[hidden], .createOption span[hidden] {display: none}
+.quickCreate .createOption:hover, #home .quickCreate #createToggle:hover {border-color: var(--accent)}
+
+#home .quickCreate :is(#createToggle,.createOption):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  #createToggle svg {transition: none}
+}
+
+/* Compact, readable management and recovery states. */
+#driveDialog {box-sizing:border-box;max-height:calc(100dvh - 48px);overflow-y:auto;padding:24px;font-size:14px;line-height:1.5}
+#driveDialog .dialogTop {gap:16px;margin-bottom:20px}
+#driveDialog #driveTitle {font-size:20px;font-weight:550;letter-spacing:-.4px}
+#driveDialog h3 {margin:0;font-size:14px;font-weight:550}
+#driveDialog p {margin:12px 0;font-size:13px;overflow-wrap:anywhere}
+#driveDialog :is(button,input,summary) {font:inherit}
+#driveDialog :is(button,summary) {min-height:44px}
+#driveDialog .quiet {background:transparent;color:var(--muted);padding:8px 12px;border-radius:12px;font-size:13px}
+#driveDialog .quiet:hover {background:var(--glass);color:var(--text)}
+#driveDialog .driveRecentHead {gap:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+#driveDialog #driveStatus {margin:16px 0 8px}
+#driveDialog[data-state=error] #driveStatus {font-weight:550;color:var(--text)}
+#driveDialog #driveRecovery {margin-top:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--glass)}
+#driveDialog #driveSetup {margin-top:16px;border-top:1px solid var(--line)}
+#driveDialog #driveSetup summary {font-size:14px;font-weight:500}
+#driveDialog #driveSetup code {display:block;white-space:normal;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:12px;background:var(--glass)}
+#driveDialog #driveConnect {gap:8px;margin:18px 0 8px}
+#driveDialog #driveConnect label {font-size:12px;color:var(--muted)}
+#driveDialog #driveConnect input {box-sizing:border-box;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--glass);color:var(--text);margin:0 0 8px}
+#driveDialog #driveConnectSubmit {margin-top:6px;min-height:44px;border-radius:12px;font-size:14px}
+#driveDialog #driveRecent a {gap:16px;font-size:14px;border-radius:10px;padding:10px 8px}
+#driveDialog #driveRecent small {font-size:11px}
+#driveDialog #driveDisconnect {margin-top:16px;border:1px solid var(--line)}
+#driveDialog :is(button,input,summary,a):focus-visible {outline:2px solid var(--accent);outline-offset:3px}
+
+/* Animate the whole shortcut row; inert closes keyboard access immediately. */
+.quickCreate .createActions {display:flex;opacity:0;transform:translateX(12px) scale(.94);transform-origin:right center;pointer-events:none;transition:opacity 180ms ease,transform 240ms cubic-bezier(.2,.8,.2,1)}
+.quickCreate.isOpen .createActions {opacity:1;transform:translateX(0) scale(1);pointer-events:auto}
+.quickCreate .createOption {transition:transform 180ms ease,background 180ms ease}
+.quickCreate .createOption:hover {transform:translateY(-3px)}
+@media (min-width:0px) {
+ .quickCreate .createActions {position:absolute;inset-inline-start:0;inset-inline-end:auto;top:calc(100% + 8px);padding:6px;border:1px solid var(--material-stroke);border-radius:18px;background:var(--material-surface);box-shadow:var(--material-shadow);transform:translateY(-6px) scale(.96);transform-origin:top left}
+ .quickCreate.isOpen .createActions {transform:translateY(0) scale(1)}
+}
+@media (prefers-reduced-motion:reduce) {
+ .quickCreate .createActions,.quickCreate .createOption {transition:none}
+ .quickCreate .createOption:hover {transform:none}
+}
+#driveDialog :is(#driveRefresh,#driveDisconnect) {width:auto;white-space:nowrap;flex-shrink:0}
+#driveDialog #driveConnect label {margin:0}

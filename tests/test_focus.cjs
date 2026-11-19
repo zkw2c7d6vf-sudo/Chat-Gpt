@@ -20,3 +20,9 @@ test('custom duration survives pause, reload and reset without reverting to a pr
  restored.toggle();f.advance(30000);assert.equal(restored.snapshot().remaining,35*60000);restored.reset();assert.equal(restored.snapshot().remaining,37*60000);
  restored.select(181);assert.equal(restored.snapshot().duration,37*60000);
 });
+test('committed start, pause, resume, reset and completion synchronize across windows',()=>{
+ const f=fixture(),a=new FocusTimer(f.options),b=new FocusTimer(f.options);a.toggle();assert.equal(b.snapshot().running,true);f.advance(12000);b.toggle();assert.equal(a.snapshot().running,false);assert.equal(a.snapshot().remaining,b.snapshot().remaining);a.toggle();assert.equal(b.snapshot().running,true);b.reset();assert.equal(a.snapshot().remaining,25*60000);a.select(1);a.toggle();f.advance(61000);a.snapshot();b.snapshot();assert.equal(f.completed(),1);assert.ok(b.snapshot().lastCompletedAt);assert.equal(new FocusTimer(f.options).snapshot().lastCompletedAt,b.snapshot().lastCompletedAt);
+});
+test('failed persistence keeps a usable in-memory timer and reports its limitation',()=>{
+ let now=100000;const timer=new FocusTimer({storage:{getItem(){return null;},setItem(){throw Error('quota');}},now:()=>now});timer.toggle();now+=10000;assert.equal(timer.snapshot().running,true);assert.equal(timer.snapshot().persistent,false);assert.equal(timer.snapshot().remaining,25*60000-10000);timer.toggle();timer.reset();assert.equal(timer.snapshot().remaining,25*60000);
+});

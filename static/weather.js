@@ -28,8 +28,8 @@
       });
       indexCache={timeZone,days}; hourIndexes.set(hourly,indexCache);
     }
-    const hours=(indexCache.days.get(dayKey) || []).map(({time,i})=>({time:asDate(time),temperature:hourly.temperature_2m?.[i],code:hourly.weather_code?.[i] ?? 3,rain:hourly.precipitation_probability?.[i],isDay:sunrise!=null && sunset!=null && asDate(time)>=asDate(sunrise) && asDate(time)<asDate(sunset)}));
-    return {date,dayKey,index,high:daily.temperature_2m_max?.[index],low:daily.temperature_2m_min?.[index],rain:daily.precipitation_probability_max?.[index],code:daily.weather_code?.[index] ?? 3,sunrise,sunset,hours};
+    const hours=(indexCache.days.get(dayKey) || []).map(({time,i})=>({time:asDate(time),temperature:hourly.temperature_2m?.[i],code:hourly.weather_code?.[i] ?? null,rain:hourly.precipitation_probability?.[i],isDay:sunrise!=null && sunset!=null && asDate(time)>=asDate(sunrise) && asDate(time)<asDate(sunset)}));
+    return {date,dayKey,index,high:daily.temperature_2m_max?.[index],low:daily.temperature_2m_min?.[index],rain:daily.precipitation_probability_max?.[index],code:daily.weather_code?.[index] ?? null,sunrise,sunset,hours};
   }
   const api={selectDay,key}; root.MidnightWeather=api;
   if (typeof module!=='undefined') module.exports=api;

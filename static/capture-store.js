@@ -19,18 +19,31 @@ class MidnightCaptureStore {
     return new Promise((resolve, reject) => {
       let result;
       const tx = this.db.transaction(stores, mode);
-      tx.oncomplete = () => resolve(result);
+      tx.oncomplete = () => {
+        if (mode==='readwrite'&&stores.includes('items')) window.dispatchEvent(new Event('midnight:captures-invalidated'));
+        resolve(result);
+      };
       tx.onabort = tx.onerror = () => reject(tx.error || new Error('Local storage could not be updated.'));
       work(tx, value => { result = value; });
     });
   }
   all() { return this.transact(['items'], 'readonly', (tx, done) => { tx.objectStore('items').getAll().onsuccess = e => done(e.target.result); }); }
+  drafts() { return this.transact(['drafts'], 'readonly', (tx, done) => { tx.objectStore('drafts').getAll().onsuccess=e=>done(e.target.result); }); }
   draft(id) { return this.transact(['drafts'], 'readonly', (tx, done) => { tx.objectStore('drafts').get(id).onsuccess = e => done(e.target.result); }); }
   saveDraft(draft) { return this.transact(['drafts'], 'readwrite', tx => tx.objectStore('drafts').put(draft)); }
   discard(id) { return this.transact(['drafts'], 'readwrite', tx => tx.objectStore('drafts').delete(id)); }
-  save(item, draftId) {
+  save(item, draftId, baseline=null) {
     return this.transact(['items','drafts'], 'readwrite', tx => {
-      tx.objectStore('items').put(item);
+      const target=tx.objectStore('items');
+      if(baseline) target.get(item.id).onsuccess=e=>{
+        const current=e.target.result;
+        if(!current){tx.abort();return;}
+        const patch={updatedAt:item.updatedAt};
+        for(const key of ['text','kind','dueAt'])if(item[key]!==baseline[key])patch[key]=item[key];
+        const merged={...current,...patch};
+        if(!['task','reminder'].includes(merged.kind))Object.assign(merged,{done:false,completedAt:null,plannedFor:null,priorityOrder:0,dueAt:null});
+        target.put(merged);
+      };else target.put(item);
       if (draftId) tx.objectStore('drafts').delete(draftId);
     });
   }
@@ -39,14 +52,27 @@ class MidnightCaptureStore {
     return this.transact(['items','drafts'], 'readwrite', (tx, done) => {
       const result={added:0,skipped:0,draftRestored:false},target=tx.objectStore('items');done(result);
       for(const item of items)target.get(item.id).onsuccess=e=>{if(e.target.result)result.skipped++;else{target.put(item);result.added++;}};
-      if(draft)tx.objectStore('drafts').get('new').onsuccess=e=>{if(!e.target.result?.text){tx.objectStore('drafts').put(draft);result.draftRestored=true;}};
+      for(const saved of (Array.isArray(draft)?draft:draft?[draft]:[]))tx.objectStore('drafts').get(saved.id).onsuccess=e=>{if(!e.target.result?.text){tx.objectStore('drafts').put(saved);result.draftRestored=true;}};
+    });
+  }
+  // A reviewed import commits as one transaction, retaining existing items and drafts.
+  importTasks(items) {
+    return this.transact(['items'], 'readwrite', (tx, done) => {
+      const target=tx.objectStore('items'),result={added:0,skipped:0};done(result);
+      target.getAll().onsuccess=e=>{
+        const keys=new Set(e.target.result.map(item=>item.text.trim().toLowerCase()+'|'+item.dueAt));
+        for(const item of items){const key=item.text.trim().toLowerCase()+'|'+item.dueAt;
+          if(keys.has(key)){result.skipped++;continue;}
+          keys.add(key);target.add(item);result.added++;
+        }
+      };
     });
   }
   // Atomic field updates prevent another tab's archive/done action overwriting edited text.
   update(id, changes) {
     return this.transact(['items'], 'readwrite', tx => {
       const store = tx.objectStore('items');
-      store.get(id).onsuccess = e => { if (e.target.result) store.put({...e.target.result,...changes,updatedAt:new Date().toISOString()}); };
+      store.get(id).onsuccess = e => { if (e.target.result){const merged={...e.target.result,...changes,updatedAt:new Date().toISOString()};if(!['task','reminder'].includes(merged.kind))Object.assign(merged,{done:false,completedAt:null,plannedFor:null,priorityOrder:0,dueAt:null});store.put(merged);} };
     });
   }
 }

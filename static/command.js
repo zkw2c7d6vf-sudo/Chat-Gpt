@@ -40,16 +40,20 @@
  register('settings:news','News subscriptions','Settings','▧',()=>MidnightApp.openSettings('news'),['feeds','rss']);
  for(const on of [true,false])register('device:'+on,(on?'Turn on':'Turn off')+' candle warmer','Device','⏻',()=>confirm((on?'Turn on':'Turn off')+' the candle warmer?',async()=>{await MidnightApp.warmer(on);MidnightApp.toast('Candle warmer '+(on?'on':'off')+' · verified.');}),['smart home','power','lamp','kasa'],{subtitle:'Confirmation required · local device'});
  register('media:spotify','Open Spotify','Application','♫',()=>{const a=node('a');a.href='https://open.spotify.com/';a.target='_blank';a.rel='noopener noreferrer';a.click();},['music','media']);
- register('media:play','Play Spotify','Media','▶',()=>MidnightApp.media('play'),['resume music'],{available:()=>!!MidnightApp.snapshot().player});
- register('media:pause','Pause Spotify','Media','Ⅱ',()=>MidnightApp.media('pause'),['stop music'],{available:()=>!!MidnightApp.snapshot().player});
+ register('media:play','Play Spotify','Media','▶',()=>MidnightApp.media('play'),['resume music'],{available:()=>!!MidnightApp.snapshot().player?.active&&!MidnightApp.snapshot().player?.disallows?.resuming});
+ register('media:pause','Pause Spotify','Media','Ⅱ',()=>MidnightApp.media('pause'),['stop music'],{available:()=>!!MidnightApp.snapshot().player?.active&&!MidnightApp.snapshot().player?.disallows?.pausing});
  async function rebuild(){
-  const token=++generation;const items=registry.list();const snapshot=MidnightApp.snapshot();
+  const token=++generation;
+  // Rebuild from current data when Search opens; closed panels need no index work.
+  if(mode!=='search'||!dialog.open)return;
+  const items=registry.list();const snapshot=MidnightApp.snapshot();
   if(snapshot.player?.title)items.push({id:'media:current',title:snapshot.player.title,type:'Media',icon:'♫',subtitle:snapshot.player.artist||'Current Spotify track',keywords:['spotify','music','now playing'],action:()=>MidnightApp.reveal('music')});
-  for(const [i,event] of [...new Map([...snapshot.events,...(window.MidnightCalendar?.snapshot()||[])].map(event=>[event.title+'|'+event.start+'|'+event.end,event])).values()].entries())items.push({id:'event:'+i,title:event.title,type:'Calendar',icon:'▦',subtitle:new Date(event.start).toLocaleString()+(event.location?' · '+event.location:''),keywords:['event','class','schedule'],action:()=>MidnightApp.revealEvent(event)});
+  for(const file of window.MidnightDrive?.snapshot()||[])items.push({id:'file:'+file.url,title:file.name,type:'File',icon:'file',subtitle:'Recent Drive file',keywords:['drive','document'],action:()=>window.open(file.url,'_blank','noopener,noreferrer')});
+  for(const [i,event] of [...new Map([...snapshot.events,...(window.MidnightCalendar?.snapshot()||[])].map(event=>[event.id||event.uid+'|'+event.title+'|'+event.start+'|'+event.end+'|'+(event.location||''),event])).values()].entries())items.push({id:'event:'+i,title:event.title,type:'Calendar',icon:'▦',subtitle:new Date(event.start).toLocaleString()+(event.location?' · '+event.location:''),keywords:['event','class','schedule'],action:()=>MidnightApp.revealEvent(event)});
   try{for(const item of await MidnightCapture.all()){if(item.archived)continue;items.push({id:'capture:'+item.id,title:item.text.slice(0,140),type:item.kind,icon:item.done?'✓':item.kind==='reminder'?'◷':'▤',subtitle:item.done?'Completed':item.dueAt?new Date(item.dueAt).toLocaleString():'Saved in this browser',keywords:[item.text,item.kind,item.done?'done':''],action:()=>MidnightCapture.edit(item)});}}catch{}
-  if(token!==generation)return;index.replace(items);if(mode==='search'&&dialog.open)search();
+  if(token!==generation)return;index.replace(items);if(mode==='search'&&dialog.open)search(true);
  }
- function search(){results=index.search($('commandQuery').value,{usage,context:[]});selected=0;render();}
+ function search(preserve=false){const id=preserve?results[selected]?.id:null;results=index.search($('commandQuery').value,{usage,context:[]});selected=Math.max(0,results.findIndex(result=>result.id===id));render();}
  function render(){
   const target=$('commandResults');target.replaceChildren();$('commandStatus').textContent=results.length?results.length+' local result'+(results.length===1?'':'s'):'No matches. Try a different word, or switch to Capture to create something.';
   $('commandQuery').setAttribute('aria-expanded',String(!!results.length));
@@ -61,7 +65,7 @@
  $('commandQuery').oninput=()=>{clearTimeout(timer);timer=setTimeout(search,70);};$('commandQuery').onkeydown=e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();selected=Math.max(0,Math.min(results.length-1,selected+(e.key==='ArrowDown'?1:-1)));syncSelection();}if(e.key==='Enter'){e.preventDefault();if(results[selected])execute(results[selected]);}};
  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.code==='KeyK'){e.preventDefault();openSearch();}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.code==='Space'){e.preventDefault();MidnightCapture.open();}});
  window.addEventListener('midnight:captureopen',()=>setMode('capture'));
- for(const event of ['midnight:data','midnight:captures','midnight:spaces','midnight:calendar-view'])window.addEventListener(event,rebuild);
+ for(const event of ['midnight:data','midnight:captures','midnight:spaces','midnight:calendar-view','midnight:player','midnight:drive'])window.addEventListener(event,rebuild);
  dialog.addEventListener('keydown',e=>{if(mode==='search'&&e.key==='Escape'){e.preventDefault();e.stopPropagation();MidnightUI.close(dialog);}});
  dialog.addEventListener('close',()=>{clearTimeout(timer);$('commandQuery').value='';});
  window.MidnightCommand={register(command){const remove=registry.register(command);rebuild();return()=>{remove();rebuild();};},get mode(){return mode;},openSearch,openCapture,confirm,registry,index,rebuild};rebuild();

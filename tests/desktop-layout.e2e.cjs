@@ -2,14 +2,14 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const {mocks}=require('./ui-fixtures.cjs');const assert=require('node:assert/strict');
 async function layout(page,label){
  const result=await page.evaluate(()=>{
-  const cards=[...document.querySelectorAll('.dashboard>.card')],overlaps=[],clipped=[];
+  const cards=[...document.querySelectorAll('.homeWidgets>.card')],overlaps=[],clipped=[];if(cards.length!==3)throw new Error('Expected three home cards');
   for(let i=0;i<cards.length;i++)for(let j=i+1;j<cards.length;j++){const a=cards[i].getBoundingClientRect(),b=cards[j].getBoundingClientRect();if(a.left<b.right-.5&&a.right>b.left+.5&&a.top<b.bottom-.5&&a.bottom>b.top+.5)overlaps.push([cards[i].id,cards[j].id]);}
   for(const card of cards){const box=card.getBoundingClientRect();for(const el of card.querySelectorAll('.cardHead button,.cardFoot button,.cardFoot a,#focusCustom,#focusStart,#plugToggle,#plugSettings')){if(!el.checkVisibility())continue;const r=el.getBoundingClientRect();if(r.left<box.left-1||r.right>box.right+1||r.top<box.top-1||r.bottom>box.bottom+1)clipped.push(el.id||el.textContent);}}
   return {overlaps,clipped,overflow:document.documentElement.scrollWidth>innerWidth};
  });assert.deepEqual(result,{overlaps:[],clipped:[],overflow:false},label+' '+JSON.stringify(result));
 }
 (async()=>{const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL||'chrome',headless:true});try{
- for(const hasTouch of [false,true])for(const [width,height] of [[1024,768],[1152,864],[1280,720],[1366,768],[1440,900],[1920,1080],[2560,1440]]){
+ for(const hasTouch of [false,true])for(const [width,height] of [[900,768],[960,768],[1000,768],[1024,768],[1152,864],[1280,720],[1366,768],[1440,900],[1920,1080],[2560,1440]]){
   const context=await browser.newContext({viewport:{width,height},hasTouch});await mocks(context);const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.MIDNIGHT_TEST_URL||'http://127.0.0.1:8765');await page.locator('.miniDay').first().waitFor();
   await layout(page,`${width}x${height} touch=${hasTouch}`);
   await page.evaluate(()=>{MidnightNotifications.notify({id:'layout-reminder',kind:'reminder',message:'A long reminder to follow up on placement. '.repeat(12),persistent:true});document.getElementById('musicTitle').textContent='An intentionally long title that must wrap cleanly without displacing the transport controls';});

@@ -1,0 +1,47 @@
+/* A locally configurable dock, with one accessible editor and no remote icons. */
+.bottomDock{max-width:calc(100vw - 40px);padding:4px 8px;gap:4px}
+.toolbarItems{display:flex;align-items:center;gap:3px;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:4px;scroll-padding:6px}
+.bottomDock .toolbarItems>button,.bottomDock .toolbarWebsite{flex:0 0 66px}
+.bottomDock .toolbarEdit{flex:0 0 58px;width:58px}
+.bottomDock .dockDivider{flex:0 0 1px;margin:0 2px}
+.bottomDock .toolbarWebsite{display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:6px;width:66px;height:62px;border-radius:18px;color:var(--muted);font-size:9px;letter-spacing:.1px;text-decoration:none}
+.bottomDock .toolbarWebsite:hover{background:var(--glass);color:var(--text)}
+.bottomDock .toolbarWebsite .toolbarLetter{display:grid;place-items:center;width:25px;height:25px;min-height:25px;border:1px solid var(--material-stroke);border-radius:8px;background:var(--glass);font-size:15px;font-weight:500}
+.bottomDock .dockLabel{display:block;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bottomDock button>.lineIcon{height:23px;flex-shrink:0}
+#toolbarDialog{width:min(780px,calc(100vw - 48px));max-height:calc(100dvh - 48px);padding:24px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#toolbarDialog .dialogTop{position:sticky;top:-24px;z-index:2;margin:-24px -24px 12px;padding:20px 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+#toolbarDialog .dialogTop p{margin:5px 0 0;font-size:12px;color:var(--muted)}
+#toolbarDialog section{margin:22px 0}
+#toolbarDialog h3{font-size:14px;font-weight:550;margin:0 0 12px}
+#toolbarDialog label{font-size:12px;color:var(--muted);margin:0}
+#toolbarDialog input:not([type=checkbox]){min-height:48px;font-size:16px;width:100%;margin-top:7px}
+#toolbarDialog input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent);flex:0 0 18px}
+#toolbarDialog button{min-height:44px}
+#toolbarDialog .quiet{width:44px;min-width:44px;height:44px;padding:12px;background:transparent;color:var(--muted)}
+#toolbarDialog .quiet:hover{color:var(--text);background:var(--glass)}
+#toolbarDialog .quiet:disabled{opacity:.25;cursor:default}
+#toolbarDialog .quiet .lineIcon{width:18px;height:18px}
+.toolbarToolChoices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+#toolbarDialog .toolbarToolChoice{display:flex;align-items:center;gap:8px;min-height:48px;padding:8px;border:1px solid var(--line);border-radius:12px;cursor:pointer;color:var(--text);font-size:12px}
+.toolbarToolChoice:has(input:checked){background:var(--glass);border-color:var(--material-stroke)}
+.toolbarToolChoice .lineIcon{width:17px;height:17px;flex-shrink:0}
+#toolbarOrder{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto;scrollbar-width:thin;border:1px solid var(--line);border-radius:14px}
+.toolbarOrderRow{display:flex;align-items:center;gap:12px;min-height:58px;padding:4px 10px 4px 16px;border-bottom:1px solid var(--line)}
+.toolbarOrderRow:last-child{border-bottom:0}
+.toolbarOrderRow>.lineIcon{width:20px;height:20px;flex-shrink:0;color:var(--muted)}
+.toolbarOrderCopy{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.toolbarOrderCopy strong{font-size:13px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.toolbarOrderCopy>span{font-size:11px;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.toolbarRowActions{display:flex;gap:2px;flex-shrink:0}
+.toolbarEmpty{padding:20px;color:var(--muted);font-size:13px;line-height:1.6}
+.toolbarLinkFields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr);gap:12px}
+.toolbarLinkActions{display:flex;align-items:center;gap:8px;margin-top:12px}
+#toolbarDialog .toolbarSecondDisplay{display:flex;align-items:center;gap:10px;min-height:48px;color:var(--text);cursor:pointer}
+#toolbarDialog .toolbarNote{font-size:12px;line-height:1.6;color:var(--muted);margin:8px 0;overflow-wrap:anywhere}
+#toolbarDialog [role=status]:empty{display:none}
+.toolbarEditorFooter{position:sticky;bottom:-24px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:20px -24px -24px;padding:14px 24px;background:var(--surface);border-top:1px solid var(--line);z-index:2}
+.toolbarEditorFooter #toolbarStatus{flex:1 0 100%;margin:0}
+.toolbarEditorFooter #toolbarReset{margin-right:auto}
+@media(max-width:1050px){.toolbarToolChoices{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(prefers-reduced-motion:no-preference){.bottomDock .toolbarWebsite{transition:background 160ms ease,color 160ms ease}}

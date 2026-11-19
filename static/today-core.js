@@ -14,10 +14,10 @@
    return ap-bp||(Date.parse(a.dueAt)||Infinity)-(Date.parse(b.dueAt)||Infinity)||a.createdAt.localeCompare(b.createdAt);
   });
   const completed=items.filter(i=>!i.archived&&i.done&&i.completedAt&&dayKey(i.completedAt)===today);
-  return {today,priorities,due,backlog,completed,total:open.length};
+  return {today,priorities,due,backlog,completed,total:open.length,dueTotal:open.filter(i=>i.dueAt&&Date.parse(i.dueAt)<tomorrow.getTime()).length};
  }
  function validateBackup(value){
-  if(!value||value.format!=='midnight-capture'||value.version!==1||!Array.isArray(value.items)||value.items.length>10000)throw new Error('Choose a Midnight capture backup (version 1, up to 10,000 captures).');
+  if(!value||value.format!=='midnight-capture'||![1,2].includes(value.version)||!Array.isArray(value.items))throw new Error('Choose a Midnight capture backup (version 1 or 2).');
   const date=v=>typeof v==='string'&&Number.isFinite(Date.parse(v));
   const ids=new Set();
   const items=value.items.map(item=>{
@@ -29,9 +29,15 @@
    if(date(item.completedAt))clean.completedAt=item.completedAt;
    return clean;
   });
-  const d=value.draft;let draft=null;
-  if(d!=null){if(typeof d.text!=='string'||d.text.length>20000||!['note','task','idea','reminder'].includes(d.kind)||typeof d.due!=='string'||d.due.length>40)throw new Error('The saved draft is invalid. Nothing was imported.');draft={id:'new',text:d.text,kind:d.kind,due:d.due,updatedAt:date(d.updatedAt)?d.updatedAt:new Date().toISOString()};}
-  return {items,draft};
+  const drafts=(value.version===2?value.drafts||[]:value.draft?[value.draft]:[]);
+  if(!Array.isArray(drafts))throw new Error('The saved drafts are invalid.');
+  const draftIds=new Set();
+  const cleanDrafts=drafts.map(d=>{
+   const id=value.version===1?'new':d?.id;
+   if(typeof id!=='string'||!id||id.length>100||draftIds.has(id)||typeof d.text!=='string'||d.text.length>20000||!['note','task','idea','reminder'].includes(d.kind)||typeof d.due!=='string'||d.due.length>40)throw new Error('The saved draft is invalid. Nothing was imported.');
+   draftIds.add(id);return {id,text:d.text,kind:d.kind,due:d.due,updatedAt:date(d.updatedAt)?d.updatedAt:new Date().toISOString()};
+  });
+  return {items,draft:cleanDrafts.find(d=>d.id==='new')||null,drafts:cleanDrafts};
  }
  const api={dayKey,actionable,plan,validateBackup};root.MidnightTodayCore=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

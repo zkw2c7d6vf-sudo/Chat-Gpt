@@ -11,7 +11,7 @@ CONTENT=b'\0\0\0\x18ftypisom'+b'0'*2048
 def fixture(tmp_path,monkeypatch,checksum=None):
     monkeypatch.setattr(assets,'ROOT',tmp_path)
     class Response(io.BytesIO):
-        url='https://videos.pexels.com/fixture.mp4'
+        url='https://cdn.pixabay.com/fixture.mp4'
         headers={'Content-Length':str(len(CONTENT))}
     monkeypatch.setattr(assets,'urlopen',lambda *a,**k:Response(CONTENT))
     return {'name':'Test','path':'static/wallpapers/test.mp4','url':Response.url,'sha256':checksum or hashlib.sha256(CONTENT).hexdigest()}

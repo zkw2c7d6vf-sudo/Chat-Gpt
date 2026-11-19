@@ -1,4 +1,4 @@
-"""Fetch the two public background videos for source-only GitHub checkouts."""
+"""Fetch optional public Pixabay assets; legacy providers are never contacted."""
 import hashlib
 import json
 import os
@@ -26,7 +26,7 @@ def fetch(asset):
     if available(target):
         return
     url = urlsplit(asset['url'])
-    if url.scheme != 'https' or url.hostname != 'videos.pexels.com':
+    if url.scheme != 'https' or url.hostname != 'cdn.pixabay.com':
         raise ValueError('Only the credited public video source is allowed.')
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix('.download')
@@ -34,7 +34,7 @@ def fetch(asset):
     try:
         with urlopen(Request(asset['url'], headers={'User-Agent': 'Midnight-Asset-Setup/1.0'}), timeout=120) as response:
             final = urlsplit(response.url)
-            if final.scheme != 'https' or final.hostname != 'videos.pexels.com':
+            if final.scheme != 'https' or final.hostname != 'cdn.pixabay.com':
                 raise ValueError('Unexpected download destination.')
             if int(response.headers.get('Content-Length', '0')) > LIMIT:
                 raise ValueError('The video exceeds the download limit.')

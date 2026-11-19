@@ -1,115 +1,344 @@
 {
-  "server.py": "7a8666c9d03af830c08767fbf2c658a13906dde82d29f1fd085afcd741c446fa",
-  "wallpaper.py": "f099f1d50144bbddb2c195c22e9a1b2acf17f97570de7bc97ba4a47c1c983a10",
-  "places.py": "254730a138b2a757494d5aba3313a6ad557f6d213c679d82199e0d4b99195b14",
-  "sw.js": "ff2ba1ffec63415ddae4ee177718078e05980cf4d2c96d525c46ffbe02438048",
-  "static/today 2.js": "05f724f233527de0d0daeaab179922a14420da8c2631ff609b8fa1941eecbe1c",
-  "static/christmas-tree 2.jpg": "469ce7e7c69230a96b3047893a21ac33b6f206cb2e1685065ca79cccc0a6e884",
-  "static/capture 2.js": "076715a6fa155f74b7e2bb6512098b46e0ffd108b54aa3b81efc33582e78b440",
-  "static/icons.js": "1b1950d1979a02b2457d1602acf5e0813a811b16f1166ece1377d3b57726d25b",
-  "static/christmas-tree 3.jpg": "469ce7e7c69230a96b3047893a21ac33b6f206cb2e1685065ca79cccc0a6e884",
-  "static/ui.js": "46961fc7f83e1695ae745ad1eb664cb41a716e8765dfc70d83abef0051cf4797",
-  "static/polish 2.css": "b835aae0fe820438cf8d002ed8a14f5544bb786b0eb4bf1ebff75c6342470458",
-  "static/index.html": "65d145077b4b259656194a69835fa639dfb3a7a3a495801c245863eb841afe4d",
-  "static/capture 3.js": "076715a6fa155f74b7e2bb6512098b46e0ffd108b54aa3b81efc33582e78b440",
-  "static/today 2.css": "eb91621571ff5b8013c645b348d686bca9f32ffe7a9170773d52a5aee2def231",
-  "static/capture-store.js": "fce48c6dba1fae31c212b24a25e9da1419197aee93ce4243daef6f136c2c539c",
-  "static/polish 3.css": "b835aae0fe820438cf8d002ed8a14f5544bb786b0eb4bf1ebff75c6342470458",
-  "static/spaces.js": "7f0c46d890af3ba335f400f5adc79921411f10516146389d7b7935eb13080817",
-  "static/calm 2.js": "1e9490dd29c787babb77d111ba3b011cf6d361974d8ff2474fc8a618e5b9d4e8",
-  "static/weather.js": "1e07393202809085fbbf206bbc2736b09211e8abc88b251735f6143ff93c3bf7",
-  "static/christmas-tree.jpg": "469ce7e7c69230a96b3047893a21ac33b6f206cb2e1685065ca79cccc0a6e884",
-  "static/wallpaper.js": "c8b1fccb22d52eb8fc3f2d9f7e3db3411ea46655cdd563fd5f94e21dcf80240b",
-  "static/icons 2.js": "7c9fa9d9962f29e2b7837823e812960b25aef306d258860bb4d0188712ab0eea",
-  "static/today.css": "eb91621571ff5b8013c645b348d686bca9f32ffe7a9170773d52a5aee2def231",
-  "static/app 2.js": "2b100f71e725c6e68b7ac856b25062ccc71dccb1de7cd35b69831f1ee257a8f5",
-  "static/spaces-store.js": "e3200b7a24c36958850636110cbdb895604c2729c0a5137e6fd5bf3183ad274d",
-  "static/notifications 2.css": "93b97033b3291d1c9fed4d61169abfb67114d2a533986a071afdd0925afde41d",
-  "static/command-core.js": "6041b790c2a3520f7a45015c31770dfcbd8cf311eebcca0b4c80fdf9489659ac",
-  "static/focus 3.js": "d379629c07f3ecfba04d63dd25b5db8e4b27344269029929239c549470855bb7",
-  "static/notifications 3.css": "93b97033b3291d1c9fed4d61169abfb67114d2a533986a071afdd0925afde41d",
-  "static/command-spaces.css": "38e3812bdc6947a615ed45ba47deb63a7b4f36880793f26ac7ca30820413d186",
-  "static/style 2.css": "1b08fddd5351f8aaa5e47a5984d32414bfd604d15f4ae383b54007cf3d4697ea",
-  "static/focus 2.js": "d379629c07f3ecfba04d63dd25b5db8e4b27344269029929239c549470855bb7",
-  "static/wallpaper.css": "574b1c7d548610526935f1b7ecd8b266e55936dd8d26e515e0585e95918446b9",
-  "static/spaces 2.js": "7f0c46d890af3ba335f400f5adc79921411f10516146389d7b7935eb13080817",
-  "static/calm 2.css": "924e8bb23b0c449cc3d174f688fb20f80acd66d7277d6aacebeeeef0feee815d",
-  "static/command.js": "f0ee7a4591ddd8ea11ba24a5348cf0b9333136b5884d530dc7784876d8d06d1b",
-  "static/spotify-logo 2.png": "193ef6f3d236da9a1e1e2991bf44a75a082fb3c99255c9eec9b47ea5f66413f1",
-  "static/command-core 3.js": "6041b790c2a3520f7a45015c31770dfcbd8cf311eebcca0b4c80fdf9489659ac",
-  "static/calendar 3.js": "2e4a6b71df05c2c313a0f768091c190e33aada02422acd469ba208575c2ebaab",
-  "static/calendar 2.js": "3087664a31d6e2db5d60389c9a571406228e495d99e6542945ea8215d766d7e0",
-  "static/focus.js": "d379629c07f3ecfba04d63dd25b5db8e4b27344269029929239c549470855bb7",
-  "static/today-core.js": "672f48e4e00becfc9d9d3b89c35124af3adf3b3ae3cbad6f10f0af443fbd58d5",
-  "static/index 2.html": "7b644a4f6db7fbf6a4073232de1114a616431253d3ba04c59c291605b278fad7",
-  "static/style.css": "1b08fddd5351f8aaa5e47a5984d32414bfd604d15f4ae383b54007cf3d4697ea",
-  "static/command-spaces 3.css": "38e3812bdc6947a615ed45ba47deb63a7b4f36880793f26ac7ca30820413d186",
-  "static/command-spaces 2.css": "38e3812bdc6947a615ed45ba47deb63a7b4f36880793f26ac7ca30820413d186",
-  "static/command-core 2.js": "6041b790c2a3520f7a45015c31770dfcbd8cf311eebcca0b4c80fdf9489659ac",
-  "static/calm.js": "1e9490dd29c787babb77d111ba3b011cf6d361974d8ff2474fc8a618e5b9d4e8",
-  "static/capture-store 2.js": "fce48c6dba1fae31c212b24a25e9da1419197aee93ce4243daef6f136c2c539c",
-  "static/capture.js": "076715a6fa155f74b7e2bb6512098b46e0ffd108b54aa3b81efc33582e78b440",
-  "static/today.js": "05f724f233527de0d0daeaab179922a14420da8c2631ff609b8fa1941eecbe1c",
-  "static/spotify-logo.png": "193ef6f3d236da9a1e1e2991bf44a75a082fb3c99255c9eec9b47ea5f66413f1",
-  "static/calendar.js": "2e4a6b71df05c2c313a0f768091c190e33aada02422acd469ba208575c2ebaab",
-  "static/notifications 2.js": "7ce75db8285529597be746790bb25cd4c999b241dfb7f78fbcc0b598261e63e6",
-  "static/command 3.js": "f0ee7a4591ddd8ea11ba24a5348cf0b9333136b5884d530dc7784876d8d06d1b",
-  "static/notifications.css": "93b97033b3291d1c9fed4d61169abfb67114d2a533986a071afdd0925afde41d",
-  "static/notifications.js": "7217892530ce207b76bb96e1b4bc996bb6cc93dd9f19993e087f4a07df95d6c5",
-  "static/notifications 3.js": "7217892530ce207b76bb96e1b4bc996bb6cc93dd9f19993e087f4a07df95d6c5",
-  "static/weather 2.js": "1e07393202809085fbbf206bbc2736b09211e8abc88b251735f6143ff93c3bf7",
-  "static/command 2.js": "e01c9a71ee9ac486051e838cac568d9e79dc2423eafdabbe3835fb77561cb4b5",
-  "static/app.js": "278c59c6f02693174acc67188f7e9d4ed1285b196f80ec376a3df82dc9aed384",
-  "static/today-core 2.js": "672f48e4e00becfc9d9d3b89c35124af3adf3b3ae3cbad6f10f0af443fbd58d5",
-  "static/calm.css": "924e8bb23b0c449cc3d174f688fb20f80acd66d7277d6aacebeeeef0feee815d",
-  "static/polish.css": "b835aae0fe820438cf8d002ed8a14f5544bb786b0eb4bf1ebff75c6342470458",
-  "static/ui 2.js": "46961fc7f83e1695ae745ad1eb664cb41a716e8765dfc70d83abef0051cf4797",
-  "static/spaces-store 2.js": "e3200b7a24c36958850636110cbdb895604c2729c0a5137e6fd5bf3183ad274d",
-  "static/wallpapers/rain.mp4": "e5976b7fe48b3b453cf4bb7fc2e0e2839fd8bce40e844e802d7a94d9282a0b06",
-  "static/wallpapers/mist.mp4": "33a612edf79acdd2587dc12412c8cc051aa0b2ee7773749cd00aaf37bccdd471",
-  "static/wallpapers/rain-long.jpg": "1cb2bd142c7b69bc71170a448dd71fad3fc5f7c4d411a1b40be27533766372f7",
-  "static/wallpapers/nature-long.mp4": "131123aea98a2c43f24c41ff5706cf1f7406761880890b883d48d45bf5031dbc",
-  "static/wallpapers/rain-long.mp4": "a50ea293063b155dcb00767f44fff03c8d15efb54bdde5cba5c727ce67b24036",
-  "static/wallpapers/nature-long.jpg": "4211724dd620d5b0d1752a462331145131c50e24d42649dfe6851038f390cbd5",
-  "static/wallpapers/mist.jpg": "7de49f9441bbcdeba7e18b25222f4472df198a302e92e2b54463514dac165853",
-  "static/wallpapers/rain.jpg": "197dada7b984c878cab5a166d82161ba4b7021867f3244c758dc4a641351a73f",
-  "static/icons/cloud-lightning 2.svg": "9966e87d16d255878fd34efa1174cf1756fb5755c1f63e7ff1df4db5d2fefc36",
-  "static/icons/wind.svg": "eb35f6f00125b779a993c21ee761432faf8fc3210272c94448f63e2196d419b7",
-  "static/icons/LICENSE": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
-  "static/icons/sun 2.svg": "a3955c8b0425fcc5c9ba12d2bdd77fe53b2cd5dd05e7742a56f342e996fb2ef8",
-  "static/icons/cloud-moon 3.svg": "8233994cbdc0b3dfb5d234be026d4d038c731a020da4b5a65851fde0e956ee6c",
-  "static/icons/cloud-sun.svg": "d3d0b5519e3e9e6073bc6d875fcb2b8d0a0c0d0062602490d444ef6a08bb2ab0",
-  "static/icons/cloud-moon 2.svg": "8233994cbdc0b3dfb5d234be026d4d038c731a020da4b5a65851fde0e956ee6c",
-  "static/icons/cloud-snow.svg": "cdbb307c38c6f6781dd8169bc92c28cae16b4fb77d6c5d88898dd92698ad2dbc",
-  "static/icons/cloud-snow 3.svg": "cdbb307c38c6f6781dd8169bc92c28cae16b4fb77d6c5d88898dd92698ad2dbc",
-  "static/icons/cloud-snow 2.svg": "cdbb307c38c6f6781dd8169bc92c28cae16b4fb77d6c5d88898dd92698ad2dbc",
-  "static/icons/cloud-sun 3.svg": "d3d0b5519e3e9e6073bc6d875fcb2b8d0a0c0d0062602490d444ef6a08bb2ab0",
-  "static/icons/cloud-sun 2.svg": "d3d0b5519e3e9e6073bc6d875fcb2b8d0a0c0d0062602490d444ef6a08bb2ab0",
-  "static/icons/cloud 3.svg": "28a34022ed00177eb1f218eea5d2b7af30d09b529187fe32219e4dd8ea2b9740",
-  "static/icons/cloud 2.svg": "28a34022ed00177eb1f218eea5d2b7af30d09b529187fe32219e4dd8ea2b9740",
-  "static/icons/cloud-fog.svg": "68a247163f7501be38045284660b2c19b957e197d510e8169313075309da879a",
-  "static/icons/mic 2.svg": "d5189292c208be21eb49be9b0418d958176f02ac6449a7c92b2940df93a35cf1",
-  "static/icons/mic.svg": "d5189292c208be21eb49be9b0418d958176f02ac6449a7c92b2940df93a35cf1",
-  "static/icons/map-pin 3.svg": "16f1042a62f1bda20ebab8bfc1cb79c0be285c980dea6c2c733a17902631405b",
-  "static/icons/map-pin 2.svg": "16f1042a62f1bda20ebab8bfc1cb79c0be285c980dea6c2c733a17902631405b",
-  "static/icons/cloud-lightning.svg": "9966e87d16d255878fd34efa1174cf1756fb5755c1f63e7ff1df4db5d2fefc36",
-  "static/icons/cloud-rain 2.svg": "4230ba9d28d0a02c088ec0b21079b63aed9f2b7ee8493588adf34ee144bc307b",
-  "static/icons/LICENSE 3": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
-  "static/icons/sun.svg": "a3955c8b0425fcc5c9ba12d2bdd77fe53b2cd5dd05e7742a56f342e996fb2ef8",
-  "static/icons/LICENSE 2": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
-  "static/icons/cloud-moon.svg": "8233994cbdc0b3dfb5d234be026d4d038c731a020da4b5a65851fde0e956ee6c",
-  "static/icons/cloud-rain.svg": "4230ba9d28d0a02c088ec0b21079b63aed9f2b7ee8493588adf34ee144bc307b",
-  "static/icons/cloud-fog 2.svg": "68a247163f7501be38045284660b2c19b957e197d510e8169313075309da879a",
-  "static/icons/cloud-fog 3.svg": "68a247163f7501be38045284660b2c19b957e197d510e8169313075309da879a",
-  "static/icons/map-pin.svg": "16f1042a62f1bda20ebab8bfc1cb79c0be285c980dea6c2c733a17902631405b",
-  "static/icons/locate-fixed 2.svg": "3a10953374c6e811d8da564f87943cf52f47e284c6173ff211ffedc083b90430",
-  "static/icons/cloud.svg": "28a34022ed00177eb1f218eea5d2b7af30d09b529187fe32219e4dd8ea2b9740",
-  "static/icons/wind 3.svg": "eb35f6f00125b779a993c21ee761432faf8fc3210272c94448f63e2196d419b7",
-  "static/icons/moon 3.svg": "205b959e940d5841f0ce1d09c933153da9d9c94130a54d5cc0c68c2af1d403da",
-  "static/icons/moon 2.svg": "205b959e940d5841f0ce1d09c933153da9d9c94130a54d5cc0c68c2af1d403da",
-  "static/icons/locate-fixed.svg": "3a10953374c6e811d8da564f87943cf52f47e284c6173ff211ffedc083b90430",
-  "static/icons/wind 2.svg": "eb35f6f00125b779a993c21ee761432faf8fc3210272c94448f63e2196d419b7",
-  "static/icons/moon.svg": "205b959e940d5841f0ce1d09c933153da9d9c94130a54d5cc0c68c2af1d403da",
-  "geodata/towns.json.gz": "7f9c4c0b21071e38101fd2d2857df633cda8f63008dac240f74fd1b02f7e0112",
-  "geodata/README.md": "38badcc61760bc37bc7df6c74880c388edbd8faae01c2de4f9bc29a901ba1d61"
+  "file_tools.py": [
+    "23a8c2143047a8ebae6e3de84bd271cc6d0fa00488cbe560cf2ada48f5aaba83"
+  ],
+  "ambient-recordings.json": [
+    "21948a7c6f39f031c85c94b6bd35d335e5bc122d0fd514c034418c5595bd4e08"
+  ],
+  "scripts/fetch_ambient.py": [
+    "ad7a1cf3b96de50e4d1e13ca667399e4199e9ae4834127eddf32d9adaf59046c"
+  ],
+  "assets.json": [
+    "3ccfd60b20d122d2683999b5c29d183dc0b0b450e6a329d7052aad46e85dd67a"
+  ],
+  "server.py": [
+    "a5b1a1e43fd5e9331ddd68a5094c88319022cad8b9e21fe2c0f19ffbddd588dc",
+    "90ebb32a2cde6959d5761bce14fcfc88157a60494fd556a437bcf8c023167341"
+  ],
+  "wallpaper.py": [
+    "5d10f9a612fa837517835609733d07339db44eb43600c4d3f75857d8aab6a102",
+    "f397a5a21136b4927e8a1b2f3f0c3a7d520c1f778ce1217c7026164fe7dbcd98"
+  ],
+  "places.py": [
+    "254730a138b2a757494d5aba3313a6ad557f6d213c679d82199e0d4b99195b14"
+  ],
+  "spotify_recent.py": [
+    "dbd7f60625077c0dac750a334669097d543bb731569bd536dc24467b5c9f65ba"
+  ],
+  "drive_recent.py": [
+    "330875e1a9658d1a80abd914bd2457bba86791fc497b93c285bcdded8587968d"
+  ],
+  "sw.js": [
+    "d449f1eb2a960beda2c126c833c81873577228840dc7dbd286f6609837c78bd4",
+    "055b49ebdaa755635ac484dc57b3fc1fa99dbce4ec19163065de33bb0e9d6bf6"
+  ],
+  "requirements.txt": [
+    "cbd2a91ce3ce7913db8c6e3e19c64c822f552f3241461dc9d6fd3e45182613e0"
+  ],
+  "requirements.lock": [
+    "0449048d7bc805ed2953aecb6502c879a66825f032911037a3cee14e2e909c4c"
+  ],
+  "CLAUDE-REVIEW.md": [
+    null,
+    "15fd7c225de32ae5c58c4f673eae4b69cbff41d344f8e2390d24a2d5ea5fea6b"
+  ],
+  "VERIFICATION.md": [
+    "c33724c5c3cd0c0985db368aaef0b3f75256dc3caac04e3862ca77f147031103",
+    "6c78df78b2518c53edaada5001fdbfd3cc41c8f653e453ab69e2e3ee75685e33"
+  ],
+  "PLATFORM-ACCEPTANCE.md": [
+    "1f5fd1174e3357fd43b1e0c4be93f6afbe050179fa48dd263e97e8e9d0f6e58d"
+  ],
+  "README.md": [
+    "62fe25abb119b97c12c6ef232e9c3a73990b845dae1fe50cf6abe7f9be2f0cf2",
+    "db798019b916229027741801ef2d33a443d74ce617c8b01491a65d15f9565692"
+  ],
+  "AGENTS.md": [
+    "de5815f5474e4d04599d8571a728bd9becf35c85dc0489475fd93533e6be0d84",
+    "d92528dbc60f4274d479db950994bd929d6612c95a72854a117a98ba95a4214c"
+  ],
+  "ASSET-CREDITS.md": [
+    "6cd1e6dd80a0ace7d9ad7c1e4e7415fb7a87783b2a98666f784929922c86bf3b"
+  ],
+  "Start Dashboard.command": [
+    "bac08d8f5661605d0b9f17bd61ab28652c447c9d41dd082c4f65aa1181f92b99",
+    "676daa73512e03606a3d406c9f9cdbdeb43c56b9fd6d172848bf592e66094be1"
+  ],
+  "Start Dashboard.cmd": [
+    "47e6ec75edafbe326f8951c10866614dcae58813d2f257be33793a3d908a124d",
+    "6a309d734bec4dfe739b8c962ceeedda26b896796b0455d0d0c05b3c0498ba42"
+  ],
+  "Open Dashboard.ps1": [
+    "4949fa50141497e961d23614d55891a0ff500f1d853a1bd43b3e2a70a9c8df5e"
+  ],
+  "Apply Midnight Update.command": [
+    "89586cbc0946b8fa3af21d77fd2cb53c168f93b6c50c8a0401c0e116fc7eeb91",
+    "f9e55ecfd9f6788e09fb9e89315df23b5c8abcbb30f2141384bbc395318b0136"
+  ],
+  "scripts/fetch_assets.py": [
+    "7a2b90e793d5ae55ff539499b34739ba056ee912ca06e0d6baf084e8dcd66f63"
+  ],
+  "scripts/apply_upgrade.py": [
+    "10d89f6f49d2025f7af1a642fa0bcd7e23b9907317436268fc124fe81ca4fd02",
+    "b4ee534db8e4f0129f639c03f54357ee3749711942216ca73f3f7aacdf983205"
+  ],
+  "scripts/start.py": [
+    "590b8c25b8bcddfa7ce1cf723f8b27230438257f1ceca3d15286130a7487b9cf"
+  ],
+  "scripts/activate_local.py": [
+    "b9e7978130d75a34bd4021766eb5ae37ddda9a41bfb3bae724d72afa916645ec",
+    "c0ff99e761905854f4616fd5579417557703c2546e250b5252813b8bacc543a8"
+  ],
+  "scripts/local-activation-manifest.json": [
+    "84f2aae7e1d153d9470dd8846ac7626feb459dd7e9f7ff2f433eb7cde218b2d0"
+  ],
+  "scripts/responsive-manifest.json": [
+    "84f2aae7e1d153d9470dd8846ac7626feb459dd7e9f7ff2f433eb7cde218b2d0"
+  ],
+  "static/icons.js": [
+    "1ab1a84b378dcb9b4f844c64d60626abdee97301ec9cd22d9149a150cc59937c"
+  ],
+  "static/ui.js": [
+    "b2984ba4eb29b992ec4593e2cf0768671a406ec1f0432234b58424a30309dab9"
+  ],
+  "static/toolbar.css": [
+    "0da62e764e1926ae15e17388e55c7e37853e0446bdbb2983387ccc92e35a1b20"
+  ],
+  "static/index.html": [
+    "ef2596fa91b256a6ca33629a9d2914c68f9c306187fb8ad825d1caf701baada6",
+    "66974825c1dfcb1a145645d5d514f024c42f4c8ce76c1ac2851fa88b9a22b697"
+  ],
+  "static/capture-store.js": [
+    "da6afd85fd51c4801f63c33e2ff544c547d3036975767a485b6adc46c0db998e"
+  ],
+  "static/widget-core.js": [
+    "56b81f4f583471e06ab31a6370551da4fabe201aaa90f27cf47a2c60c6cbe513"
+  ],
+  "static/liquid-glass.css": [
+    "26c26e94d6082d764cbfe9027e01ec48e98d8fae48fae42a145b202fde503621"
+  ],
+  "static/weather.js": [
+    "b2c3a30402eb2009610957ad2753555866a43a417e29f5a0ab94a84cbbeb32f3"
+  ],
+  "static/christmas-tree.jpg": [
+    "469ce7e7c69230a96b3047893a21ac33b6f206cb2e1685065ca79cccc0a6e884"
+  ],
+  "static/activity.js": [
+    "01f0885a6dddbbec9670022895147f4cead3f18cccd74e16d3add347d093e7fc"
+  ],
+  "static/wallpaper.js": [
+    "7c89e4256cd96e0426a95235dd6b58c546e790a34d349f9c0ab7102d953fd42a",
+    "27cba8979498e7880ef6cc0d7eeae540275344b3d8b0b16f49f227f7776529b3"
+  ],
+  "static/spotify-player.js": [
+    "e63fc9dbbef85cb82d6340b9fe149b002a7586099201eed54bdd7e6de9a404d8"
+  ],
+  "static/today.css": [
+    "eb91621571ff5b8013c645b348d686bca9f32ffe7a9170773d52a5aee2def231"
+  ],
+  "static/widgets.css": [
+    "29a10b7420d6d24a413de065b5759601dab45ecb6806a1a25ab6a42da853ba1f"
+  ],
+  "static/command-core.js": [
+    "44a5db64d36a670a0fa55c9f84ab9649ae0e05fc5c9d381f3cf013e9c013c6d9"
+  ],
+  "static/wallpaper.css": [
+    "574b1c7d548610526935f1b7ecd8b266e55936dd8d26e515e0585e95918446b9"
+  ],
+  "static/spotify-player.css": [
+    "3f68f76ba8f6b213d28db053d64fc0c058e9461404b149b6914320f383070e7e"
+  ],
+  "static/focus-session.css": [
+    "fa7ca7adf8621dce6ad07d20992cd4c6972723523ebc4b23fbfeb96685bbd12e"
+  ],
+  "static/sounds.js": [
+    "f356f114c6a50ca7ce5206ca460113f3aeccee7dc648cfcc8db145296d30e8e4"
+  ],
+  "static/command.js": [
+    "ae187c51821a4ecd8f16f9097a0e57e80f06ef8071d9303c624701d61c0940e6"
+  ],
+  "static/responsive.css": [
+    "f8e7c48abaa15998ab57a6d64ad7a1724ab3d4c229b2290d78dad1147696a052"
+  ],
+  "static/focus.js": [
+    "5846bbbf966ea149973aefe49c6b4334f4753bdfe9b6e35c97e78d67b81a8b37"
+  ],
+  "static/create-menu.js": [
+    "7b5b663eabede8d40c64a49e981ec971849c791e019818e0cc867d94fc7ed42f"
+  ],
+  "static/toolbar-core.js": [
+    "60eec46a10136cf5ea8c184b114e1b70e8bfd73ff319acd08ccd935bb0f1a174"
+  ],
+  "static/utility-surfaces.css": [
+    "10c17d21a5b5c65df00207335d7e2b5addc71fbf2c854174453c3eb21ecee32e",
+    "ae56461a5a3b0ac85f479b15e5d2576c0d353b55132e929af8d54e2457fc907c"
+  ],
+  "static/today-core.js": [
+    "fc2d7102fc5295f1b516f3ec42db69668ca33ad88ed1c2be432feaae6becaa98"
+  ],
+  "static/style.css": [
+    "1b08fddd5351f8aaa5e47a5984d32414bfd604d15f4ae383b54007cf3d4697ea"
+  ],
+  "static/drive.js": [
+    "e953aea09d3dad5f6517afe00112a8913c18835c997e251a85d0b8cada9a5d70"
+  ],
+  "static/file-tools.js": [
+    "19f5e27363e6c871919e650c85f49d1edab5d8c92c4570a119c0c96604fc4611"
+  ],
+  "static/calm.js": [
+    "242afbd2b790b584f33c900aa639e49a3ee6193e5ca8f4616d882df1ff855489"
+  ],
+  "static/home-controls.js": [
+    "6fa402404c94f54f6c063bfee57b31794301c9835f5f03534dda9a5cc0864b34",
+    "7078c8dbca56307085a358c95047615d6d2df36c1e501f4a4366653058a9b8c7"
+  ],
+  "static/capture.js": [
+    "0217264cf724e0882c349313ff7033ba740a06cc89f585179f4fa5e246a8093f"
+  ],
+  "static/today.js": [
+    "d4f0b9f6a7b487a9ac3c55bc5bb98f1db99447dda64958d1eee18b724e06b83b"
+  ],
+  "static/spotify-logo.png": [
+    "193ef6f3d236da9a1e1e2991bf44a75a082fb3c99255c9eec9b47ea5f66413f1"
+  ],
+  "static/toolbar.js": [
+    "6c64a18ef88c4af45818999213435fe0f6af068196de8a31d354b418a58a7e11"
+  ],
+  "static/calendar.js": [
+    "daafabbee7d212c2e7f8ebf3758e4f3862db2f90d54d8024568b9c86be15e928"
+  ],
+  "static/widgets.js": [
+    "713a349ed60356ea84c684dd9ed6ba7fce171aea2bca3d1a92b7ed06f09d49b7",
+    "f8d7499eb33a48319a2da0947e6f973856c179601880844da3577beac731e9a2"
+  ],
+  "static/file-tools.css": [
+    "0f53a1c83a59e4bba97caea78cf86af294681292f6160905a35a9ab2f1a87d3a"
+  ],
+  "static/notifications.css": [
+    "2e0656e397e7a80f214c74f70067b0a9fa559c8d5d0d69c594a75297a338f027"
+  ],
+  "static/notifications.js": [
+    "23f5f09b92c6ac1b327f73485fbf8f6c562ca3123ef7e1233c8e9b1b23a9cb11"
+  ],
+  "static/home-controls.css": [
+    "a2d03e36e81155dc63321feb786a3856e054eb8ca1034c56e041d0e2979f2542"
+  ],
+  "static/app.js": [
+    "143bb7a63efa0139e37667c75c212bb99cc8ce7b1a38a378fbd04cc7ca1a8cc1",
+    "0d2fa9e71300b2bc606483d11459526a2983bc6dfb1dba1a4d4fc5b79479683c"
+  ],
+  "static/calm.css": [
+    "924e8bb23b0c449cc3d174f688fb20f80acd66d7277d6aacebeeeef0feee815d"
+  ],
+  "static/drive.css": [
+    "67261c6df7860e30d8080b0090f75357a4cd40dc9c8618380dab71038ba80986"
+  ],
+  "static/polish.css": [
+    "72e7d29e2058f68dfef0c435594145244444c367be375d2cd70af96bbdaecb66"
+  ],
+  "static/command.css": [
+    null,
+    "48a69e5dd183c0edd86c624f70963fef2682d6b60375c6dea909eae6421f8503"
+  ],
+  "static/wallpapers/scenes.json": [
+    null,
+    "526f644d9dc4cc62f4e3e1951ecb921c57d770114e0f1f17949029188fedcfc9"
+  ],
+  "static/wallpapers/rain-long.jpg": [
+    "1cb2bd142c7b69bc71170a448dd71fad3fc5f7c4d411a1b40be27533766372f7"
+  ],
+  "static/wallpapers/nature-long.jpg": [
+    "4211724dd620d5b0d1752a462331145131c50e24d42649dfe6851038f390cbd5"
+  ],
+  "static/icons/wind.svg": [
+    "eb35f6f00125b779a993c21ee761432faf8fc3210272c94448f63e2196d419b7"
+  ],
+  "static/icons/LICENSE": [
+    "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+  ],
+  "static/icons/cloud-sun.svg": [
+    "d3d0b5519e3e9e6073bc6d875fcb2b8d0a0c0d0062602490d444ef6a08bb2ab0"
+  ],
+  "static/icons/cloud-snow.svg": [
+    "cdbb307c38c6f6781dd8169bc92c28cae16b4fb77d6c5d88898dd92698ad2dbc"
+  ],
+  "static/icons/cloud-fog.svg": [
+    "68a247163f7501be38045284660b2c19b957e197d510e8169313075309da879a"
+  ],
+  "static/icons/mic.svg": [
+    "d5189292c208be21eb49be9b0418d958176f02ac6449a7c92b2940df93a35cf1"
+  ],
+  "static/icons/cloud-lightning.svg": [
+    "9966e87d16d255878fd34efa1174cf1756fb5755c1f63e7ff1df4db5d2fefc36"
+  ],
+  "static/icons/sun.svg": [
+    "a3955c8b0425fcc5c9ba12d2bdd77fe53b2cd5dd05e7742a56f342e996fb2ef8"
+  ],
+  "static/icons/cloud-moon.svg": [
+    "8233994cbdc0b3dfb5d234be026d4d038c731a020da4b5a65851fde0e956ee6c"
+  ],
+  "static/icons/cloud-rain.svg": [
+    "4230ba9d28d0a02c088ec0b21079b63aed9f2b7ee8493588adf34ee144bc307b"
+  ],
+  "static/icons/map-pin.svg": [
+    "16f1042a62f1bda20ebab8bfc1cb79c0be285c980dea6c2c733a17902631405b"
+  ],
+  "static/icons/cloud.svg": [
+    "28a34022ed00177eb1f218eea5d2b7af30d09b529187fe32219e4dd8ea2b9740"
+  ],
+  "static/icons/locate-fixed.svg": [
+    "3a10953374c6e811d8da564f87943cf52f47e284c6173ff211ffedc083b90430"
+  ],
+  "static/icons/moon.svg": [
+    "205b959e940d5841f0ce1d09c933153da9d9c94130a54d5cc0c68c2af1d403da"
+  ],
+  "static/fonts/DejaVuSans.ttf": [
+    "7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954"
+  ],
+  "static/fonts/DejaVu-LICENSE.txt": [
+    "7a083b136e64d064794c3419751e5c7dd10d2f64c108fe5ba161eae5e5958a93"
+  ],
+  "geodata/towns.json.gz": [
+    "7f9c4c0b21071e38101fd2d2857df633cda8f63008dac240f74fd1b02f7e0112"
+  ],
+  "geodata/README.md": [
+    "38badcc61760bc37bc7df6c74880c388edbd8faae01c2de4f9bc29a901ba1d61"
+  ],
+  "scripts/install_home_controls.py": [
+    "e57b4e85c694681615da68e0386fb7103f364ce825b4ee34546dbfdf0b524b0b"
+  ],
+  "scripts/install_home_notifications.py": [
+    "e57b4e85c694681615da68e0386fb7103f364ce825b4ee34546dbfdf0b524b0b"
+  ],
+  "scripts/install_responsive.py": [
+    "e57b4e85c694681615da68e0386fb7103f364ce825b4ee34546dbfdf0b524b0b"
+  ],
+  "scripts/install_toolbar.py": [
+    "e57b4e85c694681615da68e0386fb7103f364ce825b4ee34546dbfdf0b524b0b"
+  ],
+  "scripts/install_notification_timeout.py": [
+    "e57b4e85c694681615da68e0386fb7103f364ce825b4ee34546dbfdf0b524b0b"
+  ],
+  "scripts/install_glass.py": [
+    "e57b4e85c694681615da68e0386fb7103f364ce825b4ee34546dbfdf0b524b0b"
+  ],
+  "static/home-search.css": [
+    null
+  ],
+  "static/home-search.js": [
+    null
+  ],
+  "static/spaces-store.js": [
+    null
+  ],
+  "static/index.html.backup": [
+    null
+  ],
+  "static/spaces.js": [
+    null
+  ],
+  "static/command-spaces.css": [
+    "38e3812bdc6947a615ed45ba47deb63a7b4f36880793f26ac7ca30820413d186",
+    null
+  ]
 }

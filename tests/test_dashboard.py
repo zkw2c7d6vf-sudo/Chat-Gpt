@@ -33,7 +33,7 @@ def test_page_and_bootstrap(client):
     assert client.get('/').status_code == 200
     assert client.get('/static/app.js').status_code == 200
     boot=client.get('/api/bootstrap').json()
-    assert boot['settings']['plug_ip']=='192.168.18.154'
+    assert boot['settings']['plug_ip']==''
     assert not boot['settings']['plug_enabled']
     assert not boot['spotify_connected']
     assert 'frame-ancestors' in client.get('/').headers['content-security-policy']
@@ -45,6 +45,18 @@ def test_offline_worker_is_served_at_root(client):
     assert 'javascript' in response.headers['content-type']
     assert response.headers['cache-control'] == 'no-store'
     assert 'midnight-shell-' in response.text
+
+
+def test_static_assets_revalidate_while_html_and_private_responses_stay_uncached(client):
+    asset = client.get('/static/app.js')
+    assert asset.headers['cache-control'] == 'no-cache'
+    reused = client.get('/static/app.js', headers={'If-None-Match': asset.headers['etag']})
+    assert reused.status_code == 304
+    assert reused.content == b''
+    assert reused.headers['cache-control'] == 'no-cache'
+    assert 'frame-ancestors' in reused.headers['content-security-policy']
+    for path in ['/', '/app', '/static/index.html', '/sw.js', '/api/bootstrap', '/api/settings', '/static/missing.js']:
+        assert client.get(path).headers['cache-control'] == 'no-store'
 
 
 def test_mutations_need_csrf(client):
@@ -65,7 +77,7 @@ def test_settings_validation(client):
     assert post(client,'settings',{'spotify_client_id':'bad'}).status_code==422
     assert post(client,'settings',{'units':'kelvin'}).status_code==422
     assert post(client,'settings',{'feeds':['https://example.com/a']*13}).status_code==422
-    assert post(client,'settings',{'plug_ip':'192.168.18.154'}).status_code==200
+    assert post(client,'settings',{'plug_ip':'192.168.1.20'}).status_code==200
 
 
 def test_plug_disabled_never_discovers(client):
@@ -80,20 +92,20 @@ def test_plug_explicit_state_and_cleanup(client,monkeypatch):
     device.turn_on.side_effect=turn_on
     discover=AsyncMock(return_value=device)
     monkeypatch.setattr(server.Discover,'discover_single',discover)
-    post(client,'settings',{'plug_enabled':True})
+    post(client,'settings',{'plug_enabled':True,'plug_ip':'192.168.1.20'})
     assert client.get('/api/plug').json()['on'] is False
     device.turn_on.assert_not_awaited()
     device.turn_off.assert_not_awaited()
     assert post(client,'plug',{'on':True}).json()['on'] is True
     device.turn_on.assert_awaited_once()
     assert device.disconnect.await_count==2
-    assert discover.await_args.args==('192.168.18.154',)
+    assert discover.await_args.args==('192.168.1.20',)
 
 
 def test_plug_failure_unknown_and_no_retry(client,monkeypatch):
     device=SimpleNamespace(is_on=False,alias='Warmer',update=AsyncMock(),turn_on=AsyncMock(side_effect=OSError()),turn_off=AsyncMock(),disconnect=AsyncMock())
     monkeypatch.setattr(server.Discover,'discover_single',AsyncMock(return_value=device))
-    post(client,'settings',{'plug_enabled':True})
+    post(client,'settings',{'plug_enabled':True,'plug_ip':'192.168.1.20'})
     r=post(client,'plug',{'on':True})
     assert r.status_code==503
     assert 'unknown' in r.json()['detail']

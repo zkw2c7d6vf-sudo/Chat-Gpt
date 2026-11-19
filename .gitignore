@@ -10,3 +10,16 @@ upgrade-backups/
 *.mp4
 *.download
 .DS_Store
+
+.venv*/
+.runtime/
+.runtime-python
+logs/
+history/
+*.backup
+*.midnight-upgrade-tmp
+
+static/ambient/*.mp3
+*.source-download
+
+verification/

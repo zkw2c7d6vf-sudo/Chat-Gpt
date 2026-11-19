@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "scenes": {
+    "nature": {
+      "src": "/static/wallpapers/nature-long.mp4",
+      "poster": "/static/wallpapers/nature-long.jpg",
+      "author": "Tom Fisk",
+      "page": "https://www.pexels.com/video/32329775/",
+      "width": 3840,
+      "height": 2160,
+      "duration": 60.43
+    },
+    "rain": {
+      "src": "/static/wallpapers/rain-long.mp4",
+      "poster": "/static/wallpapers/rain-long.jpg",
+      "author": "Engin Akyurt",
+      "page": "https://www.pexels.com/video/11887609/",
+      "width": 4096,
+      "height": 2160,
+      "duration": 59.26
+    }
+  }
+}

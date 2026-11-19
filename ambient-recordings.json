@@ -1,0 +1,69 @@
+{
+  "format": 1,
+  "recordings": [
+    {
+      "id": "rain",
+      "file": "rain.mp3",
+      "label": "Rain",
+      "description": "Steady rainfall on a tin roof, recorded inside a garden shed.",
+      "seconds": 3390.38,
+      "title": "Rain on Tin Roof - 1 Hour",
+      "creator": "archerjosiah",
+      "license": "CC0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source": "https://freesound.org/people/archerjosiah/sounds/843483/",
+      "download": "https://cdn.freesound.org/previews/843/843483_9671929-hq.mp3",
+      "sha256": "500fec2d452246112d774388a4e12c97a97935c61c4422d3225b4f3803dd308b",
+      "bytes": 80587400
+    },
+    {
+      "id": "rain-thunder",
+      "file": "rain-thunder.mp3",
+      "label": "Rain & thunder",
+      "description": "Gentle rain and distant thunder in Sussex \u00b7 82-minute excerpt.",
+      "seconds": 4921.601066,
+      "title": "Rain and ocasional thunder.mp3",
+      "creator": "Simon Spiers",
+      "license": "CC0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source": "https://freesound.org/people/Simon%20Spiers/sounds/394600/",
+      "download": "https://cdn.freesound.org/previews/394/394600_213249-hq.mp3",
+      "sha256": "83ea1faec6dd044aaee47ccc7eeee0cbc5424b2fab6583b2cb7ac52289b433a6",
+      "bytes": 121977817,
+      "source_sha256": "fe1bb259cc848c0367816b431c068803835376cb7b0b461b582506d02fce8d06",
+      "source_bytes": 121977608,
+      "source_seconds": 7335.329,
+      "normalize_mp3": true
+    },
+    {
+      "id": "heavy-storm",
+      "file": "heavy-storm.mp3",
+      "label": "Heavy rain & thunder",
+      "description": "An outdoor Baltic Sea thunderstorm with close and rolling thunder.",
+      "seconds": 1647.579,
+      "title": "Thunderstorm Baltic Sea",
+      "creator": "Borgory",
+      "license": "CC0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source": "https://freesound.org/people/Borgory/sounds/870414/",
+      "download": "https://cdn.freesound.org/previews/870/870414_801011-hq.mp3",
+      "sha256": "29ba38de1cfadfd4bca6f4d7aa4a9877745ad4d370840b4873838cbd4922569b",
+      "bytes": 37078944
+    },
+    {
+      "id": "roof-storm",
+      "file": "roof-storm.mp3",
+      "label": "Rain & thunder on a metal roof",
+      "description": "Rain on a metal vehicle roof, recorded inside a parked Jeep.",
+      "seconds": 5040,
+      "title": "Rain Against The Jeep From The Interior 9-20-22 .wav",
+      "creator": "Ambient-X",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "source": "https://freesound.org/people/Ambient-X/sounds/650969/",
+      "download": "https://cdn.freesound.org/previews/650/650969_13721094-hq.mp3",
+      "sha256": "8dca6effefa50b4d6325661640b29331529f3ef05e59c949ded3d68fc975a0ed",
+      "bytes": 116193067
+    }
+  ]
+}

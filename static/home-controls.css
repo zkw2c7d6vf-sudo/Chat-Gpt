@@ -1,0 +1,599 @@
+#settingsDialog .settingsGrid {grid-template-columns: minmax(0, 1fr)}
+#settingsDialog .settingsGrid > section {min-width: 0}
+#settingsDialog summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+#settingsDialog summary::-webkit-details-marker {display: none}
+#settingsDialog summary::after {content: '+'; color: var(--muted)}
+#settingsDialog details[open] > summary::after {content: '−'}
+#settingsDialog summary:focus-visible {outline: 2px solid var(--accent); outline-offset: 3px}
+#settingsDialog .settingsGrid > section:has(details:not([open])) {padding-block: 4px}
+#settingsDialog .settingsGrid > section details > :last-child {margin-bottom: 0}
+.bottomDock[hidden], #spotifyRecents[hidden] {display: none}
+/* Match row height, while allowing each widget its own column width. */
+.homeWidgets:has(#spotifyRecents:not([hidden])) > .card {height: 328px}
+.homeWidgets > .widgetOpener {cursor: pointer}
+#spotifyRecents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 14px 2px;
+  border-top: 1px solid var(--line);
+}
+#spotifyRecents button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 8px;
+  font-size: 11px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: var(--text);
+}
+#spotifyRecents button:hover {background: var(--glass)}
+#spotifyRecents button > :last-child {overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+.recentArtwork {
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 28px;
+  height: 28px;
+  background: var(--glass);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.recentArtwork img {position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover}
+#spotifyRecents button[aria-busy="true"] {opacity: .65; cursor: progress}
+
+/* Keep the dock in flow so even a shallow viewport cannot overlap the cards. */
+main#home {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-block: var(--home-top) var(--dock-offset);
+}
+#home > :is(.appBar, .clockHero, .googleSearch, .homeWidgets, .bottomDock) {flex-shrink: 0}
+#home > .homeWidgets {margin-bottom: var(--cards-to-dock)}
+#home > .bottomDock {
+  position: relative;
+  inset: auto;
+  transform: none;
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(100%, calc(100vw - 48px));
+  min-height: var(--dock-height);
+  margin: auto auto 0;
+  padding: 12px 18px;
+  border-radius: 999px;
+}
+#home > .bottomDock #toolbarItems {
+  gap: 22px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+#home .clockHero {
+  height: min(clamp(280px, 39dvh, 430px), max(78px, calc(100dvh - var(--clock-reserve))));
+  padding-block: 0;
+}
+#home .clockHero > .clock {align-self: flex-end}
+#home > #googleSearch {
+  width: min(62%, calc(var(--home-width) * .62), 720px);
+  margin: var(--clock-to-search) auto var(--search-to-cards);
+}
+@media (height < 900px) {
+  #home #spotifyRecents {display: none}
+  #home .homeWidgets > .card {height: 280px}
+}
+@media (min-width: 761px) and (max-height: 1000px) {
+  main#home {--home-top: 8px}
+  #home .clockHero {
+    height: clamp(78px, calc(100dvh - var(--clock-reserve)), 284px);
+    min-height: 0;
+    padding: 0;
+  }
+  #home .clock #clock {
+    font-size: clamp(50px, calc(68dvh - 365px), 184px);
+  }
+  #home .clock #today {margin-top: 4px}
+}
+@media (min-width: 761px) and (max-height: 660px) {
+  #home .homeWidgets > .card {height: 264px}
+  #home .music .cardHead {padding-top: 6px}
+  #home .music .turntable {width: 100px; height: 100px; flex-basis: 100px}
+  #home .music .disc {width: 82px; height: 82px; top: 8px}
+  #home {--dock-item-height: 50px}
+  #home .bottomDock #toolbarItems > :is(button, a) {height: var(--dock-item-height)}
+}
+
+.toolbarSiteIcon {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  flex: 0 0 23px;
+}
+.toolbarSiteIcon > * {grid-area: 1 / 1; width: 100%; height: 100%; object-fit: contain}
+.toolbarSiteIcon > [hidden] {display: none}
+#toolbarDialog .toolbarSiteIcon {width: 20px; height: 20px}
+
+@media (max-width: 760px) {
+  main#home {min-width: 0; padding-inline: 16px}
+  #home .appBar {min-width: 0; flex-wrap: wrap; gap: 8px}
+  #home .homeWidgets {grid-template-columns: minmax(0, 1fr)}
+}
+
+/* Shared home grid and readable surfaces, including over bright scenes. */
+:root {--home-urgent: #9bcbff; --home-badge-ink: #102038}
+:root[data-theme=light]:not([data-scene]) {--home-urgent: #164e88; --home-badge-ink: #fff}
+#home {
+  --home-width: 1240px;
+  --home-top: 24px;
+  --home-inset: 26px;
+  --clock-to-search: 40px;
+  --search-to-cards: 40px;
+  --cards-to-dock: 40px;
+  --dock-offset: 20px;
+  --dock-item-height: 62px;
+  --dock-height: calc(var(--dock-item-height) + 34px);
+  /* Header, search, card row and a few pixels of clearance. */
+  --clock-reserve: calc(440px + var(--home-top) + var(--dock-height) + var(--dock-offset) +
+    var(--clock-to-search) + var(--search-to-cards) + var(--cards-to-dock));
+  --home-secondary: #d3dbe7;
+  --home-card: linear-gradient(155deg, #353d4a, #202630 70%);
+}
+:root[data-theme=light]:not([data-scene]) #home {
+  --home-secondary: #414b59;
+  --home-card: linear-gradient(155deg, #fff, #e9edf4);
+}
+#home .homeWidgets {width: 100%; max-width: var(--home-width)}
+#home .appBar {
+  width: calc(100% + 2 * (var(--home-gutter) - 12px));
+  max-width: none;
+  margin-inline: calc(12px - var(--home-gutter));
+  justify-content: space-between;
+}
+#home .appBar > #notificationToggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+#home .appBar > #notificationToggle > span:not(#notificationCount) {display: none}
+#home .appBar > #notificationToggle > .lineIcon {width: 19px; height: 19px}
+#home .appBar > #notificationToggle > #notificationCount {position: absolute; inset: 0 0 auto auto}
+#home .homeWidgets {gap: 24px}
+#home .homeWidgets {grid-template-columns: minmax(0,1.05fr) minmax(0,.95fr) minmax(0,1.05fr)}
+#home .homeWidgets > .card {background: var(--home-card); --muted: var(--home-secondary)}
+#home .weather .sky {opacity: .15}
+#home .homeWidgets > .card > .cardHead {
+  flex: 0 0 52px;
+  height: 52px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px var(--home-inset);
+}
+#home .cardHead :is(h2, .spotifyBrand) {font-size: 14px; font-weight: 600; margin: 0}
+#home .cardHead :is(.smallButton,.quiet) {margin: 0; flex: 0 0 44px; width: 44px; height: 44px}
+#home .homeWidgets > .card > :is(.cardFoot, .nextFooter) {
+  flex: 0 0 48px;
+  block-size: 48px;
+  min-block-size: 48px;
+  margin: auto 0 0;
+  padding: 0 var(--home-inset);
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+}
+#home .cardFoot > a, #home .weather #weatherMore {opacity: 1; font-size: 11px; color: var(--muted)}
+#home .weather .weatherBody, #home .music .musicBody, #home .nextEvent #todayNextEvent {
+  padding-inline: var(--home-inset);
+}
+#home #spotifyRecents {margin-inline: var(--home-inset)}
+#home #spotifyRecents button {padding-inline: 0 3px}
+#home :is(.weatherInsight, #weatherDetail, .timecodes, .eventLocation, #agendaSummary) {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 1;
+}
+#home #condition {font-size: 13px; font-weight: 500}
+#home .weather .temperature {font-size: clamp(26px, 2.4vw, 34px); letter-spacing: -.055em}
+#home .miniForecast {padding-inline: var(--home-inset)}
+#home #musicMore {max-width: none; padding: 0; font-size: 11px}
+#home #spotifyHint {flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis}
+#home .clock > div {display: block; position: relative}
+#home #meridiem {position: absolute; top: auto; bottom: .55em; left: calc(100% + .5em); margin: 0; font-size: clamp(12px, 1.5vw, 20px)}
+#home .nextEvent #todayNextEvent {justify-content: flex-start; min-height: 0; padding-block: 4px 0; gap: 4px}
+#home .nextEvent .todayEvent {min-height: 44px; gap: 3px}
+#home .nextEvent .todayEvent strong {font-size: 17px; -webkit-line-clamp: 1}
+#home .nextEvent :is(.followingEvent, .homeDue) strong {overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+#home .nextEvent .todayEvent small, #home .followingEvent span {font-size: 11px}
+#home .homeDue {
+  margin: 0 var(--home-inset);
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  padding: 3px 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+#home .homeDue[hidden] {display: none}
+#home .homeDue strong {font-size: 13px; font-weight: 600}
+#home :is(#notificationCount, #captureCount) {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--home-urgent);
+  color: var(--home-badge-ink);
+  font: 600 10px/1.2 system-ui, sans-serif;
+}
+#home :is(#notificationCount, #captureCount)[hidden] {display: none}
+#home #captureCount {position: static; margin: 0 0 0 2px}
+#home > .bottomDock :is(.toolbarSiteIcon, .lineIcon) {width: 22px; height: 22px; min-height: 0}
+#home > .bottomDock .toolbarWebsite, #home > .bottomDock .toolbarItems > button {gap: 5px}
+#home > .bottomDock .dockLabel {max-width: 68px}
+.music .tonearm .movingArm {transform: rotate(var(--tonearm-angle, -8deg)); transform-origin: 153px 22px}
+@media (prefers-reduced-motion: no-preference) {
+  .music .tonearm .movingArm {transition: transform .35s linear}
+}
+@media (max-width: 1099px) {
+  #home {--home-inset: clamp(12px, 1.8vw, 20px)}
+  #home .homeWidgets {gap: clamp(12px, 2vw, 24px)}
+  #home > .bottomDock #toolbarItems {gap: clamp(12px, 2vw, 22px)}
+}
+@media (max-width: 1050px) {
+  #home .music .musicBody {gap: 9px}
+  #home .music .turntable {width: 90px; height: 90px; flex-basis: 90px}
+  #home .music .disc {width: 74px; height: 74px}
+  #home .music .cardFoot {gap: 4px}
+  #home .music .transport {gap: 0}
+}
+@media (max-width: 760px) {
+  #home .homeWidgets {grid-template-columns: minmax(0,1fr)}
+  #home > #googleSearch {width: min(85%, 720px)}
+}
+#home #musicTitle {
+  font-size: clamp(15px, 1.8vw, 23px);
+  font-weight: 600;
+  line-height: 1.23;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0 0 5px;
+}
+
+/* Keep viewport alignment shared by the header, centered groups and toast. */
+:root {
+  --home-width: 1240px;
+  --home-gutter: 40px;
+  --home-top: 24px;
+}
+main#home {padding-inline: var(--home-gutter)}
+#home .clockHero {justify-content: center}
+#home .clockHero > .clock {width: 100%; min-width: 0}
+#home .clock > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
+  align-items: baseline;
+}
+#home #clock {grid-column: 2; display: block; padding-inline-end: .075em}
+#home #meridiem {
+  position: static;
+  grid-column: 3;
+  justify-self: start;
+  margin-inline-start: .5em;
+}
+#home .appTools {margin-inline-start: 0; margin-inline-end: auto}
+#home .appTools #fullscreen {
+  display: grid;
+  justify-items: end;
+  align-items: center;
+  padding-inline-end: 0;
+}
+#home .appTools #commandOpen {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  margin: 0;
+}
+#home #commandOpen > span {display: grid; place-items: center}
+#home #commandOpen .lineIcon {display: block}
+#notificationDock {
+  inset: calc(var(--home-top) + 50px) max(10px, env(safe-area-inset-right)) auto auto;
+  max-width: min(420px, calc(100vw - 20px));
+}
+#home > .bottomDock #toolbarItems {gap: 14px}
+#home > .bottomDock #toolbarItems > :is(button, a) {flex: 0 0 64px; width: 64px; min-width: 64px}
+#home > .bottomDock .dockLabel {max-width: 100%; padding-inline: 2px; line-height: 1.3}
+#home .nextEvent #todayNextEvent {
+  flex: 0 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#home .nextEvent #todayNextEvent > button {flex-shrink: 0}
+#home .nextEvent .followingEvent {padding-top: 0; min-height: 44px}
+#home .nextEvent .homeDue {flex-shrink: 0}
+#home .homeDue {margin-top: 4px}
+#home #musicMore #musicDeviceLabel {letter-spacing: normal}
+#home .trackMeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+#home .trackMeta #artist {font-size: 11px}
+#home .trackAlbum {display: flex; align-items: center; gap: 5px; min-width: 0}
+#home .trackAlbum #albumTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+#home .trackAlbum .yearTag {font-size: 10px; white-space: nowrap}
+#home .trackAlbum .yearTag::before {content: none}
+#home .trackAlbum:not(:has(#albumTitle:not(:empty),.yearTag:not([hidden]))) {display: none}
+#home .weather .miniForecast {display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px}
+#home .weather .miniDay {padding-inline: 0}
+@media (max-width: 1150px) { :root {--home-gutter: 24px} }
+@media (max-width: 760px) { :root {--home-gutter: 16px} }
+@media (min-width: 761px) and (max-height: 1000px) { :root {--home-top: 8px} }
+@media (max-width: 760px) {
+  #notificationDock {inset-block-start: calc(var(--home-top) + 56px)}
+}
+
+/* Keep the quick actions readable over the lightest wallpaper frames. */
+:root {
+  --home-glass: rgb(32 38 48 / .92);
+  --home-pill: 999px;
+  --home-urgent: #ffc474;
+  --home-count: #9bcbff;
+  --home-info: #9bcbff;
+}
+:root[data-theme=light]:not([data-scene]) {
+  --home-glass: rgb(244 247 252 / .96);
+  --home-urgent: #834400;
+  --home-count: #164e88;
+  --home-info: #164e88;
+}
+#home {
+  --dock-item-height: 52px;
+  --dock-height: calc(var(--dock-item-height) + 14px);
+  --dock-offset: 24px;
+  --clock-reserve: calc(504px + var(--home-top) + var(--dock-height) + var(--dock-offset) +
+    var(--clock-to-search) + var(--search-to-cards) + var(--cards-to-dock));
+}
+#home .homeWidgets > .card {border-radius: 24px}
+#home > .bottomDock {background: var(--home-glass); padding: 6px 18px}
+#home > .bottomDock #toolbarItems > :is(button,a) {
+  display: grid;
+  grid-template-rows: 22px 14px;
+  grid-template-columns: minmax(0, 1fr);
+  place-content: center;
+  justify-items: center;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+  height: var(--dock-item-height);
+  min-height: 44px;
+  padding: 0;
+}
+#home .bottomDock #toolbarItems > :is(button,a) > :first-child {
+  display: grid;
+  place-items: center;
+  height: 22px;
+}
+#home .bottomDock #toolbarItems > :is(button,a) > span:nth-child(2) {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 14px;
+}
+#home #captureCount {position: absolute; inset: 2px 4px auto auto; margin: 0}
+#home :is(#notificationCount,#captureCount) {background: var(--home-count)}
+#home .bottomDock [data-panel=room][aria-pressed=true] {
+  background: color-mix(in srgb, var(--home-urgent) 15%, transparent);
+  color: var(--home-urgent);
+}
+#home .bottomDock [data-panel=room][aria-pressed=true]::after {
+  content: '';
+  position: absolute;
+  inset: 6px 10px auto auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+#notificationDock {background: var(--home-glass)}
+#notificationLatest[data-notification-kind=reminder] #notificationLatestIcon {color: var(--home-urgent)}
+#wallpaperPreferences #wallpaperCredit {
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  margin-block: 10px;
+  color: var(--muted);
+  text-shadow: none;
+  font-size: 12px;
+}
+#wallpaperPreferences #wallpaperCredit[hidden] {display: none}
+#wallpaperPreferences #wallpaperCredit a {text-decoration: underline}
+#home #clock {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'tnum', 'lnum';
+}
+#home .clock > div {column-gap: 0}
+#home #meridiem {margin-inline-start: .24em}
+#home .appTools #fullscreen {place-items: center; width: 44px; padding: 0; margin: 0}
+#home :is(.appTools,.homeWidgets,.homeSearchRow,.bottomDock) :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+#home .cardHead :is(#musicMore,#locate,#todayCalendar) {
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+#home .cardHead #musicMore {
+  width: auto;
+  min-width: 44px;
+  max-width: none;
+  flex: 0 0 auto;
+  padding-inline: 8px;
+  font-size: 12px;
+}
+#home .cardHead :is(#musicMore,#locate,#todayCalendar):hover {background: var(--glass)}
+#home .cardHead #musicMore[hidden], #home .cardFoot [hidden] {display: none}
+#home #musicStatus {color: var(--muted)}
+#home .music .cardFoot:has(#spotifyHint:not([hidden])) #musicStatus {display: none}
+#home #musicTitle {block-size: 2.46em}
+#home .music .trackMeta {min-height: 32px}
+#home .music .trackMeta #artist {display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+#home .trackAlbum:has(#albumTitle:not(:empty)) .yearTag::before {content: '·'; margin-inline-end: 5px}
+#home .music .transport {margin-block: 4px 5px}
+#home .tonearm .movingArm {transform-box: view-box}
+@media (prefers-reduced-motion: reduce) {
+  #home .tonearm .movingArm {transform: rotate(-8deg)}
+}
+#home .homeWidgets .weather .weatherBody {min-height: 96px}
+#home .weather .weatherBody:has(#weatherCurrent:not([hidden]))::before {
+  content: 'Now';
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+#home .weather .miniDay[aria-current=date] {background: var(--accent-soft); color: var(--home-info)}
+#home .homeWidgets > .card > :is(.cardFoot,.nextFooter) > :is(button,a,span) {
+  margin-block: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: normal;
+  color: var(--muted);
+}
+#home .homeWidgets > .card > :is(.cardFoot,.nextFooter) > :is(button,a):not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  height: 44px;
+  padding: 0;
+  white-space: nowrap;
+}
+#home #agendaSummary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#home :is(.music,.weather) .cardFoot > :is(button,a):last-child,
+#home .music .cardFoot > a {margin-inline-start: auto}
+#home .weather .cardFoot > a {margin-inline: 0 auto}
+#home .nextEvent #todayNextEvent {padding-block: 0; gap: 0}
+#home .nextEvent .agendaPreviewRow {
+  display: grid;
+  grid-template-columns: clamp(100px, 9vw, 122px) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 3px 0;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+#home .nextEvent .agendaPreviewRow + .agendaPreviewRow,
+#home .nextEvent .homeDue {border-top: 1px solid color-mix(in srgb,var(--muted) 18%,transparent)}
+#home .nextEvent .agendaPreviewRow:hover {background: var(--accent-soft)}
+#home .agendaPreviewRow :is(.agendaWhen,.agendaText) {display: grid; min-width: 0; gap: 2px}
+#home .agendaPreviewRow :is(.agendaWhen span,small) {color: var(--muted); font-size: 11px; font-weight: 500}
+#home .agendaPreviewRow strong {font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap}
+#home .homeDue {margin-top: 0}
+#home .homeDue .agendaText {grid-template-columns: 14px minmax(0,1fr); align-items: center; gap: 5px}
+#home .homeDue .lineIcon {width: 14px; height: 14px}
+#home .homeDue .agendaText {color: var(--text)}
+#home .homeDue .lineIcon {color: var(--muted)}
+#home .homeDue .agendaWhen small {white-space: nowrap; overflow: hidden; text-overflow: ellipsis}
+#home .homeDue[data-urgent=true] .agendaWhen > span {color: var(--home-urgent)}
+#home .nextEvent[data-live=true] :is(#nextTitle,.eventCountdown) {color: var(--home-info)}
+@media (min-width: 761px) and (max-height: 1000px) {
+  #home {--clock-to-search: 36px; --search-to-cards: 36px}
+  #home .clock #clock {font-size: clamp(50px, calc(100dvh - var(--clock-reserve) - 32px), 184px)}
+}
+@media (min-width: 761px) and (max-height: 899px) {
+  #home {--clock-reserve: calc(448px + var(--home-top) + var(--dock-height) + var(--dock-offset) +
+    var(--clock-to-search) + var(--search-to-cards) + var(--cards-to-dock))}
+}
+
+@media (min-width: 761px) and (max-height: 660px) {
+  #home .homeWidgets .weather .weatherBody {min-height: 84px}
+  #home .homeWidgets .weather .miniForecast {min-height: 70px}
+}
+
+#home .weather .cardHead #weatherTitle {
+  min-width: 0;
+  max-width: none;
+  font-size: clamp(21px, 2.2vw, 28px);
+  font-weight: 600;
+}
+
+#nextWallpaperHome {
+  position: absolute;
+  inset: auto 12px var(--dock-offset) auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding-inline: 10px;
+  border: 1px solid var(--material-stroke);
+  border-radius: var(--home-pill);
+  background: var(--home-glass);
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+#nextWallpaperHome[hidden] {display: none}
+#nextWallpaperHome:not(:disabled):hover {border-color: var(--accent)}
+#home:has(> #nextWallpaperHome:not([hidden])) > .bottomDock {
+  max-width: min(calc(100% - 208px), calc(100vw - 48px));
+}
+#home:has(> .bottomDock[hidden]) > #nextWallpaperHome:not([hidden]) {
+  position: static;
+  align-self: flex-end;
+  margin-top: auto;
+}

@@ -1,19 +1,21 @@
 /* Dependency-free local search, command registry and conservative capture interpretation. */
 (function(root){
  'use strict';
- const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
  function distance(a,b){if(Math.abs(a.length-b.length)>2)return 3;let row=Array.from({length:b.length+1},(_,i)=>i);for(let i=0;i<a.length;i++){const next=[i+1];for(let j=0;j<b.length;j++)next.push(Math.min(next[j]+1,row[j+1]+1,row[j]+(a[i]===b[j]?0:1)));row=next;}return row[b.length];}
- function score(query,item){const q=normalize(query),title=normalize(item.title),words=normalize([item.title,item.subtitle,...(item.keywords||[])].join(' ')).split(' ');if(!q)return 1;let total=title===q?1000:title.startsWith(q)?450:title.includes(q)?300:0;for(const token of q.split(' ')){let best=0;for(const word of words){if(word===token)best=Math.max(best,80);else if(word.startsWith(token))best=Math.max(best,50);else if(token.length>=3&&distance(token,word)<=(token.length>5?2:1))best=Math.max(best,25);}if(!best)return 0;total+=best;}return total;}
+ const prepare=item=>({title:normalize(item.title),words:[...new Set(normalize([item.title,item.subtitle,...(item.keywords||[])].join(' ')).split(' '))]});
+ function preparedScore(q,{title,words}){if(!q)return 1;let total=title===q?1000:title.startsWith(q)?450:title.includes(q)?300:0;for(const token of q.split(' ')){let best=0;for(const word of words){if(word===token){best=80;break;}else if(word.startsWith(token))best=Math.max(best,50);else if(best<25&&token.length>=3&&distance(token,word)<=(token.length>5?2:1))best=25;}if(!best)return 0;total+=best;}return total;}
+ function score(query,item){return preparedScore(normalize(query),prepare(item));}
  class Registry {
   constructor(){this.entries=new Map();this.busy=new Set();}
   register(command){if(!command.id||typeof command.action!=='function')throw new Error('Commands need an id and action.');this.entries.set(command.id,command);return()=>this.entries.delete(command.id);}
   list(){return [...this.entries.values()].filter(item=>!item.available||item.available());}
-  async execute(id){const command=this.entries.get(id);if(!command)throw new Error('This command is no longer available.');if(this.busy.has(id))return false;this.busy.add(id);try{await command.action();return true;}finally{this.busy.delete(id);}}
+  async execute(id){const command=this.entries.get(id);if(!command)throw new Error('This command is no longer available.');if(command.available&&!command.available())throw new Error('This action is no longer available.');if(this.busy.has(id))return false;this.busy.add(id);try{await command.action();return true;}finally{this.busy.delete(id);}}
  }
  class SearchIndex {
-  constructor(){this.items=[];}
-  replace(items){this.items=items.map(item=>({...item,keywords:item.keywords||[]}));}
-  search(query,{usage={},context=[]}={}){return this.items.map(item=>({item,relevance:score(query,item)})).filter(r=>r.relevance>0).map(({item,relevance})=>({...item,relevance:relevance+Math.min(20,(Number.isFinite(Number(usage[item.id]))?Math.max(0,Number(usage[item.id])):0)*2)+(context.includes(item.type)?5:0)})).sort((a,b)=>b.relevance-a.relevance||a.title.localeCompare(b.title)).slice(0,40);}
+  constructor(){this.items=[];this.prepared=[];}
+  replace(items){this.items=items.map(item=>({...item,keywords:[...(item.keywords||[])]}));this.prepared=this.items.map(prepare);}
+  search(query,{usage={},context=[]}={}){const q=normalize(query);if(String(query||'').trim()&&!q)return [];return this.items.map((item,i)=>({item,relevance:preparedScore(q,this.prepared[i])})).filter(r=>r.relevance>0).map(({item,relevance})=>({...item,relevance:relevance+Math.min(20,(Number.isFinite(Number(usage[item.id]))?Math.max(0,Number(usage[item.id])):0)*2)+(context.includes(item.type)?5:0)})).sort((a,b)=>b.relevance-a.relevance||a.title.localeCompare(b.title)).slice(0,40);}
  }
  function parseCapture(text,now=new Date()){
   const value=text.trim();let kind=null,due=null;

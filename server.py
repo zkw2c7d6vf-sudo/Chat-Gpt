@@ -1,3 +1,5 @@
+from spotify_recent import recent_collections, recent_tracks
+from drive_recent import drive_router
 """Midnight: single-user, loopback-only dashboard. No cloud account writes on startup."""
 import asyncio
 import base64
@@ -14,12 +16,19 @@ import socket
 import ssl
 import time
 import tempfile
+import subprocess
+import sys
+import signal
+from urllib.parse import quote
+from file_tools import capabilities as file_capabilities, MAX_INPUT, MAX_OUTPUT
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import urlencode, urljoin, urlsplit
 
 import feedparser
 import httpx
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from icalendar import Calendar
@@ -41,12 +50,14 @@ except OSError:
     pass
 BASE = 'http://127.0.0.1:8765'
 CALLBACK = BASE + '/api/spotify/callback'
-DEFAULTS = {'plug_ip': '192.168.18.154', 'plug_enabled': False, 'spotify_client_id': '',
+DEFAULTS = {'plug_ip': '', 'plug_enabled': False, 'spotify_client_id': '',
             'calendar_url': '', 'feeds': [], 'units': 'fahrenheit'}
 CSRF = secrets.token_urlsafe(32)
 OAUTH = {}
 CACHE = {}
 cache_generation = 0
+CONFIG_WARNINGS = set()
+recent_lock = asyncio.Lock()
 feed_pending = {}
 feed_slots = asyncio.Semaphore(4)
 spotify_lock = asyncio.Lock()
@@ -58,8 +69,16 @@ app = FastAPI(title='Midnight Dashboard', docs_url=None, redoc_url=None, openapi
 
 def read_json(name, fallback):
     try:
-        return json.loads((DATA / name).read_text('utf-8'))
+        value=json.loads((DATA/name).read_text('utf-8'))
+        if not isinstance(value,type(fallback)):raise ValueError('Wrong configuration shape')
+        return value
+    except FileNotFoundError:return fallback
     except (OSError, ValueError):
+        CONFIG_WARNINGS.add(name)
+        try:
+            previous=json.loads((DATA/(name+'.previous')).read_text('utf-8'))
+            if isinstance(previous,type(fallback)):return previous
+        except (OSError,ValueError):pass
         return fallback
 
 
@@ -69,11 +88,18 @@ def save_json(name, value):
     fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, 'w', encoding='utf-8') as f:
         json.dump(value, f)
+    if target.is_file():
+        previous=DATA/(name+'.previous');previous.write_bytes(target.read_bytes());previous.chmod(0o600)
     os.replace(temp, target)
 
 
 def config():
-    return DEFAULTS | read_json('settings.json', {})
+    stored=read_json('settings.json', {})
+    try:return Settings.model_validate(DEFAULTS|stored).model_dump()
+    except ValueError:
+        CONFIG_WARNINGS.add('settings.json')
+        try:return Settings.model_validate(json.loads((DATA/'settings.json.previous').read_text())).model_dump()
+        except (OSError,ValueError):return dict(DEFAULTS)
 
 
 def invalidate_cache():
@@ -120,17 +146,33 @@ async def local_guard(request: Request, call_next):
     if request.method not in ('GET', 'HEAD', 'OPTIONS'):
         if not secrets.compare_digest(request.headers.get('x-midnight-token', ''), CSRF):
             return JSONResponse({'detail': 'Reload the dashboard before making changes.'}, 403)
-        if int(request.headers.get('content-length', '0')) > 2_000_000:
-            return JSONResponse({'detail': 'Maximum request size is 2 MB.'}, 413)
+        limit = MAX_INPUT if request.url.path in ('/api/files/convert', '/api/files/extract') else 2_000_000
+        detail = 'Maximum file size is 30 MB.' if limit == MAX_INPUT else 'Maximum request size is 2 MB.'
+        try:
+            declared = int(request.headers.get('content-length', '0'))
+        except ValueError:
+            return JSONResponse({'detail':'Invalid request length.'},400)
+        if declared < 0 or declared > limit:
+            return JSONResponse({'detail':detail},413)
+        chunks=[];received=0
+        async for chunk in request.stream():
+            received+=len(chunk)
+            if received>limit:return JSONResponse({'detail':detail},413)
+            chunks.append(chunk)
+        request._body=b''.join(chunks)
     response = await call_next(request)
-    response.headers.update({'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+    # Public source assets may be retained and revalidated with ETag/Last-Modified.
+    # HTML, service worker updates and all API/personal responses stay uncached.
+    static_asset = (request.url.path.startswith('/static/') and request.url.path != '/static/index.html'
+                    and (200 <= response.status_code < 300 or response.status_code == 304))
+    response.headers.update({'Cache-Control': 'no-cache' if static_asset else 'no-store', 'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; connect-src 'self'; media-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"})
+        'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; connect-src 'self'; media-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://www.google.com"})
     return response
 
 
 class Settings(BaseModel):
-    plug_ip: str = '192.168.18.154'
+    plug_ip: str = ''
     plug_enabled: bool = False
     spotify_client_id: str = ''
     calendar_url: str = ''
@@ -140,10 +182,17 @@ class Settings(BaseModel):
     @field_validator('plug_ip')
     @classmethod
     def private_ip(cls, value):
+        value=value.strip()
+        if not value:return ''
         ip = ipaddress.ip_address(value)
         if ip.version != 4 or not any(ip in ipaddress.ip_network(n) for n in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')):
             raise ValueError('Use a private LAN IPv4 address.')
         return str(ip)
+
+    @model_validator(mode='after')
+    def enabled_plug_requires_address(self):
+        if self.plug_enabled and not self.plug_ip:raise ValueError('Enter the warmer’s private LAN IP before enabling it.')
+        return self
 
     @field_validator('spotify_client_id')
     @classmethod
@@ -226,34 +275,50 @@ def public_fetch(url, allow_html=False):
     raise ValueError('Too many redirects.')
 
 
+def public_settings(value=None):
+    cfg=dict(config() if value is None else value)
+    calendar_url=cfg.pop('calendar_url','')
+    return cfg|{'calendar_url':'','calendar_configured':bool(calendar_url),'calendar_url_hint':urlsplit(calendar_url).hostname if calendar_url else ''}
+
+
+@app.get('/api/runtime')
+async def runtime_status():return {'pid':os.getpid(),'root':str(ROOT),'release':'2026.11.18-r46-review'}
+
+
 @app.get('/api/bootstrap')
 async def bootstrap():
-    return {'csrf': CSRF, 'settings': config(), 'spotify_connected': bool(read_json('spotify.json', {}).get('refresh_token')),
-            'calendar_imported': (DATA / 'calendar.ics').exists()}
+    return {'csrf': CSRF, 'settings': public_settings(), 'spotify_connected': bool(read_json('spotify.json', {}).get('refresh_token')),
+            'calendar_imported': (DATA / 'calendar.ics').exists(), 'release':'2026.11.18-r46-review', 'configuration_warnings':sorted(CONFIG_WARNINGS),'chatgpt_destination':read_json('chatgpt-link.json',{}).get('url','')}
 
 
 @app.post('/api/settings')
-async def settings(body: Settings):
+async def settings(body: dict):
     old = config()
-    save_json('settings.json', body.model_dump())
+    unknown=set(body)-set(Settings.model_fields)
+    if unknown:raise HTTPException(422,'Unknown settings field.')
+    try:next_settings=Settings.model_validate(old|body)
+    except ValueError:raise HTTPException(422,'Check the connection, calendar, feeds and unit settings.')
+    if 'calendar_url' in body and old['calendar_url']!=next_settings.calendar_url:backup_calendar()
+    save_json('settings.json', next_settings.model_dump())
     invalidate_cache()
-    if old['spotify_client_id'] != body.spotify_client_id:
+    if old['spotify_client_id'] != next_settings.spotify_client_id:
         (DATA / 'spotify.json').unlink(missing_ok=True)
+        (DATA/'spotify.json.previous').unlink(missing_ok=True)
         OAUTH.clear()
-    return {'ok': True}
+    return {'ok': True,'settings':public_settings(next_settings.model_dump())}
 
 
 
 class WallpaperPreferences(BaseModel):
     key: str | None = Field(default=None, max_length=200)
     interval: int = 30
-    quality: str = '4k'
+    quality: str = 'hd'
 
     @field_validator('key')
     @classmethod
     def valid_key(cls, value):
-        if value is not None and value.strip() and not re.fullmatch(r'[A-Za-z0-9_-]{20,200}', value.strip()):
-            raise ValueError('Paste a valid Pexels API key, or leave the field empty to keep it.')
+        if value is not None and value.strip() and not re.fullmatch(r'\d{1,12}-[A-Za-z0-9]{20,100}', value.strip()):
+            raise ValueError('Paste a valid Pixabay API key, or leave the field empty to keep it.')
         return value
 
     @field_validator('interval')
@@ -317,7 +382,7 @@ async def spotify_connect():
     OAUTH[state] = (verifier, time.time() + 600, client)
     return {'url': 'https://accounts.spotify.com/authorize?' + urlencode({'client_id': client,
         'response_type': 'code', 'redirect_uri': CALLBACK, 'state': state, 'code_challenge_method': 'S256',
-        'code_challenge': challenge, 'scope': 'user-read-playback-state user-read-currently-playing user-modify-playback-state'})}
+        'code_challenge': challenge, 'scope': 'user-read-playback-state user-read-currently-playing user-modify-playback-state user-read-recently-played user-library-read user-library-modify'})}
 
 
 async def token_exchange(data):
@@ -343,7 +408,7 @@ async def spotify_callback(state: str = '', code: str = '', error: str = ''):
     return RedirectResponse('/?spotify=connected', status_code=303)
 
 
-async def spotify_request(method, path, *, json_body=None):
+async def spotify_request(method, path, *, json_body=None, player=True):
     global spotify_retry_at
     if time.time() < spotify_retry_at:
         raise HTTPException(429, f'Spotify rate limit. Retry in {max(1, int(spotify_retry_at-time.time()))} seconds.')
@@ -357,7 +422,7 @@ async def spotify_request(method, path, *, json_body=None):
             token.update(fresh)
             save_json('spotify.json', token)
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.request(method, 'https://api.spotify.com/v1/me/player' + path,
+            r = await client.request(method, 'https://api.spotify.com/v1' + ('/me/player' if player else '') + path,
                 headers={'Authorization': 'Bearer ' + token['access_token']}, **({'json': json_body} if json_body is not None else {}))
         if r.status_code == 429:
             try:
@@ -371,13 +436,102 @@ async def spotify_request(method, path, *, json_body=None):
             404: 'No active Spotify player. Open Spotify and start a song on your PC or phone first.'}
         if r.status_code >= 400:
             raise HTTPException(r.status_code, errors.get(r.status_code, f'Spotify returned HTTP {r.status_code}. Try again later.'))
-        return None if r.status_code == 204 else r.json()
+        return None if r.status_code == 204 or not r.content else r.json()
 
 
 def release_year(item):
     # Spotify supplies the date for this album/release, not guaranteed original recording year.
     value = item.get('album', {}).get('release_date', item.get('release_date', ''))
     return value[:4] if re.match(r'^\d{4}(?:-|$)', value or '') else None
+
+
+@app.get('/api/spotify/recent')
+async def spotify_recent():
+    async with recent_lock:
+        cached=CACHE.get(('spotify-recent',))
+        if cached and cached[0]>time.time():return cached[1]
+        result=await load_spotify_recent()
+        CACHE[('spotify-recent',)]=(time.time()+60,result)
+        return result
+
+
+async def load_spotify_recent():
+    token = read_json('spotify.json', {})
+    if not token:
+        raise HTTPException(401, 'Connect Spotify in settings.')
+    if 'user-read-recently-played' not in token.get('scope', '').split():
+        return {'items': [], 'tracks': [], 'needs_consent': True}
+    history = await spotify_request('GET', '/recently-played?limit=50')
+    collections = recent_collections((history or {}).get('items', []))
+    for uri, item in collections.items():
+        if item['image'] or uri.startswith('spotify:album:') and item['name'] != 'Album':
+            continue
+        _, kind, identifier = uri.split(':')
+        try:
+            fields = '?fields=name,images' if kind == 'playlist' else ''
+            details = await spotify_request('GET', f'/{kind}s/{identifier}{fields}', player=False)
+        except (HTTPException, httpx.RequestError):
+            continue
+        if details:
+            item['name'] = details.get('name') or item['name']
+            item['image'] = next(iter(details.get('images') or []), {}).get('url')
+    return {'items': list(collections.values()), 'tracks': recent_tracks((history or {}).get('items', []))}
+
+
+class SpotifyCollection(BaseModel):
+    context_uri: str = Field(pattern=r'^spotify:(album|playlist):[a-zA-Z0-9]{1,64}$')
+
+
+@app.post('/api/spotify/play-collection')
+async def spotify_play_collection(body: SpotifyCollection):
+    await spotify_request('PUT', '/play', json_body={'context_uri': body.context_uri})
+    return {'ok': True}
+
+
+class SpotifyTrack(BaseModel):
+    model_config = {'extra': 'forbid'}
+    track_uri: str = Field(pattern=r'^spotify:track:[a-zA-Z0-9]{1,64}$')
+
+
+@app.post('/api/spotify/play-track')
+async def spotify_play_track(body: SpotifyTrack):
+    await spotify_request('PUT', '/play', json_body={'uris': [body.track_uri]})
+    return {'ok': True}
+
+
+def spotify_library_scopes():
+    token = read_json('spotify.json', {})
+    if not token:
+        raise HTTPException(401, 'Connect Spotify first.')
+    return set(token.get('scope', '').split())
+
+
+@app.get('/api/spotify/liked')
+async def spotify_liked(track_uri: str):
+    if not re.fullmatch(r'spotify:track:[a-zA-Z0-9]{1,64}', track_uri):
+        raise HTTPException(422, 'Choose a Spotify song.')
+    scopes = spotify_library_scopes()
+    can_save = 'user-library-modify' in scopes
+    if 'user-library-read' not in scopes:
+        return {'saved': None, 'can_save': can_save, 'needs_consent': True}
+    key = ('spotify-liked', track_uri)
+    cached = CACHE.get(key)
+    if cached and cached[0] > time.time():
+        return {'saved': cached[1], 'can_save': can_save, 'needs_consent': not can_save}
+    result = await spotify_request('GET', '/me/library/contains?' + urlencode({'uris': track_uri}), player=False)
+    if not isinstance(result, list) or not result or not isinstance(result[0], bool):
+        raise HTTPException(502, 'Spotify could not confirm this song’s Liked Songs status.')
+    CACHE[key] = (time.time() + 30, result[0])
+    return {'saved': result[0], 'can_save': can_save, 'needs_consent': not can_save}
+
+
+@app.post('/api/spotify/liked')
+async def spotify_add_liked(body: SpotifyTrack):
+    if 'user-library-modify' not in spotify_library_scopes():
+        raise HTTPException(403, 'Reconnect Spotify to allow adding to Liked Songs.')
+    await spotify_request('PUT', '/me/library?' + urlencode({'uris': body.track_uri}), player=False)
+    CACHE[('spotify-liked', body.track_uri)] = (time.time() + 30, True)
+    return {'saved': True, 'track_uri': body.track_uri}
 
 
 @app.get('/api/spotify')
@@ -396,7 +550,7 @@ async def spotify_state():
         'volume': data.get('device', {}).get('volume_percent'),
         'supports_volume': bool(data.get('device', {}).get('supports_volume', False)),
         'shuffle': bool(data.get('shuffle_state', False)), 'repeat': data.get('repeat_state', 'off'),
-        'url': item.get('external_urls', {}).get('spotify', ''), 'type': item.get('type', 'track'),
+        'url': item.get('external_urls', {}).get('spotify', ''), 'uri': item.get('uri', ''), 'type': item.get('type', 'track'),
         'disallows': data.get('actions', {}).get('disallows', {})}
 
 
@@ -447,6 +601,8 @@ async def spotify_options(body: PlaybackOptions):
 @app.post('/api/spotify/disconnect')
 async def spotify_disconnect():
     (DATA / 'spotify.json').unlink(missing_ok=True)
+    (DATA/'spotify.json.previous').unlink(missing_ok=True)
+    CACHE.pop(('spotify-recent',),None)
     OAUTH.clear()
     return {'ok': True}
 
@@ -700,9 +856,30 @@ def calendar_events(raw, tz_name, start_date=None, end_date=None):
     calendar = Calendar.from_ical(raw)
     window_start = datetime.combine(start_date, datetime.min.time(), tzinfo=tz) if start_date else now - timedelta(days=1)
     window_end = datetime.combine(end_date, datetime.min.time(), tzinfo=tz) if end_date else now + timedelta(days=14)
-    events = recurring_ical_events.of(calendar).between(window_start, window_end)
+    # Refuse sub-hourly rules before expansion; stream a bounded occurrence window.
+    if len(raw)>1_500_000 or len(calendar.walk('VEVENT'))>5000:raise ValueError('Calendar input budget exceeded')
+    daily_budget=0
+    for component in calendar.walk('VEVENT'):
+        for rule in (component.get('RRULE'),):
+            if rule and str(rule.get('FREQ',[''])[0]).upper() in ('SECONDLY','MINUTELY'):raise ValueError('Sub-hourly calendar recurrence is unsupported')
+            if rule and (len(rule.get('BYSECOND',[0]))>1 or len(rule.get('BYMINUTE',[0]))>1):raise ValueError('Dense calendar recurrence is unsupported')
+            daily_budget+=24 if rule and str(rule.get('FREQ',[''])[0]).upper()=='HOURLY' else len(rule.get('BYHOUR',[0])) if rule else 1
+            if daily_budget>5000:raise ValueError('Calendar daily expansion budget exceeded')
+    expansion=recurring_ical_events.of(calendar)
+    def bounded_occurrences():
+        cursor=window_start;count=0;seen=set()
+        while cursor<window_end:
+            next_day=min(cursor+timedelta(days=1),window_end)
+            for event in expansion.between(cursor,next_day):
+                identity=(str(event.get('UID','')),str(event.get('RECURRENCE-ID',event.get('DTSTART'))))
+                if identity in seen:continue
+                seen.add(identity);yield event;count+=1
+                if count>=2001:return
+            cursor=next_day
+    events=bounded_occurrences()
     result = []
-    for e in events:
+    for occurrence,e in enumerate(events):
+        if occurrence>=2001:break
         if str(e.get('STATUS', '')) == 'CANCELLED':
             continue
         start = e.decoded('DTSTART')
@@ -714,19 +891,19 @@ def calendar_events(raw, tz_name, start_date=None, end_date=None):
                 return datetime.combine(value, datetime.min.time(), tzinfo=tz)
             return value.replace(tzinfo=tz) if value.tzinfo is None else value.astimezone(tz)
         start, end = aware(start), aware(end)
-        if end <= (window_start if start_date else now):
+        if start>=window_end:break
+        if end < (window_start if start_date else now):
             continue
-        result.append({'title': str(e.get('SUMMARY', 'Untitled')), 'start': start.isoformat(), 'end': end.isoformat(),
+        result.append({'uid':str(e.get('UID','')), 'id':str(e.get('UID',''))+'|'+str(e.get('RECURRENCE-ID',start.isoformat())), 'title': str(e.get('SUMMARY', 'Untitled')), 'start': start.isoformat(), 'end': end.isoformat(),
             'all_day': all_day, 'location': str(e.get('LOCATION', '')), 'description': str(e.get('DESCRIPTION', ''))[:6000]})
-    return sorted(result, key=lambda e: datetime.fromisoformat(e['start']))[:2001 if start_date else 30]
+    return sorted(result, key=lambda e: datetime.fromisoformat(e['start']))[:2001]
 
 
 class CalendarImport(BaseModel):
     content: str = Field(max_length=1_500_000)
 
 
-@app.post('/api/calendar/import')
-async def calendar_import(body: CalendarImport):
+def validate_calendar(body):
     try:
         cal = Calendar.from_ical(body.content)
         if cal.name != 'VCALENDAR' or cal.errors:
@@ -742,6 +919,34 @@ async def calendar_import(body: CalendarImport):
         calendar_events(body.content, 'UTC')
     except Exception:
         raise HTTPException(400, 'Choose a valid .ics iCalendar file.')
+
+@app.post('/api/calendar/validate')
+async def calendar_validate(body:CalendarImport):
+    validate_calendar(body)
+    return {'ok':True}
+
+
+def backup_calendar():
+    snapshot=DATA/'calendar.ics'
+    save_json('calendar-recovery.json',{'calendar_url':config()['calendar_url'],'content':snapshot.read_text('utf-8') if snapshot.is_file() else None})
+
+
+@app.post('/api/calendar/restore')
+async def calendar_restore():
+    saved=read_json('calendar-recovery.json',{})
+    if not saved:raise HTTPException(404,'No previous calendar is saved.')
+    backup_calendar()
+    if saved.get('content') is None:(DATA/'calendar.ics').unlink(missing_ok=True)
+    else:
+        (DATA/'calendar.ics').write_text(saved['content']);(DATA/'calendar.ics').chmod(0o600)
+    cfg=config();cfg['calendar_url']=saved.get('calendar_url','');save_json('settings.json',cfg);invalidate_cache()
+    return {'ok':True}
+
+
+@app.post('/api/calendar/import')
+async def calendar_import(body:CalendarImport):
+    validate_calendar(body)
+    backup_calendar()
     target = DATA / 'calendar.ics'
     temporary = None
     try:
@@ -767,6 +972,7 @@ async def calendar_import(body: CalendarImport):
 
 @app.post('/api/calendar/clear')
 async def calendar_clear():
+    backup_calendar()
     (DATA / 'calendar.ics').unlink(missing_ok=True)
     cfg = config()
     cfg['calendar_url'] = ''
@@ -776,7 +982,7 @@ async def calendar_clear():
 
 
 @app.get('/api/calendar')
-async def calendar(tz: str = 'UTC', start: str | None = None, end: str | None = None):
+async def calendar(tz: str = 'UTC', start: str | None = None, end: str | None = None, refresh: bool = False):
     start_date = end_date = None
     if start is not None or end is not None:
         try:
@@ -789,17 +995,25 @@ async def calendar(tz: str = 'UTC', start: str | None = None, end: str | None = 
     try:
         ZoneInfo(tz)
         url = cfg['calendar_url']
+        imported_at = None
         if url:
             key = ('ics', url)
+            if refresh and CACHE.get(('ics-refresh',url),0)<time.time():
+                CACHE.pop(key,None);CACHE[('ics-refresh',url)]=time.time()+10
             if key not in CACHE or CACHE[key][0] < time.time():
                 CACHE[key] = (time.time() + 900, await asyncio.to_thread(public_fetch, url))
             raw = CACHE[key][1]
         elif (DATA / 'calendar.ics').exists():
-            raw = (DATA / 'calendar.ics').read_bytes()
+            with (DATA / 'calendar.ics').open('rb') as snapshot:
+                raw = snapshot.read()
+                imported_at = datetime.fromtimestamp(os.fstat(snapshot.fileno()).st_mtime, timezone.utc).isoformat()
         else:
             return {'configured': False, 'events': []}
         events = await asyncio.to_thread(calendar_events, raw, tz, start_date, end_date)
-        return {'configured': True, 'events': events[:2000], 'truncated': len(events) > 2000, 'source': 'Subscription' if url else 'Imported file'}
+        return {'configured': True, 'events': events[:2000], 'truncated': len(events) > 2000, 'source': 'Subscription' if url else 'Imported file', 'imported_at': imported_at}
+    except ValueError as error:
+        if any(word in str(error) for word in ('budget','recurrence')):raise HTTPException(422,'Calendar exceeds the supported recurrence budget. Use hourly or less frequent events and a smaller calendar.')
+        raise HTTPException(502,'Calendar data is invalid. Review its source and timezone.')
     except Exception:
         raise HTTPException(502, 'Calendar could not load. Check the iCalendar source and timezone. Imported files are snapshots; subscriptions refresh every 15 minutes.')
 
@@ -807,6 +1021,100 @@ async def calendar(tz: str = 'UTC', start: str | None = None, end: str | None = 
 @app.exception_handler(httpx.RequestError)
 async def network_error(request, exc):
     return JSONResponse({'detail': 'Network unavailable. Check your connection and try again.'}, 502)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request, exc):
+    if request.url.path in ('/api/wallpaper/settings', '/api/drive/connect'):
+        # Validation errors must not reflect even a mistyped credential to the client.
+        return JSONResponse({'detail': [{key: error[key] for key in ('type', 'loc', 'msg')}
+                                        for error in exc.errors()]}, 422)
+    return await request_validation_exception_handler(request, exc)
+
+
+app.include_router(drive_router(read_json, save_json))
+
+
+
+# Files are processed by a short-lived local worker and deleted before responding.
+file_slots = asyncio.Semaphore(2)
+
+
+@app.get('/api/files/options')
+async def file_options():
+    return file_capabilities()
+
+
+def run_file_worker(data, spec):
+    with tempfile.TemporaryDirectory(prefix='midnight-files-') as directory:
+        work = Path(directory)
+        (work / 'input').write_bytes(data)
+        (work / 'request.json').write_text(json.dumps(spec))
+        process = subprocess.Popen([sys.executable, str(ROOT / 'file_tools.py'), str(work)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=(os.name != 'nt'))
+        try:
+            process.wait(timeout=90)
+        except subprocess.TimeoutExpired:
+            if os.name != 'nt':
+                os.killpg(process.pid, signal.SIGKILL)
+            else:
+                subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True)
+            process.wait()
+            raise HTTPException(408, 'This file took too long. Try a smaller document.')
+        result_path = work / 'result.json'
+        if not result_path.is_file():
+            raise HTTPException(400, 'This file could not be processed. Try a smaller, unprotected file.')
+        result = json.loads(result_path.read_text())
+        if result.get('error'):
+            raise HTTPException(400, result['error'])
+        if spec['action'] == 'extract':
+            return result
+        output = work / 'output'
+        if not output.is_file() or output.stat().st_size > MAX_OUTPUT:
+            raise HTTPException(400, 'Converted output is unavailable or too large.')
+        return result, output.read_bytes()
+
+
+async def file_upload(request, filename):
+    if not filename or len(filename) > 240:
+        raise HTTPException(400, 'Choose a file with a name under 240 characters.')
+    data = bytearray()
+    async for chunk in request.stream():
+        data.extend(chunk)
+        if len(data) > MAX_INPUT:
+            raise HTTPException(413, 'Maximum file size is 30 MB.')
+    if not data:
+        raise HTTPException(400, 'Choose a non-empty file.')
+    return bytes(data)
+
+
+@app.post('/api/files/convert')
+async def convert_file(request: Request, filename: str, operation: str):
+    from file_tools import CONVERSIONS
+    if operation not in {o[0] for o in CONVERSIONS}:
+        raise HTTPException(400, 'Choose a supported conversion.')
+    data = await file_upload(request, filename)
+    async with file_slots:
+        result, output = await asyncio.to_thread(run_file_worker, data, {'action':'convert','filename':filename,'operation':operation})
+    return Response(output, media_type=result['mime'], headers={
+        'Content-Disposition': "attachment; filename*=UTF-8''" + quote(result['name']),
+        'X-Midnight-Filename': quote(result['name'])})
+
+
+@app.post('/api/files/extract')
+async def extract_deadlines(request: Request, filename: str, year: int):
+    if not 2000 <= year <= 2100:
+        raise HTTPException(400, 'Choose a year between 2000 and 2100.')
+    data = await file_upload(request, filename)
+    async with file_slots:
+        return await asyncio.to_thread(run_file_worker, data, {'action':'extract','filename':filename,'year':year})
+
+
+@app.get('/api/sounds')
+async def sound_catalog():
+    catalog = json.loads((ROOT / 'ambient-recordings.json').read_text())
+    return {'recordings':[{**item, 'available':(ROOT / 'static' / 'ambient' / item['file']).is_file(),
+        'path':'/static/ambient/' + item['file']} for item in catalog['recordings']]}
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'static'), name='static')

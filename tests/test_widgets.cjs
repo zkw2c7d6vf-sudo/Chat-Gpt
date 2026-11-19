@@ -23,3 +23,5 @@ test('rain outlook uses future hours, probability and local time',()=>{
 test('missing precipitation is unknown rather than clear, and low probability stays qualified',()=>{
  assert.equal(outlook({hourly:{time:[now/1000]}},now),'');assert.match(outlook({hourly:{time:[now/1000],precipitation_probability:[10]}},now),/Low rain chance/);
 });
+test('separate event identities survive same title and time',()=>{const e=event('Class','2026-11-17T18:00Z','2026-11-17T19:00Z');assert.equal(agenda([{...e,id:'a'},{...e,id:'b'}],now,'UTC').todayCount,2);});
+test('a sparse forecast cannot promise 12 hours of low rain',()=>{const sparse=outlook({hourly:{time:[now/1000],precipitation_probability:[10]}},now);assert.match(sparse,/incomplete/);assert.doesNotMatch(sparse,/for the next 12 hours/);const full=outlook({hourly:{time:Array.from({length:13},(_,i)=>now/1000+i*3600),precipitation_probability:Array(13).fill(10)}},now);assert.match(full,/for the next 12 hours/);});

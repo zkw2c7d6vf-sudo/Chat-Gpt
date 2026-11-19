@@ -151,7 +151,7 @@ dialog .dialogTop, #readerDialog .dialogTop, #weatherDialog .dialogTop, #capture
 }
 
 /* Desktop layout: explicit card areas, natural minimum rows, no overlapping tracks. */
-main {display:flex;flex-direction:column;min-width:1000px;height:100dvh;min-height:760px;padding:20px 28px;}
+main {display:flex;flex-direction:column;min-width:0;height:100dvh;min-height:760px;padding:20px 28px;}
 .dashboardHeader {height:clamp(120px,16vh,172px);min-height:0;padding:0;margin-bottom:16px;grid-template-columns:1fr auto 1fr;grid-template-rows:1fr;}
 .clock #clock {font-size:clamp(100px,12vh,150px);}
 .dashboard {flex:1;min-height:0;gap:16px;grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:minmax(300px,auto) minmax(260px,1fr);grid-template-areas:"music music music music weather weather weather weather focus focus room room" "agenda agenda agenda agenda agenda news news news news news news news";}

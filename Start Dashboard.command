@@ -1,25 +1,30 @@
 #!/bin/zsh
 set -eu
 cd "${0:A:h}"
-if [[ ! -x .venv/bin/python ]]; then
-  if command -v uv >/dev/null 2>&1; then
-    uv venv --python 3.11 .venv
-  elif command -v python3.11 >/dev/null 2>&1; then
-    python3.11 -m venv .venv
-  else
-    print 'Install Python 3.11 from https://www.python.org/downloads/macos/ and run this launcher again.'
-    read '?Press Return to close.'
-    exit 1
+if [[ -f .runtime-python ]]; then
+  midnight_python=$(cat .runtime-python)
+else
+  if [[ ! -x .venv/bin/python ]]; then
+    if command -v uv >/dev/null 2>&1; then
+      uv venv --python 3.11 .venv
+    elif command -v python3.11 >/dev/null 2>&1; then
+      python3.11 -m venv .venv
+    else
+      print 'Install Python 3.11 from https://www.python.org/downloads/macos/ and run this launcher again.'
+      read '?Press Return to close.'
+      exit 1
+    fi
+  fi
+  midnight_python="$PWD/.venv/bin/python"
+  if ! "$midnight_python" -c 'import fastapi, uvicorn, httpx, kasa, feedparser, icalendar, recurring_ical_events, trafilatura, PIL, pillow_heif, pypdfium2, reportlab, imageio_ffmpeg' >/dev/null 2>&1; then
+    if command -v uv >/dev/null 2>&1; then
+      uv pip sync --python "$midnight_python" --require-hashes requirements.lock
+    else
+      "$midnight_python" -m pip install --require-hashes -r requirements.lock
+    fi
   fi
 fi
-if ! .venv/bin/python -c 'import fastapi, uvicorn, httpx, kasa, feedparser, icalendar, recurring_ical_events, trafilatura' >/dev/null 2>&1; then
-  if command -v uv >/dev/null 2>&1; then
-    uv pip install --python .venv/bin/python -r requirements.txt
-  else
-    .venv/bin/python -m pip install -r requirements.txt
-  fi
-fi
-if ! .venv/bin/python scripts/fetch_assets.py; then
+if ! "$midnight_python" scripts/fetch_assets.py; then
   print 'Background downloads are unavailable. Midnight will use its saved still images.'
 fi
 print 'Midnight Dashboard: http://127.0.0.1:8765/app'
@@ -35,4 +40,4 @@ print 'Keep this window open. Press Control+C to stop.'
 ) &
 opener=$!
 trap 'kill "$opener" 2>/dev/null || true' EXIT
-.venv/bin/python server.py
+"$midnight_python" scripts/start.py
