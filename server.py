@@ -282,13 +282,13 @@ def public_settings(value=None):
 
 
 @app.get('/api/runtime')
-async def runtime_status():return {'pid':os.getpid(),'root':str(ROOT),'release':'2026.11.18-r46-review'}
+async def runtime_status():return {'pid':os.getpid(),'root':str(ROOT),'release':'2026.11.18-r47-player-sounds'}
 
 
 @app.get('/api/bootstrap')
 async def bootstrap():
     return {'csrf': CSRF, 'settings': public_settings(), 'spotify_connected': bool(read_json('spotify.json', {}).get('refresh_token')),
-            'calendar_imported': (DATA / 'calendar.ics').exists(), 'release':'2026.11.18-r46-review', 'configuration_warnings':sorted(CONFIG_WARNINGS),'chatgpt_destination':read_json('chatgpt-link.json',{}).get('url','')}
+            'calendar_imported': (DATA / 'calendar.ics').exists(), 'release':'2026.11.18-r47-player-sounds', 'configuration_warnings':sorted(CONFIG_WARNINGS),'chatgpt_destination':read_json('chatgpt-link.json',{}).get('url','')}
 
 
 @app.post('/api/settings')
@@ -460,7 +460,7 @@ async def load_spotify_recent():
     if not token:
         raise HTTPException(401, 'Connect Spotify in settings.')
     if 'user-read-recently-played' not in token.get('scope', '').split():
-        return {'items': [], 'tracks': [], 'needs_consent': True}
+        return {'items': [], 'albums': [], 'playlists': [], 'tracks': [], 'needs_consent': True}
     history = await spotify_request('GET', '/recently-played?limit=50')
     collections = recent_collections((history or {}).get('items', []))
     for uri, item in collections.items():
@@ -475,7 +475,10 @@ async def load_spotify_recent():
         if details:
             item['name'] = details.get('name') or item['name']
             item['image'] = next(iter(details.get('images') or []), {}).get('url')
-    return {'items': list(collections.values()), 'tracks': recent_tracks((history or {}).get('items', []))}
+    items = list(collections.values())
+    return {'items': items, 'albums': [item for item in items if '/album/' in item['url']],
+            'playlists': [item for item in items if '/playlist/' in item['url']],
+            'tracks': recent_tracks((history or {}).get('items', []))}
 
 
 class SpotifyCollection(BaseModel):

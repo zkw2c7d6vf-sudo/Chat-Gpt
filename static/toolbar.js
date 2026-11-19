@@ -55,6 +55,7 @@ window.MidnightToolbar=(()=>{
     if(core.openOnDisplay(item.url,details,window.open.bind(window)))event.preventDefault();
    });items.append(anchor);
   }
+  window.dispatchEvent(new Event('midnight:toolbarchange'));
  }
  function message(text){$('toolbarStatus').textContent=text;}
  function resetForm(){editing=null;$('toolbarLinkName').value='';$('toolbarLinkUrl').value='';$('toolbarLinkSubmit').textContent='Add website';$('toolbarLinkCancel').hidden=true;$('toolbarLinkStatus').textContent='';}

@@ -12,11 +12,9 @@
     "3ccfd60b20d122d2683999b5c29d183dc0b0b450e6a329d7052aad46e85dd67a"
   ],
   "server.py": [
-    "a5b1a1e43fd5e9331ddd68a5094c88319022cad8b9e21fe2c0f19ffbddd588dc",
     "90ebb32a2cde6959d5761bce14fcfc88157a60494fd556a437bcf8c023167341"
   ],
   "wallpaper.py": [
-    "5d10f9a612fa837517835609733d07339db44eb43600c4d3f75857d8aab6a102",
     "f397a5a21136b4927e8a1b2f3f0c3a7d520c1f778ce1217c7026164fe7dbcd98"
   ],
   "places.py": [
@@ -29,7 +27,6 @@
     "330875e1a9658d1a80abd914bd2457bba86791fc497b93c285bcdded8587968d"
   ],
   "sw.js": [
-    "d449f1eb2a960beda2c126c833c81873577228840dc7dbd286f6609837c78bd4",
     "055b49ebdaa755635ac484dc57b3fc1fa99dbce4ec19163065de33bb0e9d6bf6"
   ],
   "requirements.txt": [
@@ -39,54 +36,45 @@
     "0449048d7bc805ed2953aecb6502c879a66825f032911037a3cee14e2e909c4c"
   ],
   "CLAUDE-REVIEW.md": [
-    null,
     "15fd7c225de32ae5c58c4f673eae4b69cbff41d344f8e2390d24a2d5ea5fea6b"
   ],
   "VERIFICATION.md": [
-    "c33724c5c3cd0c0985db368aaef0b3f75256dc3caac04e3862ca77f147031103",
     "6c78df78b2518c53edaada5001fdbfd3cc41c8f653e453ab69e2e3ee75685e33"
   ],
   "PLATFORM-ACCEPTANCE.md": [
     "1f5fd1174e3357fd43b1e0c4be93f6afbe050179fa48dd263e97e8e9d0f6e58d"
   ],
   "README.md": [
-    "62fe25abb119b97c12c6ef232e9c3a73990b845dae1fe50cf6abe7f9be2f0cf2",
     "db798019b916229027741801ef2d33a443d74ce617c8b01491a65d15f9565692"
   ],
   "AGENTS.md": [
-    "de5815f5474e4d04599d8571a728bd9becf35c85dc0489475fd93533e6be0d84",
     "d92528dbc60f4274d479db950994bd929d6612c95a72854a117a98ba95a4214c"
   ],
   "ASSET-CREDITS.md": [
     "6cd1e6dd80a0ace7d9ad7c1e4e7415fb7a87783b2a98666f784929922c86bf3b"
   ],
   "Start Dashboard.command": [
-    "bac08d8f5661605d0b9f17bd61ab28652c447c9d41dd082c4f65aa1181f92b99",
     "676daa73512e03606a3d406c9f9cdbdeb43c56b9fd6d172848bf592e66094be1"
   ],
   "Start Dashboard.cmd": [
-    "47e6ec75edafbe326f8951c10866614dcae58813d2f257be33793a3d908a124d",
     "6a309d734bec4dfe739b8c962ceeedda26b896796b0455d0d0c05b3c0498ba42"
   ],
   "Open Dashboard.ps1": [
     "4949fa50141497e961d23614d55891a0ff500f1d853a1bd43b3e2a70a9c8df5e"
   ],
   "Apply Midnight Update.command": [
-    "89586cbc0946b8fa3af21d77fd2cb53c168f93b6c50c8a0401c0e116fc7eeb91",
     "f9e55ecfd9f6788e09fb9e89315df23b5c8abcbb30f2141384bbc395318b0136"
   ],
   "scripts/fetch_assets.py": [
     "7a2b90e793d5ae55ff539499b34739ba056ee912ca06e0d6baf084e8dcd66f63"
   ],
   "scripts/apply_upgrade.py": [
-    "10d89f6f49d2025f7af1a642fa0bcd7e23b9907317436268fc124fe81ca4fd02",
     "b4ee534db8e4f0129f639c03f54357ee3749711942216ca73f3f7aacdf983205"
   ],
   "scripts/start.py": [
     "590b8c25b8bcddfa7ce1cf723f8b27230438257f1ceca3d15286130a7487b9cf"
   ],
   "scripts/activate_local.py": [
-    "b9e7978130d75a34bd4021766eb5ae37ddda9a41bfb3bae724d72afa916645ec",
     "c0ff99e761905854f4616fd5579417557703c2546e250b5252813b8bacc543a8"
   ],
   "scripts/local-activation-manifest.json": [
@@ -105,7 +93,6 @@
     "0da62e764e1926ae15e17388e55c7e37853e0446bdbb2983387ccc92e35a1b20"
   ],
   "static/index.html": [
-    "ef2596fa91b256a6ca33629a9d2914c68f9c306187fb8ad825d1caf701baada6",
     "66974825c1dfcb1a145645d5d514f024c42f4c8ce76c1ac2851fa88b9a22b697"
   ],
   "static/capture-store.js": [
@@ -127,7 +114,6 @@
     "01f0885a6dddbbec9670022895147f4cead3f18cccd74e16d3add347d093e7fc"
   ],
   "static/wallpaper.js": [
-    "7c89e4256cd96e0426a95235dd6b58c546e790a34d349f9c0ab7102d953fd42a",
     "27cba8979498e7880ef6cc0d7eeae540275344b3d8b0b16f49f227f7776529b3"
   ],
   "static/spotify-player.js": [
@@ -170,7 +156,6 @@
     "60eec46a10136cf5ea8c184b114e1b70e8bfd73ff319acd08ccd935bb0f1a174"
   ],
   "static/utility-surfaces.css": [
-    "10c17d21a5b5c65df00207335d7e2b5addc71fbf2c854174453c3eb21ecee32e",
     "ae56461a5a3b0ac85f479b15e5d2576c0d353b55132e929af8d54e2457fc907c"
   ],
   "static/today-core.js": [
@@ -189,7 +174,6 @@
     "242afbd2b790b584f33c900aa639e49a3ee6193e5ca8f4616d882df1ff855489"
   ],
   "static/home-controls.js": [
-    "6fa402404c94f54f6c063bfee57b31794301c9835f5f03534dda9a5cc0864b34",
     "7078c8dbca56307085a358c95047615d6d2df36c1e501f4a4366653058a9b8c7"
   ],
   "static/capture.js": [
@@ -208,7 +192,6 @@
     "daafabbee7d212c2e7f8ebf3758e4f3862db2f90d54d8024568b9c86be15e928"
   ],
   "static/widgets.js": [
-    "713a349ed60356ea84c684dd9ed6ba7fce171aea2bca3d1a92b7ed06f09d49b7",
     "f8d7499eb33a48319a2da0947e6f973856c179601880844da3577beac731e9a2"
   ],
   "static/file-tools.css": [
@@ -224,7 +207,6 @@
     "a2d03e36e81155dc63321feb786a3856e054eb8ca1034c56e041d0e2979f2542"
   ],
   "static/app.js": [
-    "143bb7a63efa0139e37667c75c212bb99cc8ce7b1a38a378fbd04cc7ca1a8cc1",
     "0d2fa9e71300b2bc606483d11459526a2983bc6dfb1dba1a4d4fc5b79479683c"
   ],
   "static/calm.css": [
@@ -237,11 +219,9 @@
     "72e7d29e2058f68dfef0c435594145244444c367be375d2cd70af96bbdaecb66"
   ],
   "static/command.css": [
-    null,
     "48a69e5dd183c0edd86c624f70963fef2682d6b60375c6dea909eae6421f8503"
   ],
   "static/wallpapers/scenes.json": [
-    null,
     "526f644d9dc4cc62f4e3e1951ecb921c57d770114e0f1f17949029188fedcfc9"
   ],
   "static/wallpapers/rain-long.jpg": [
@@ -321,24 +301,5 @@
   ],
   "scripts/install_glass.py": [
     "e57b4e85c694681615da68e0386fb7103f364ce825b4ee34546dbfdf0b524b0b"
-  ],
-  "static/home-search.css": [
-    null
-  ],
-  "static/home-search.js": [
-    null
-  ],
-  "static/spaces-store.js": [
-    null
-  ],
-  "static/index.html.backup": [
-    null
-  ],
-  "static/spaces.js": [
-    null
-  ],
-  "static/command-spaces.css": [
-    "38e3812bdc6947a615ed45ba47deb63a7b4f36880793f26ac7ca30820413d186",
-    null
   ]
 }

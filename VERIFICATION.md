@@ -1,4 +1,19 @@
-# Current verification — 2026.11.18-r46-review
+# Current verification — 2026.11.18-r47-player-sounds
+
+This refinement removes the current sleeve and tonearm, centers the vinyl, keeps elapsed/total track time visible above the seek line, and separates deduplicated Recent albums and Recent playlists views (up to twenty each). Covers have fixed spacing and horizontal scrolling immediately below the selector. Sounds now toggles directly from the dock with a rain icon/ring and adjacent volume; the secondary arrow opens optional recording choices and credits. Short desktop windows scroll the cards above a reachable dock.
+
+Validation for this refinement:
+
+- 143 Python tests and 64 JavaScript tests passed.
+- Spotify browser suite passed for mouse and simulated touch, covering centered record geometry, persistent timecodes, twenty unique albums/twelve unique playlists from intentionally duplicated responses, horizontal shelf containment, direct playback, Liked Songs, seek/volume, error recovery and reduced motion.
+- Chrome and Firefox desktop matrix passed; Capture and 25 toolbar browser checks passed.
+- Muted real-recording browser checks cover direct dock play/pause, illuminated ring, inline volume, optional choices, remembered preferences, no autoplay, hidden-tab continuation, Focus independence, end-of-file looping and compact desktop reachability.
+
+Provider behavior uses synthetic account fixtures. Audio tests decode installed MP3s with output muted. Actual signed-in Spotify behavior and physical touch hardware remain separate acceptance checks. This refinement has no measured whole-app performance claim.
+
+---
+
+# Prior reviewed release — 2026.11.18-r46-review
 
 The release includes the audit reliability work and the newest Spotify deck/shelf, including Liked Songs and the contained listening controls. This review adds private calendar responses, blank warmer setup, one wallpaper catalog, focused-window scenery playback and bounded optional glass, and removes retired source artifacts. The installed Files/Sounds features and their dependencies, font/license, source catalog and tests are merged; large optional audio is retained locally and excluded from source publication.
 

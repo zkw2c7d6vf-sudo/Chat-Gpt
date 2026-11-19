@@ -14,7 +14,7 @@ import time
 from urllib.request import urlopen
 
 ROOT=Path(__file__).resolve().parents[1]
-RELEASE='2026.11.18-r46-review'
+RELEASE='2026.11.18-r47-player-sounds'
 HEALTH_URL='http://127.0.0.1:8765/api/bootstrap'
 RETIRED={'spaces.js','spaces-store.js','home-search.js','home-search.css','index.html.backup','command-spaces.css'}
 

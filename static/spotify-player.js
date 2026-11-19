@@ -1,12 +1,12 @@
-/* Inline Spotify controls and a ten-record shelf. No playback occurs without a click. */
+/* Inline Spotify controls and distinct recent albums/playlists. No playback occurs without a click. */
 'use strict';
 (() => {
   const $ = id => document.getElementById(id);
   const music = $('music'), row = $('spotifyRecents'), preview = $('recordPreview');
   const status = $('homePlaybackStatus');
-  let busy = false, tracks = [], albums = [], mode = 'tracks', signature = '';
+  let busy = false, albums = [], playlists = [], mode = 'albums', signature = '';
   let nextFetch = 0, fetching = false, historyMessage = '', historyConsent = false;
-  let previousVolume = 50, lastSecond = '', loading = false, failedSleeveImage = '';
+  let previousVolume = 50, lastSecond = '', loading = false;
   const svg = path => {
     const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     for (const [key, value] of Object.entries({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.6','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'})) icon.setAttribute(key,value);
@@ -27,9 +27,6 @@
     if (!busy && p?.playing && status.textContent === 'Sent to Spotify · waiting for playback.') message('');
     music.dataset.connected = String(!!state.spotify.connected);
     music.dataset.active = String(active);
-    const image = active && /^https:\/\//.test(p.image || '') ? p.image : '';
-    $('sleeveArt').hidden = !image || image === failedSleeveImage;
-    if (image && image !== failedSleeveImage && $('sleeveArt').getAttribute('src') !== image) $('sleeveArt').src = image;
     if (!active) {
       $('musicTitle').textContent = state.spotify.connected ? 'Nothing playing' : 'Your listening room';
       $('artist').textContent = state.spotify.connected ? 'Choose a record or open Spotify.' : 'A little room for your music.';
@@ -163,14 +160,19 @@
 
   function renderShelf() {
     $('shelfView').value = mode;
-    const items = mode === 'tracks' ? tracks : albums, key = JSON.stringify([items,mode]);
-    $('shelfEmpty').textContent = historyMessage || (loading?'Loading your records…':items.length?'':'Your recent listening will appear here.');
+    const seen = new Set();
+    const items = (mode === 'playlists' ? playlists : albums).filter(item => {
+      const match = /^https:\/\/open\.spotify\.com\/(album|playlist)\/[a-zA-Z0-9]{1,64}$/.exec(item.url || '');
+      if (!match || match[1] !== (mode === 'playlists' ? 'playlist' : 'album') || seen.has(item.url)) return false;
+      seen.add(item.url); return true;
+    }), key = JSON.stringify([items,mode]);
+    $('shelfEmpty').textContent = historyMessage || (loading?'Loading your records…':items.length?'':(mode === 'playlists' ? 'Play a playlist in Spotify to see it here.' : 'Your recently played albums will appear here.'));
     $('shelfEmpty').hidden = !!items.length && !historyMessage;
     $('shelfConnect').hidden = !historyConsent;
     if (signature === key) return;
     signature = key; preview.hidden = true; row.replaceChildren();
-    row.setAttribute('aria-label',mode === 'tracks'?'Ten most recently played songs':'Recently played albums and playlists');
-    for (const item of items.slice(0,10)) {
+    row.setAttribute('aria-label',mode === 'playlists'?'Recently played playlists':'Recently played albums');
+    for (const item of items.slice(0,20)) {
       const match = /^https:\/\/open\.spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]{1,64})$/.exec(item.url || '');
       if (!match) continue;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'shelfRecord'; button.dataset.url = item.url;
@@ -183,26 +185,27 @@
     }
     row.hidden = !row.childElementCount; sync();
   }
-  for (const [id,value] of [['shelfTracks','tracks'],['shelfAlbums','albums']]) $(id).onclick = () => {
-    mode = value; $('shelfTracks').setAttribute('aria-pressed',String(mode === 'tracks')); $('shelfAlbums').setAttribute('aria-pressed',String(mode === 'albums')); renderShelf();
+  try { if (localStorage.getItem('midnight-shelf-view') === 'playlists') mode = 'playlists'; } catch {}
+  $('shelfView').onchange = () => {
+    mode = $('shelfView').value;
+    try { localStorage.setItem('midnight-shelf-view', mode); } catch {}
+    renderShelf();
   };
-  $('shelfView').onchange = () => {mode = $('shelfView').value; renderShelf();};
   // The request starts immediately. Finite transform animations occupy its round trip.
   async function animateRecord(item,button) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || document.hidden) return;
     const source = button.querySelector('.recordCover').getBoundingClientRect(), target = $('disc').getBoundingClientRect();
-    const sleeve = art(item,'recordFlightSleeve'), vinyl = art(item,'recordFlightVinyl');
+    const vinyl = art(item,'recordFlightVinyl');
     const size = 88, left = source.left + source.width/2-size/2, top = source.top + source.height/2-size/2;
-    for (const node of [vinyl,sleeve]) {node.setAttribute('aria-hidden','true'); node.style.left=left+'px';node.style.top=top+'px';document.body.append(node);}
+    vinyl.setAttribute('aria-hidden','true'); vinyl.style.left=left+'px';vinyl.style.top=top+'px';document.body.append(vinyl);
     const dx = target.left+target.width/2-(left+size/2), dy = target.top+target.height/2-(top+size/2);
-    const a = sleeve.animate([{transform:'translateY(0) rotate(-8deg)',opacity:1},{transform:'translateY(-85px) rotate(-5deg)',opacity:1,offset:.3},{transform:'translateY(-85px) rotate(-5deg)',opacity:1,offset:.65},{transform:'translateY(0) rotate(-8deg)',opacity:0}],{duration:1100,easing:'cubic-bezier(.22,.7,.2,1)'});
     const b = vinyl.animate([{transform:'translate(0,0) scale(.65)',opacity:0},{transform:'translate(0,-85px) scale(1)',opacity:1,offset:.3},{transform:'translate(58px,-85px) scale(1) rotate(30deg)',opacity:1,offset:.55},{transform:`translate(${dx}px,${dy-16}px) scale(${target.width/size}) rotate(110deg)`,opacity:1,offset:.9},{transform:`translate(${dx}px,${dy}px) scale(${target.width/size}) rotate(135deg)`,opacity:0}],{duration:1500,easing:'cubic-bezier(.22,.7,.2,1)'});
-    const stop = () => {a.cancel();b.cancel();};
+    const stop = () => {b.cancel();};
     const visibility = () => {if(document.hidden)stop();}; document.addEventListener('visibilitychange',visibility);
     const reduced = matchMedia('(prefers-reduced-motion: reduce)'); const preference = () => {if(reduced.matches)stop();};reduced.addEventListener('change',preference);
     addEventListener('resize',stop,{once:true});
-    try {await Promise.allSettled([a.finished,b.finished]);}
-    finally {document.removeEventListener('visibilitychange',visibility);reduced.removeEventListener('change',preference);removeEventListener('resize',stop);sleeve.remove();vinyl.remove();}
+    try {await Promise.allSettled([b.finished]);}
+    finally {document.removeEventListener('visibilitychange',visibility);reduced.removeEventListener('change',preference);removeEventListener('resize',stop);vinyl.remove();}
   }
   async function playRecord(item,button,match) {
     if (busy) return;
@@ -220,13 +223,14 @@
   }
   async function refreshShelf() {
     if (!MidnightApp.spotifyConnected()) {
-      tracks=[];albums=[];nextFetch=0;historyConsent=false;historyMessage='Connect Spotify to fill your record shelf.';renderShelf();return;
+      albums=[];playlists=[];nextFetch=0;historyConsent=false;historyMessage='Connect Spotify to fill your record shelf.';renderShelf();return;
     }
     if (document.hidden || fetching || Date.now() < nextFetch) return;
     fetching = loading = true; nextFetch = Date.now()+120000; historyMessage=''; renderShelf();
     try {
       const data = await MidnightApp.request('spotify/recent'); if (!MidnightApp.spotifyConnected()) return;
-      tracks = data.tracks || []; albums = data.items || []; historyConsent = !!data.needs_consent;
+      albums = data.albums || (data.items || []).filter(item => item.url?.includes('/album/'));
+      playlists = data.playlists || (data.items || []).filter(item => item.url?.includes('/playlist/')); historyConsent = !!data.needs_consent;
       historyMessage = historyConsent ? 'Allow listening history to fill your shelf.' : '';
       $('spotifyRecentsStatus').textContent = historyMessage; $('spotifyRecentsConnect').hidden = !historyConsent;
     } catch(error) {historyMessage = 'History unavailable · '+error.message;}
@@ -238,5 +242,5 @@
   addEventListener('midnight:tick',progress); document.addEventListener('visibilitychange',refreshShelf);
   MidnightActivity.every('spotify-record-shelf',refreshShelf,120000,{enabled:()=>MidnightApp.spotifyConnected()});
   $('albumArt').onerror = () => {$('albumArt').hidden = true;};
-  $('sleeveArt').onerror = () => {failedSleeveImage = $('sleeveArt').getAttribute('src') || ''; $('sleeveArt').hidden = true;}; sync(); refreshShelf();
+  sync(); refreshShelf();
 })();

@@ -16,3 +16,5 @@ Architecture: FastAPI `server.py`, vanilla JS/CSS in `static/`. Capture is isola
 - Included scene paths and attribution come only from `static/wallpapers/scenes.json`; never duplicate that table in JS or Python. A source clone supports still backgrounds without MP4s. Preserve original credits; Pixabay is the only online scene provider.
 - Efficient effects use no backdrop filters. Optional glass caps its blur at 18px. Pause motion when another window is focused by default, with a remembered visible-window override.
 - New installations have no warmer IP. Preserve saved setup; require an explicit valid LAN address before enabling device access. Never return saved secret calendar URLs in bootstrap/settings responses; an empty unmodified replacement input keeps the saved subscription.
+
+- Spotify home uses a centered record without a sleeve or tonearm. Keep elapsed and total track time visible above the seek line. Recent albums and recent playlists are distinct deduplicated views with spaced, scrollable covers. Sounds is a direct dock play/pause action with an active rain ring and inline volume; its secondary arrow opens optional recording choices.

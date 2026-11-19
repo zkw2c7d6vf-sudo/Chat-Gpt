@@ -20,7 +20,7 @@ def test_ten_latest_distinct_playable_songs_keep_covers_and_skip_local_or_unavai
     assert tracks[0]['image'] == 'https://images.test/2.jpg'
     assert tracks[0]['artist'] == 'Artist'
     assert tracks[0]['album'] == 'Album 2'
-    assert len(recent_collections([entry(n) for n in range(15)])) == 10
+    assert len(recent_collections([entry(n) for n in range(25)])) == 20
 
 
 def test_source_playlist_is_retained_without_replacing_song_artwork():
@@ -64,7 +64,9 @@ def test_recent_endpoint_returns_tracks_and_keeps_album_shelf(client, monkeypatc
     monkeypatch.setattr(server,'spotify_request',request)
     response = client.get('/api/spotify/recent')
     assert response.status_code == 200
-    assert len(response.json()['tracks']) == len(response.json()['items']) == 10
+    assert len(response.json()['tracks']) == 10
+    assert len(response.json()['albums']) == len(response.json()['items']) == 12
+    assert response.json()['playlists'] == []
     request.assert_awaited_once_with('GET','/recently-played?limit=50')
 
 
@@ -133,3 +135,25 @@ def test_spotify_connect_requests_liked_songs_permissions(client):
     response=client.post('/api/spotify/connect',headers={'X-Midnight-Token':server.CSRF})
     scopes=set(parse_qs(urlsplit(response.json()['url']).query)['scope'][0].split())
     assert {'user-library-read','user-library-modify'} <= scopes
+
+
+def test_albums_and_playlist_contexts_are_separate_distinct_and_keep_recent_order():
+    history = [entry(1), entry(1), entry(2), entry(3)]
+    for item in history:
+        item['context'] = {'uri': 'spotify:playlist:Mix1'}
+    history[-1]['context'] = {'uri': 'spotify:playlist:Mix2'}
+    values = recent_collections(history)
+    assert list(values) == ['spotify:album:Album1', 'spotify:playlist:Mix1',
+                            'spotify:album:Album2', 'spotify:album:Album3', 'spotify:playlist:Mix2']
+    assert values['spotify:album:Album1']['name'] == 'Album 1'
+    assert values['spotify:playlist:Mix1']['image'] is None
+
+
+def test_each_history_view_gets_its_own_twenty_item_limit():
+    history = [entry(n) for n in range(30)]
+    for index, item in enumerate(history):
+        item['context'] = {'uri': f'spotify:playlist:Mix{index}'}
+    values = recent_collections(history)
+    assert len(values) == 40
+    assert sum('/playlist/' in item['url'] for item in values.values()) == 20
+    assert sum('/album/' in item['url'] for item in values.values()) == 20

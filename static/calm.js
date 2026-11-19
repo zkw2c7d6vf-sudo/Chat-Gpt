@@ -14,7 +14,7 @@ window.MidnightPanels=(()=>{
  }
  addEventListener('midnight:warmer',syncWarmer);
  document.querySelectorAll('[data-panel]').forEach(button=>{
-  if (button!==warmer) button.onclick=()=>open(button.dataset.panel);
+  if (button!==warmer && button.id!=='soundsDock') button.onclick=()=>open(button.dataset.panel);
  });
  warmer.onclick=async()=>{
   if (warmer.disabled) return;
@@ -35,7 +35,7 @@ window.MidnightPanels=(()=>{
  document.querySelectorAll('[data-dock-icon]').forEach(el=>el.replaceChildren(MidnightIcons.make(el.dataset.dockIcon)));
  document.getElementById('todayCalendar').replaceChildren(MidnightIcons.make('calendar'));
  document.getElementById('nextCalendar').onclick=()=>open('calendar');
- document.querySelectorAll('[data-panel]:not([data-panel=room]), #inboxOpen, #musicMore, #weatherMore, #todayCalendar, #nextCalendar').forEach(button=>button.setAttribute('aria-haspopup','dialog'));
+ document.querySelectorAll('[data-panel]:not([data-panel=room]):not([data-panel=sounds]), #inboxOpen, #musicMore, #weatherMore, #todayCalendar, #nextCalendar').forEach(button=>button.setAttribute('aria-haspopup','dialog'));
  addEventListener('midnight:focus',event=>{document.getElementById('dockFocusDot').hidden=!event.detail.running;});
  return {open,reveal};
 })();

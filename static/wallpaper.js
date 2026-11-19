@@ -125,7 +125,7 @@ window.MidnightWallpaper=(()=>{
  MidnightActivity.every('wallpaper',refresh,60000,{enabled:()=>motion&&!reduced.matches&&!busy&&foreground()&&!!theme()});
  async function loadCatalog(){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
-  try{const response=await fetch('/static/wallpapers/scenes.json?v=r46-review',{signal:controller.signal});if(!response.ok)throw new Error('Catalog unavailable');const catalog=await response.json();if(catalog.format!==1||!['nature','rain'].every(name=>/^\/static\/wallpapers\/[a-z-]+\.jpg$/.test(catalog.scenes?.[name]?.poster)))throw new Error('Invalid catalog');Object.assign(included,catalog.scenes);const name=theme();if(name)present({...included[name],src:'',source:'still'},name);await preferences();await refresh();}
+  try{const response=await fetch('/static/wallpapers/scenes.json?v=r47-player-sounds',{signal:controller.signal});if(!response.ok)throw new Error('Catalog unavailable');const catalog=await response.json();if(catalog.format!==1||!['nature','rain'].every(name=>/^\/static\/wallpapers\/[a-z-]+\.jpg$/.test(catalog.scenes?.[name]?.poster)))throw new Error('Invalid catalog');Object.assign(included,catalog.scenes);const name=theme();if(name)present({...included[name],src:'',source:'still'},name);await preferences();await refresh();}
   catch{status('Background information could not load. Reload when the local app is available.');}
   finally{clearTimeout(timer);}
  }
